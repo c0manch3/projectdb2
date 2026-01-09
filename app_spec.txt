@@ -1,0 +1,928 @@
+<project_specification>
+  <project_name>ProjectDB</project_name>
+
+  <overview>
+    ProjectDB is a mobile-first web application for managing engineering company projects. The system enables tracking projects, structures (constructions), documentation with versioning, employee workload planning and monitoring, client/contractor company management, and payment schedules. Built with NestJS backend and React frontend, featuring full responsive design for all devices.
+  </overview>
+
+  <technology_stack>
+    <frontend>
+      <framework>React 18.x with TypeScript 5.x</framework>
+      <build_tool>Vite 5.x</build_tool>
+      <routing>React Router 6.x</routing>
+      <state_management>
+        <global>Redux Toolkit 2.x</global>
+        <local>Zustand 4.x</local>
+        <server>TanStack Query 5.x</server>
+      </state_management>
+      <forms>React Hook Form 7.x with Zod 3.x validation</forms>
+      <styling>Tailwind CSS 3.4.x</styling>
+      <animations>Framer Motion 11.x</animations>
+      <visualization>D3.js 7.x</visualization>
+      <pdf>jsPDF 3.x</pdf>
+      <realtime>Socket.io Client 4.x</realtime>
+      <notifications>react-hot-toast 2.x</notifications>
+      <http_client>Axios 1.7.x</http_client>
+    </frontend>
+    <backend>
+      <runtime>Node.js 20+</runtime>
+      <framework>NestJS 11.x</framework>
+      <database>PostgreSQL 15+ (local development)</database>
+      <orm>Prisma ORM 6.x</orm>
+      <authentication>JWT (access 15min, refresh 7 days)</authentication>
+      <password_hashing>bcrypt 6.x (cost factor 10)</password_hashing>
+      <validation>class-validator 0.14.x, class-transformer 0.5.x</validation>
+      <file_uploads>multer (max 50MB)</file_uploads>
+      <date_handling>dayjs 1.11.x</date_handling>
+      <uuid>uuid 11.x</uuid>
+    </backend>
+    <testing>
+      <tool>MCP Chrome DevTools for UI testing</tool>
+      <approach>All changes must be tested through MCP Chrome DevTools</approach>
+    </testing>
+  </technology_stack>
+
+  <prerequisites>
+    <environment_setup>
+      - Node.js 20+ installed
+      - PostgreSQL 15+ installed and running locally
+      - npm or yarn package manager
+      - Git for version control
+      - MCP Chrome DevTools configured for testing
+    </environment_setup>
+    <database_setup>
+      - Create local PostgreSQL database named 'projectdb'
+      - Configure DATABASE_URL in .env file
+      - Run Prisma migrations to set up schema
+      - Optionally run seed script for initial data
+    </database_setup>
+  </prerequisites>
+
+  <feature_count>300</feature_count>
+
+  <security_and_access_control>
+    <user_roles>
+      <role name="Admin">
+        <description>System administrator with full access</description>
+        <permissions>
+          - Full CRUD on all entities
+          - User management (create, update, delete users)
+          - Company management (create, update, delete)
+          - View all projects and data
+          - Access analytics and reports
+          - View LenConnect chat logs
+          - Change any user's role
+        </permissions>
+        <protected_routes>
+          - All routes accessible
+        </protected_routes>
+      </role>
+      <role name="Manager">
+        <description>Project manager with project-level access</description>
+        <permissions>
+          - Create and manage projects
+          - Assign employees to projects
+          - Plan workload for employees
+          - Upload and manage documents
+          - Create and manage constructions
+          - Manage payment schedules
+          - View all projects and employees
+          - View analytics
+        </permissions>
+        <protected_routes>
+          - /projects/* (full access to own projects)
+          - /constructions/*
+          - /workload/*
+          - /companies (view only)
+          - /employees (view only)
+          - /analytics/*
+        </protected_routes>
+      </role>
+      <role name="Employee">
+        <description>Staff member with limited access</description>
+        <permissions>
+          - View assigned projects only
+          - Record actual worked hours
+          - View own workload plan
+          - Upload documents to assigned projects
+          - View own profile
+        </permissions>
+        <protected_routes>
+          - /workload/my
+          - /projects (only assigned)
+          - /profile
+        </protected_routes>
+      </role>
+      <role name="Trial">
+        <description>Trial period user with view-only access</description>
+        <permissions>
+          - View projects (read-only)
+          - View constructions (read-only)
+          - View workload (read-only)
+          - View analytics (read-only)
+          - Cannot create, edit, or delete anything
+        </permissions>
+        <protected_routes>
+          - /projects (view only)
+          - /constructions (view only)
+          - /workload (view only)
+          - /analytics (view only)
+        </protected_routes>
+      </role>
+    </user_roles>
+    <authentication>
+      <method>Email/password with JWT tokens</method>
+      <access_token_lifetime>15 minutes</access_token_lifetime>
+      <refresh_token_lifetime>7 days</refresh_token_lifetime>
+      <password_requirements>Minimum 8 characters, hashed with bcrypt</password_requirements>
+      <session_handling>Automatic token refresh, logout on token expiry</session_handling>
+    </authentication>
+    <sensitive_operations>
+      - Delete user requires Admin role
+      - Delete project requires Admin role
+      - Change user role requires Admin role
+      - Password change invalidates all refresh tokens
+    </sensitive_operations>
+    <guards>
+      <guard name="JwtAuthGuard">JWT token verification for all protected routes</guard>
+      <guard name="AppAdminGuard">Admin role required</guard>
+      <guard name="AppManagerGuard">Manager role required</guard>
+      <guard name="AppEmployeeGuard">Employee role required</guard>
+      <guard name="AppManagerOrTrialGuard">Manager or Trial role</guard>
+      <guard name="NotTrialGuard">All roles except Trial</guard>
+      <guard name="ProjectManagerGuard">Must be manager of specific project</guard>
+      <guard name="ProjectAdminOrManagerGuard">Admin or project manager</guard>
+      <guard name="ConstructionAdminOrManagerGuard">Admin or construction's project manager</guard>
+    </guards>
+  </security_and_access_control>
+
+  <core_features>
+    <authentication>
+      - User login with email/password
+      - JWT access token (15 min) and refresh token (7 days)
+      - Automatic token refresh
+      - User registration (Admin only)
+      - Password change (invalidates all sessions)
+      - Token validation endpoint
+      - Get available employees for date
+      - Logout functionality
+    </authentication>
+
+    <user_management>
+      - List all users (Admin)
+      - Create new user with role assignment (Admin)
+      - Update user information (Admin)
+      - Delete user (Admin)
+      - User profile view and edit
+      - Role-based access control (Admin, Manager, Employee, Trial)
+      - Salary tracking
+      - Telegram ID for notifications
+      - Birth date tracking
+    </user_management>
+
+    <company_management>
+      - List all companies with filtering
+      - Create company (Admin)
+      - Update company details (Admin)
+      - Delete company (Admin)
+      - Company types: Customer, Contractor
+      - Full banking details (account, bank, BIK, corr account)
+      - Tax information (INN, KPP, OGRN)
+      - Contact information (address, phone, email, postal code)
+    </company_management>
+
+    <project_management>
+      - List all projects with filtering
+      - Create project with customer assignment
+      - Update project details
+      - Delete project (Admin)
+      - Project types: main (primary), additional (supplementary agreement)
+      - Project statuses: Active, Completed
+      - Link additional projects to main project
+      - Assign manager to project
+      - Contract and expiration dates
+      - Contract document attachment
+      - Get project employee workload
+      - Get specific employee workload on project
+    </project_management>
+
+    <project_user_management>
+      - Assign employees to projects
+      - Remove employees from projects
+      - View project team members
+      - Unique constraint on user-project combination
+    </project_user_management>
+
+    <construction_management>
+      - List all constructions with project filter
+      - Create construction within project
+      - Update construction details
+      - Delete construction
+      - Link constructions to projects
+      - Separate document management per construction
+    </construction_management>
+
+    <document_management>
+      - Upload documents (multipart/form-data)
+      - Document types: tz (Technical Spec), contract, project_documentation, working_documentation
+      - Link documents to projects or constructions
+      - Document versioning (auto-increment on replace)
+      - Replace document (creates new version)
+      - Download document by ID
+      - Delete document
+      - Get documents by project
+      - Get documents by construction
+      - Filter by document type
+      - Store original name, hash name, mime type
+      - Maximum file size: 50MB
+      - Supported formats: PDF, DOC, DOCX, XLS, XLSX, DWG, DXF, etc.
+    </document_management>
+
+    <workload_plan>
+      - List all workload plans
+      - Create workload plan (assign employee to project for date)
+      - Update workload plan
+      - Delete workload plan
+      - Manager specifies who planned the assignment
+      - One employee can be assigned to multiple projects per day
+      - Unique constraint on (userId, date)
+    </workload_plan>
+
+    <workload_actual>
+      - List actual workload records
+      - Create actual workload (employee records hours)
+      - Delete actual workload record
+      - Track hours worked per day
+      - User text/comments on work
+      - Distribute hours across multiple projects
+      - Project workload distribution with description
+      - Unique constraint on (userId, date)
+    </workload_actual>
+
+    <unified_workload>
+      - Get all workload (plan + actual combined)
+      - Get my workload (current employee)
+      - Get all employees workload
+      - Filter by date
+      - Filter by project
+      - Calendar view (day/week/month)
+      - Plan vs actual comparison
+      - Hour deviation detection (from 8-hour norm)
+    </unified_workload>
+
+    <payment_schedule>
+      - List all payment schedules
+      - Create payment schedule for project
+      - Update payment schedule
+      - Delete payment schedule
+      - Get payments by project
+      - Payment types: Advance, MainPayment, FinalPayment, Other
+      - Amount and percentage tracking
+      - Expected date and actual date
+      - Paid/unpaid status
+      - Description field
+      - Overdue payment highlighting
+    </payment_schedule>
+
+    <analytics>
+      - Projects workload analytics
+      - Compare with previous period
+      - Bubble chart visualization (D3.js)
+      - Employee work hours deviations
+      - Identify irregular work patterns
+      - Workload by project breakdown
+      - Query by date and compare date
+    </analytics>
+
+    <lenconnect_chat_logs>
+      - List all chat logs (Admin)
+      - Get specific log by ID (Admin)
+      - Get logs by user (Admin)
+      - Get logs by user and request type (Admin)
+      - Chat roles: User, Assistant
+      - Request types: Report, Proposal
+    </lenconnect_chat_logs>
+
+    <employee_proposals>
+      - Store employee proposals
+      - Track proposal creation date
+      - Link to user who created
+    </employee_proposals>
+  </core_features>
+
+  <database_schema>
+    <tables>
+      <User>
+        - id: UUID (PK)
+        - firstName: String
+        - lastName: String
+        - email: String (unique)
+        - phone: String (unique)
+        - passwordHash: String
+        - dateBirth: DateTime (optional)
+        - role: UserRole (Admin | Manager | Employee | Trial)
+        - telegramId: String (optional)
+        - salary: Decimal (optional)
+        - createdAt: DateTime
+        - updatedAt: DateTime
+      </User>
+
+      <Company>
+        - id: UUID (PK)
+        - name: String
+        - type: CompanyType (Customer | Contractor)
+        - address: String (optional)
+        - phone: String (optional)
+        - email: String (optional)
+        - account: String (optional) - bank account
+        - bank: String (optional)
+        - bik: String (optional)
+        - corrAccount: String (optional)
+        - inn: String (optional)
+        - kpp: String (optional)
+        - ogrn: String (optional)
+        - postalCode: String (optional)
+        - createdAt: DateTime
+        - updatedAt: DateTime
+      </Company>
+
+      <Project>
+        - id: UUID (PK)
+        - name: String
+        - contractDate: DateTime
+        - expirationDate: DateTime
+        - type: ProjectType (main | additional)
+        - status: ProjectStatus (Active | Completed)
+        - customerId: UUID (FK -> Company)
+        - managerId: UUID (FK -> User)
+        - mainProjectId: UUID (optional, FK -> Project, self-reference)
+        - contractDocumentId: UUID (optional, FK -> Document)
+        - createdAt: DateTime
+        - updatedAt: DateTime
+      </Project>
+
+      <Construction>
+        - id: UUID (PK)
+        - name: String
+        - projectId: UUID (FK -> Project)
+        - createdAt: DateTime
+        - updatedAt: DateTime
+      </Construction>
+
+      <Document>
+        - id: UUID (PK)
+        - type: DocumentType (tz | contract | project_documentation | working_documentation)
+        - version: Int
+        - path: String
+        - mimeType: String
+        - hashName: String
+        - originalName: String
+        - uploadedAt: DateTime
+        - uploadedById: UUID (FK -> User)
+        - projectId: UUID (FK -> Project)
+        - constructionId: UUID (optional, FK -> Construction)
+      </Document>
+
+      <WorkloadPlan>
+        - id: UUID (PK)
+        - userId: UUID (FK -> User)
+        - projectId: UUID (FK -> Project)
+        - managerId: UUID (FK -> User)
+        - date: DateTime
+        - createdAt: DateTime
+        - updatedAt: DateTime
+        - UNIQUE: (userId, date)
+      </WorkloadPlan>
+
+      <WorkloadActual>
+        - id: UUID (PK)
+        - userId: UUID (FK -> User)
+        - date: DateTime
+        - hoursWorked: Decimal
+        - userText: String (optional)
+        - createdAt: DateTime
+        - updatedAt: DateTime
+        - UNIQUE: (userId, date)
+      </WorkloadActual>
+
+      <ProjectWorkloadDistribution>
+        - id: UUID (PK)
+        - workloadActualId: UUID (FK -> WorkloadActual)
+        - projectId: UUID (FK -> Project)
+        - hours: Decimal
+        - description: String (optional)
+      </ProjectWorkloadDistribution>
+
+      <PaymentSchedule>
+        - id: UUID (PK)
+        - projectId: UUID (FK -> Project)
+        - type: PaymentType (Advance | MainPayment | FinalPayment | Other)
+        - name: String
+        - amount: Decimal
+        - percentage: Decimal (optional)
+        - expectedDate: DateTime
+        - actualDate: DateTime (optional)
+        - isPaid: Boolean (default false)
+        - description: String (optional)
+        - createdAt: DateTime
+        - updatedAt: DateTime
+      </PaymentSchedule>
+
+      <RefreshToken>
+        - id: UUID (PK)
+        - userId: UUID (FK -> User)
+        - expiresIn: DateTime
+        - createdAt: DateTime
+      </RefreshToken>
+
+      <ProjectUser>
+        - id: UUID (PK)
+        - userId: UUID (FK -> User)
+        - projectId: UUID (FK -> Project)
+        - createdAt: DateTime
+        - UNIQUE: (userId, projectId)
+      </ProjectUser>
+
+      <EmployeeProposal>
+        - id: UUID (PK)
+        - userId: UUID (FK -> User)
+        - proposal: String
+        - createdAt: DateTime
+      </EmployeeProposal>
+
+      <LenconnectChatLog>
+        - id: UUID (PK)
+        - userId: UUID (FK -> User)
+        - role: ChatRole (User | Assistant)
+        - content: String
+        - requestType: ChatRequestType (Report | Proposal)
+        - createdAt: DateTime
+      </LenconnectChatLog>
+    </tables>
+
+    <enums>
+      <UserRole>Admin | Manager | Employee | Trial</UserRole>
+      <CompanyType>Customer | Contractor</CompanyType>
+      <ProjectType>main | additional</ProjectType>
+      <ProjectStatus>Active | Completed</ProjectStatus>
+      <DocumentType>tz | contract | project_documentation | working_documentation</DocumentType>
+      <PaymentType>Advance | MainPayment | FinalPayment | Other</PaymentType>
+      <ChatRole>User | Assistant</ChatRole>
+      <ChatRequestType>Report | Proposal</ChatRequestType>
+    </enums>
+  </database_schema>
+
+  <api_endpoints_summary>
+    <authentication prefix="/auth">
+      - POST /auth/register - Register new user (Admin only)
+      - POST /auth/login - Login to system (Public)
+      - POST /auth/refresh - Refresh access token (Authenticated)
+      - POST /auth/check - Validate token (Authenticated)
+      - PATCH /auth/change-password - Change password (Authenticated)
+      - GET /auth - Get user list (Admin)
+      - GET /auth/available-employees - Available employees for date (Manager)
+      - DELETE /auth/:id - Delete user (Admin)
+      - PATCH /auth/:id - Update user data (Admin)
+    </authentication>
+
+    <projects prefix="/project">
+      - GET /project - Get all projects (Manager, Trial)
+      - GET /project/:id - Get project by ID (Manager, Trial)
+      - POST /project/create - Create project (Manager)
+      - PATCH /project/:id - Update project (ProjectManager, Admin)
+      - DELETE /project/:id - Delete project (Admin)
+      - GET /project/:projectId/workload/employees - Project employee workload (Manager)
+      - GET /project/:projectId/workload/employees/:userId - Employee workload on project (Manager)
+    </projects>
+
+    <companies prefix="/company">
+      - GET /company - Get all companies (Authenticated)
+      - GET /company/:uuid - Get company (Authenticated)
+      - POST /company/create - Create company (Admin)
+      - PATCH /company/:uuid - Update company (Admin)
+      - DELETE /company/:uuid - Delete company (Admin)
+    </companies>
+
+    <constructions prefix="/construction">
+      - GET /construction - Get all constructions (Manager, Trial) - supports ?projectId filter
+      - GET /construction/:id - Get construction (Manager, Trial)
+      - POST /construction/create - Create construction (Manager)
+      - PATCH /construction/:id - Update construction (ConstructionManager, Admin)
+      - DELETE /construction/:id - Delete construction (Manager)
+    </constructions>
+
+    <documents prefix="/document">
+      - POST /document/upload - Upload document (NotTrial) - multipart/form-data
+      - GET /document/project/:projectId - Project documents (Authenticated) - supports ?type filter
+      - GET /document/construction/:constructionId - Construction documents (Authenticated)
+      - GET /document/:fileId - Download document (Authenticated)
+      - PUT /document/:fileId/replace - Replace document, new version (NotTrial)
+      - DELETE /document/:fileId - Delete document (NotTrial)
+    </documents>
+
+    <workload_plan prefix="/workload-plan">
+      - GET /workload-plan - Get all workload plans (Manager)
+      - GET /workload-plan/:id - Get plan (Manager)
+      - POST /workload-plan/create - Create plan (ProjectManager)
+      - PATCH /workload-plan/:id - Update plan (ProjectManager)
+      - DELETE /workload-plan/:id - Delete plan (ProjectManager)
+    </workload_plan>
+
+    <workload_actual prefix="/workload-actual">
+      - GET /workload-actual - Get actual workload (Authenticated)
+      - GET /workload-actual/:uuid - Get record (Authenticated)
+      - POST /workload-actual/create - Create record (Employee)
+      - DELETE /workload-actual/:uuid - Delete record (Employee)
+    </workload_actual>
+
+    <unified_workload prefix="/workload">
+      - GET /workload - Get all workload plan+actual (Manager, Trial) - supports ?date, ?projectId
+      - GET /workload/my - My workload (Employee)
+      - GET /workload/employees - All employees workload (Manager, Trial)
+    </unified_workload>
+
+    <payment_schedule prefix="/payment-schedule">
+      - GET /payment-schedule - Get all payments (Manager)
+      - GET /payment-schedule/:id - Get payment (Manager)
+      - GET /payment-schedule/project/:projectId - Project payments (Manager)
+      - POST /payment-schedule/create - Create payment (Manager)
+      - PATCH /payment-schedule/:id - Update payment (Manager)
+      - DELETE /payment-schedule/:id - Delete payment (Manager)
+    </payment_schedule>
+
+    <lenconnect_chat_logs prefix="/lenconnect-chat-logs">
+      - GET /lenconnect-chat-logs - All chat logs (Admin)
+      - GET /lenconnect-chat-logs/:uuid - Specific log (Admin)
+      - GET /lenconnect-chat-logs/user/:userId - User logs (Admin)
+      - GET /lenconnect-chat-logs/user/:userId/:requestType - By request type (Admin)
+    </lenconnect_chat_logs>
+
+    <analytics prefix="/analytics">
+      - GET /analytics/projects-workload - Project workload analytics (Manager, Trial) - supports ?date, ?compareDate
+      - GET /analytics/employee-work-hours - Employees with hour deviations (Manager, Trial)
+    </analytics>
+  </api_endpoints_summary>
+
+  <ui_layout>
+    <main_structure>
+      <desktop width="1024px+">
+        - Full sidebar navigation (always visible)
+        - Main content area with header
+        - Centered modals with overlay
+      </desktop>
+      <tablet width="768px-1024px">
+        - Collapsible sidebar (hamburger toggle)
+        - Touch-friendly buttons (min 44x44px)
+        - Centered modals
+      </tablet>
+      <mobile width="320px-768px">
+        - Bottom navigation bar (Projects, Workload, Profile, More)
+        - Hamburger menu for additional sections
+        - Full-screen modals (slide up)
+        - Card-based layouts instead of tables
+        - Swipe gestures for navigation
+      </mobile>
+    </main_structure>
+
+    <pages>
+      <page path="/login">Login form (Public)</page>
+      <page path="/projects">Project list with filtering and search (Manager, Trial)</page>
+      <page path="/projects/:id">Project details with tabs (Manager, Trial)</page>
+      <page path="/constructions">Construction list with project filter (Manager, Trial)</page>
+      <page path="/employees">Employee management with CRUD (Admin, Manager)</page>
+      <page path="/companies">Company management with CRUD (Admin, Manager)</page>
+      <page path="/workload">Employee workload calendar (Manager, Employee, Trial)</page>
+      <page path="/profile">User profile (Authenticated)</page>
+      <page path="/*">404 Not Found page</page>
+    </pages>
+
+    <responsive_components>
+      <ProjectsList>
+        - Mobile: Single column cards
+        - Tablet: 2 column grid of cards
+        - Desktop: Full table with sorting/filtering
+      </ProjectsList>
+      <WorkloadCalendar>
+        - Mobile: Day view with swipe navigation
+        - Tablet: Week view
+        - Desktop: Month view
+      </WorkloadCalendar>
+      <Tables>
+        - Mobile: Card-based layout
+        - Tablet: Horizontal scroll or hidden columns
+        - Desktop: Full table
+      </Tables>
+      <Modals>
+        - Mobile: Full-screen slide-up
+        - Tablet/Desktop: Centered with overlay
+      </Modals>
+    </responsive_components>
+  </ui_layout>
+
+  <modal_windows>
+    <projects>
+      - AddProjectModal
+      - EditProjectModal
+      - ProjectDetailsModal
+      - ConfirmDeleteProjectModal
+    </projects>
+    <companies>
+      - AddCompanyModal
+      - EditCompanyModal
+      - CompanyDetailsModal
+      - ConfirmDeleteCompanyModal
+    </companies>
+    <constructions>
+      - AddConstructionModal
+      - EditConstructionModal
+      - ConfirmDeleteConstructionModal
+    </constructions>
+    <documents>
+      - UploadDocumentModal
+      - UploadProjectDocumentModal
+      - UploadConstructionDocumentModal
+      - ReplaceDocumentModal
+      - ConfirmDeleteDocumentModal
+    </documents>
+    <employees>
+      - AddEmployeeModal
+      - EditEmployeeModal
+      - EmployeeDetailsModal
+    </employees>
+    <workload>
+      - AddWorkloadActualModal
+      - EditWorkloadActualModal
+      - ConfirmDeleteWorkloadActualModal
+      - AddWorkloadPlanModal
+      - EditWorkloadPlanModal
+      - ConfirmDeleteWorkloadPlanModal
+      - WorkloadDetailsModal
+      - WorkloadDetailModal
+      - AllEmployeesWorkloadModal
+      - SingleEmployeeWorkloadModal
+      - AllEmployeesDateModal
+    </workload>
+    <payments>
+      - AddPaymentScheduleModal
+      - EditPaymentScheduleModal
+      - ConfirmDeletePaymentScheduleModal
+    </payments>
+    <analytics>
+      - ProjectsAnalyticsModal
+      - EmployeeWorkHoursDeviationModal
+      - ProjectWorkloadModal
+      - WorkloadExportPreviewModal
+    </analytics>
+  </modal_windows>
+
+  <common_components>
+    <ui_components>
+      - Button (variants: primary, secondary, danger, ghost)
+      - Card (content container)
+      - Modal (responsive: full-screen mobile, centered desktop)
+      - Table (with sorting, pagination)
+      - Input (text field)
+      - Select (dropdown)
+      - DatePicker (native on mobile)
+      - Search (with debounce)
+      - Pagination
+      - Loading (skeleton)
+      - EmptyState
+      - ErrorBoundary
+      - Toast (notifications)
+    </ui_components>
+    <layout_components>
+      - Sidebar (collapsible)
+      - Header
+      - BottomNav (mobile)
+      - MainLayout
+    </layout_components>
+    <data_display>
+      - WorkloadCalendar
+      - UnifiedWorkloadCalendar
+      - DocumentTree
+      - DocumentsTable
+      - ConstructionCardsList
+      - ProjectsBubbleChart (D3)
+      - WorkloadComparisonTable
+      - StatCard
+    </data_display>
+    <form_components>
+      - ProjectForm
+      - CompanyForm
+      - EmployeeForm
+      - WorkloadForm
+    </form_components>
+  </common_components>
+
+  <design_system>
+    <color_palette>
+      - Primary: Blue tones for main actions
+      - Secondary: Gray tones for secondary elements
+      - Success: Green for positive states
+      - Warning: Yellow/Orange for warnings
+      - Danger: Red for destructive actions
+      - Background: Light/dark mode support
+    </color_palette>
+    <typography>
+      - System font stack for performance
+      - Responsive font sizes
+      - Clear hierarchy (headings, body, captions)
+    </typography>
+    <spacing>
+      - Consistent spacing scale (4px base)
+      - Touch targets minimum 44x44px
+      - Element spacing minimum 8px
+    </spacing>
+    <breakpoints>
+      - sm: 640px (large phones, small tablets)
+      - md: 768px (tablets)
+      - lg: 1024px (tablets landscape, laptops)
+      - xl: 1280px (desktops)
+      - 2xl: 1536px (large monitors)
+    </breakpoints>
+  </design_system>
+
+  <implementation_steps>
+    <step number="1">
+      <title>Basic Infrastructure</title>
+      <tasks>
+        - Project setup (backend NestJS + frontend React/Vite)
+        - PostgreSQL database setup (local)
+        - Prisma schema and initial migration
+        - Basic JWT authentication
+        - Basic layout and routing
+        - Mobile-first responsive framework
+        - Tailwind CSS configuration
+      </tasks>
+    </step>
+    <step number="2">
+      <title>User Management</title>
+      <tasks>
+        - User CRUD operations
+        - Role-based access control
+        - API guards implementation
+        - Frontend protected routes
+        - Login/logout flow
+        - Token refresh mechanism
+      </tasks>
+    </step>
+    <step number="3">
+      <title>Company Management</title>
+      <tasks>
+        - Company CRUD operations
+        - Company types (Customer/Contractor)
+        - Banking details forms
+        - UI components (cards, tables, modals)
+        - Mobile adaptation
+      </tasks>
+    </step>
+    <step number="4">
+      <title>Project Management</title>
+      <tasks>
+        - Project CRUD operations
+        - Company relationships
+        - Manager assignment
+        - Project types and statuses
+        - Additional project linking
+        - UI components
+        - Mobile adaptation
+      </tasks>
+    </step>
+    <step number="5">
+      <title>Constructions and Documents</title>
+      <tasks>
+        - Construction CRUD operations
+        - Document upload with multer
+        - Document versioning
+        - Document tree view
+        - File download
+        - Mobile adaptation
+      </tasks>
+    </step>
+    <step number="6">
+      <title>Workload Management</title>
+      <tasks>
+        - Workload planning (plan)
+        - Actual time tracking
+        - Project workload distribution
+        - Unified workload view
+        - Workload calendar (day/week/month)
+        - Mobile adaptation with touch gestures
+      </tasks>
+    </step>
+    <step number="7">
+      <title>Payments and Analytics</title>
+      <tasks>
+        - Payment schedules CRUD
+        - Analytics endpoints
+        - D3 bubble chart visualization
+        - Employee hour deviation reports
+        - PDF export (jsPDF)
+      </tasks>
+    </step>
+    <step number="8">
+      <title>Polish and Testing</title>
+      <tasks>
+        - Performance optimization
+        - MCP Chrome DevTools testing
+        - Error handling improvements
+        - Loading states and empty states
+        - Accessibility improvements
+        - Final mobile polish
+      </tasks>
+    </step>
+  </implementation_steps>
+
+  <success_criteria>
+    <functionality>
+      - All 54 API endpoints functional and tested
+      - All CRUD operations work correctly
+      - Authentication and authorization enforced
+      - File upload/download works up to 50MB
+      - Document versioning works correctly
+      - Workload planning and tracking functional
+      - Payment schedules tracked correctly
+      - Analytics display real data
+    </functionality>
+    <user_experience>
+      - All pages display correctly on 320px+ screens
+      - Touch targets minimum 44x44px
+      - Forms convenient on mobile
+      - Navigation intuitive on all devices
+      - Loading states for all async operations
+      - Clear error messages
+      - Success feedback for all actions
+    </user_experience>
+    <technical_quality>
+      - API response time < 200ms for 95% of requests
+      - Page load time < 3 seconds (FCP)
+      - No console errors during normal operation
+      - Proper error handling throughout
+      - Type safety with TypeScript
+      - Clean code structure
+    </technical_quality>
+    <design_polish>
+      - Lighthouse Performance Score > 90
+      - Consistent design system
+      - Smooth animations
+      - Professional appearance
+      - Responsive on all breakpoints
+    </design_polish>
+  </success_criteria>
+
+  <project_structure>
+    <backend>
+      projectdb/
+      ├── src/
+      │   ├── app.module.ts
+      │   ├── main.ts
+      │   ├── modules/
+      │   │   ├── users/
+      │   │   ├── company/
+      │   │   ├── project/
+      │   │   ├── construction/
+      │   │   ├── document/
+      │   │   ├── workload/
+      │   │   ├── workload-plan/
+      │   │   ├── workload-actual/
+      │   │   ├── payment-schedule/
+      │   │   ├── lenconnect-chat-log/
+      │   │   ├── analytics/
+      │   │   └── prisma/
+      │   └── common/
+      │       ├── config/
+      │       ├── guards/
+      │       ├── decorators/
+      │       ├── filters/
+      │       ├── interceptors/
+      │       └── util/
+      ├── prisma/
+      │   ├── schema.prisma
+      │   ├── migrations/
+      │   └── seed.ts
+      └── package.json
+    </backend>
+    <frontend>
+      projectdb-frontend/
+      ├── src/
+      │   ├── main.tsx
+      │   ├── App.tsx
+      │   ├── pages/
+      │   ├── components/
+      │   │   ├── common/
+      │   │   ├── layout/
+      │   │   ├── modals/
+      │   │   ├── data_display/
+      │   │   └── forms/
+      │   ├── services/
+      │   ├── store/
+      │   ├── hooks/
+      │   ├── types/
+      │   ├── utils/
+      │   ├── styles/
+      │   └── constants/
+      └── package.json
+    </frontend>
+  </project_structure>
+</project_specification>
