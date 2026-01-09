@@ -43,6 +43,22 @@ interface AvailableUser {
   role: string;
 }
 
+interface PaymentSchedule {
+  id: string;
+  type: string;
+  name: string;
+  amount: number;
+  percentage?: number;
+  expectedDate: string;
+  actualDate?: string;
+  isPaid: boolean;
+  description?: string;
+  project: {
+    id: string;
+    name: string;
+  };
+}
+
 interface Project {
   id: string;
   name: string;
@@ -67,7 +83,7 @@ interface Project {
   documents?: Document[];
 }
 
-type TabType = 'overview' | 'constructions' | 'documents' | 'team';
+type TabType = 'overview' | 'constructions' | 'documents' | 'team' | 'payments';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -97,6 +113,21 @@ export default function ProjectDetailPage() {
   const [replacingDoc, setReplacingDoc] = useState(false);
   const [replaceFile, setReplaceFile] = useState<File | null>(null);
   const [documentToReplace, setDocumentToReplace] = useState<Document | null>(null);
+
+  // Payment schedule state
+  const [payments, setPayments] = useState<PaymentSchedule[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    type: 'Advance',
+    name: '',
+    amount: '',
+    percentage: '',
+    expectedDate: '',
+    description: '',
+  });
+  const canManagePayments = user?.role === 'Admin' || user?.role === 'Manager';
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -135,6 +166,24 @@ export default function ProjectDetailPage() {
     };
     fetchTeamData();
   }, [activeTab, id, canManageTeam]);
+
+  // Fetch payments when payments tab is active
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (activeTab === 'payments' && id) {
+        setLoadingPayments(true);
+        try {
+          const response = await api.get<PaymentSchedule[]>(`/payment-schedule?projectId=${id}`);
+          setPayments(response.data);
+        } catch (error) {
+          toast.error('Failed to load payments');
+        } finally {
+          setLoadingPayments(false);
+        }
+      }
+    };
+    fetchPayments();
+  }, [activeTab, id]);
 
   const handleAddTeamMember = async () => {
     if (!selectedUserId || !id) return;
@@ -279,6 +328,78 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleAddPayment = async () => {
+    if (!id || !paymentForm.name || !paymentForm.amount || !paymentForm.expectedDate) return;
+
+    setSavingPayment(true);
+    try {
+      await api.post('/payment-schedule/create', {
+        projectId: id,
+        type: paymentForm.type,
+        name: paymentForm.name,
+        amount: parseFloat(paymentForm.amount),
+        percentage: paymentForm.percentage ? parseFloat(paymentForm.percentage) : undefined,
+        expectedDate: paymentForm.expectedDate,
+        description: paymentForm.description || undefined,
+      });
+
+      toast.success('Payment added successfully');
+      setShowAddPaymentModal(false);
+      setPaymentForm({
+        type: 'Advance',
+        name: '',
+        amount: '',
+        percentage: '',
+        expectedDate: '',
+        description: '',
+      });
+
+      // Refresh payments
+      const response = await api.get<PaymentSchedule[]>(`/payment-schedule?projectId=${id}`);
+      setPayments(response.data);
+    } catch (error) {
+      toast.error('Failed to add payment');
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!confirm('Are you sure you want to delete this payment?')) return;
+
+    try {
+      await api.delete(`/payment-schedule/${paymentId}`);
+      toast.success('Payment deleted');
+      setPayments(payments.filter((p) => p.id !== paymentId));
+    } catch (error) {
+      toast.error('Failed to delete payment');
+    }
+  };
+
+  const handleMarkPaid = async (paymentId: string) => {
+    try {
+      await api.patch(`/payment-schedule/${paymentId}/mark-paid`, {});
+      toast.success('Payment marked as paid');
+      // Refresh payments
+      const response = await api.get<PaymentSchedule[]>(`/payment-schedule?projectId=${id}`);
+      setPayments(response.data);
+    } catch (error) {
+      toast.error('Failed to mark payment as paid');
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
+  const isOverdue = (expectedDate: string, isPaid: boolean) => {
+    if (isPaid) return false;
+    return new Date(expectedDate) < new Date();
+  };
+
   if (loading) {
     return (
       <div className="p-4 md:p-6">
@@ -304,6 +425,7 @@ export default function ProjectDetailPage() {
     { id: 'constructions', label: `Constructions (${project.constructions?.length || 0})` },
     { id: 'documents', label: `Documents (${project.documents?.length || 0})` },
     { id: 'team', label: `Team (${teamMembers.length})` },
+    { id: 'payments', label: `Payments (${payments.length})` },
   ];
 
   return (
@@ -742,6 +864,217 @@ export default function ProjectDetailPage() {
           ) : (
             <p className="text-gray-500 text-center py-8">No team members assigned to this project yet.</p>
           )}
+        </div>
+      )}
+
+      {activeTab === 'payments' && (
+        <div className="card p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold">Payment Schedule</h2>
+            {canManagePayments && (
+              <button
+                onClick={() => setShowAddPaymentModal(true)}
+                className="btn-primary"
+              >
+                Add Payment
+              </button>
+            )}
+          </div>
+
+          {loadingPayments ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          ) : payments.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expected Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    {canManagePayments && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {payments.map((payment) => (
+                    <tr key={payment.id} className={`hover:bg-gray-50 ${isOverdue(payment.expectedDate, payment.isPaid) ? 'bg-red-50' : ''}`}>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-gray-900 font-medium">{payment.name}</div>
+                          {payment.description && (
+                            <div className="text-gray-500 text-sm">{payment.description}</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          payment.type === 'Advance' ? 'bg-blue-100 text-blue-800' :
+                          payment.type === 'MainPayment' ? 'bg-purple-100 text-purple-800' :
+                          payment.type === 'FinalPayment' ? 'bg-green-100 text-green-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {payment.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-gray-900 font-medium">{formatCurrency(payment.amount)}</div>
+                        {payment.percentage && (
+                          <div className="text-gray-500 text-sm">{payment.percentage}%</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className={`${isOverdue(payment.expectedDate, payment.isPaid) ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+                          {formatDate(payment.expectedDate)}
+                        </div>
+                        {payment.actualDate && (
+                          <div className="text-gray-500 text-sm">Paid: {formatDate(payment.actualDate)}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        {payment.isPaid ? (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            Paid
+                          </span>
+                        ) : isOverdue(payment.expectedDate, payment.isPaid) ? (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                            Overdue
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                            Pending
+                          </span>
+                        )}
+                      </td>
+                      {canManagePayments && (
+                        <td className="px-4 py-4 whitespace-nowrap space-x-2">
+                          {!payment.isPaid && (
+                            <button
+                              onClick={() => handleMarkPaid(payment.id)}
+                              className="text-green-600 hover:text-green-800 text-sm font-medium"
+                            >
+                              Mark Paid
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeletePayment(payment.id)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No payments scheduled for this project yet.</p>
+          )}
+        </div>
+      )}
+
+      {/* Add Payment Modal */}
+      {showAddPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Add Payment</h2>
+              <button onClick={() => setShowAddPaymentModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Type *</label>
+                <select
+                  value={paymentForm.type}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, type: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="Advance">Advance</option>
+                  <option value="MainPayment">Main Payment</option>
+                  <option value="FinalPayment">Final Payment</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Name *</label>
+                <input
+                  type="text"
+                  value={paymentForm.name}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
+                  placeholder="e.g., First Milestone Payment"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($) *</label>
+                  <input
+                    type="number"
+                    value={paymentForm.amount}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                    placeholder="10000"
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Percentage (%)</label>
+                  <input
+                    type="number"
+                    value={paymentForm.percentage}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, percentage: e.target.value })}
+                    placeholder="25"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Date *</label>
+                <input
+                  type="date"
+                  value={paymentForm.expectedDate}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, expectedDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={paymentForm.description}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, description: e.target.value })}
+                  placeholder="Optional description..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={() => setShowAddPaymentModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleAddPayment}
+                disabled={savingPayment || !paymentForm.name || !paymentForm.amount || !paymentForm.expectedDate}
+                className="btn-primary disabled:opacity-50"
+              >
+                {savingPayment ? 'Saving...' : 'Add Payment'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

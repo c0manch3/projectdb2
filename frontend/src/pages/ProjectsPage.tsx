@@ -87,6 +87,7 @@ export default function ProjectsPage() {
     contractDate: '',
     expirationDate: '',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Get filter and page from URL params
   const statusFilter = searchParams.get('status') || 'All';
@@ -229,14 +230,42 @@ export default function ProjectsPage() {
       managerId: '',
       type: 'main',
     });
+    setFormErrors({});
   };
 
   const handleNewProjectChange = (field: keyof NewProjectForm, value: string) => {
     setNewProject(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!newProject.name.trim()) {
+      errors.name = 'Project name is required';
+    }
+    if (!newProject.customerId) {
+      errors.customerId = 'Please select a customer';
+    }
+    if (!newProject.managerId) {
+      errors.managerId = 'Please select a manager';
+    }
+    if (!newProject.contractDate) {
+      errors.contractDate = 'Contract date is required';
+    }
+    if (!newProject.expirationDate) {
+      errors.expirationDate = 'Expiration date is required';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleCreateProject = async () => {
-    if (!newProject.name || !newProject.contractDate || !newProject.expirationDate || !newProject.customerId || !newProject.managerId) {
+    if (!validateForm()) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -529,34 +558,37 @@ export default function ProjectsPage() {
                   placeholder="Enter project name"
                   value={newProject.name}
                   onChange={(e) => handleNewProjectChange('name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${formErrors.name ? 'border-red-500' : 'border-gray-300'}`}
                 />
+                {formErrors.name && <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
                 <select
                   value={newProject.customerId}
                   onChange={(e) => handleNewProjectChange('customerId', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${formErrors.customerId ? 'border-red-500' : 'border-gray-300'}`}
                 >
                   <option value="">Select a customer</option>
                   {companies.filter(c => c.type === 'Customer').map(company => (
                     <option key={company.id} value={company.id}>{company.name}</option>
                   ))}
                 </select>
+                {formErrors.customerId && <p className="text-red-500 text-sm mt-1">{formErrors.customerId}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Manager *</label>
                 <select
                   value={newProject.managerId}
                   onChange={(e) => handleNewProjectChange('managerId', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${formErrors.managerId ? 'border-red-500' : 'border-gray-300'}`}
                 >
                   <option value="">Select a manager</option>
                   {users.map(user => (
                     <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>
                   ))}
                 </select>
+                {formErrors.managerId && <p className="text-red-500 text-sm mt-1">{formErrors.managerId}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Project Type</label>
@@ -575,8 +607,9 @@ export default function ProjectsPage() {
                   type="date"
                   value={newProject.contractDate}
                   onChange={(e) => handleNewProjectChange('contractDate', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${formErrors.contractDate ? 'border-red-500' : 'border-gray-300'}`}
                 />
+                {formErrors.contractDate && <p className="text-red-500 text-sm mt-1">{formErrors.contractDate}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Expiration Date *</label>
@@ -584,8 +617,9 @@ export default function ProjectsPage() {
                   type="date"
                   value={newProject.expirationDate}
                   onChange={(e) => handleNewProjectChange('expirationDate', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${formErrors.expirationDate ? 'border-red-500' : 'border-gray-300'}`}
                 />
+                {formErrors.expirationDate && <p className="text-red-500 text-sm mt-1">{formErrors.expirationDate}</p>}
               </div>
             </div>
             <div className="flex justify-end gap-3 p-4 border-t">
