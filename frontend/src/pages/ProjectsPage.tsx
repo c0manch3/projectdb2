@@ -92,6 +92,7 @@ export default function ProjectsPage() {
   // Get filter and page from URL params
   const statusFilter = searchParams.get('status') || 'All';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchProjects();
@@ -128,11 +129,27 @@ export default function ProjectsPage() {
     }
   };
 
-  // Filter projects based on status
+  // Filter projects based on status and search query
   const filteredProjects = useMemo(() => {
-    if (statusFilter === 'All') return projects;
-    return projects.filter(project => project.status === statusFilter);
-  }, [projects, statusFilter]);
+    let filtered = projects;
+
+    // Filter by status
+    if (statusFilter !== 'All') {
+      filtered = filtered.filter(project => project.status === statusFilter);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(project =>
+        project.name.toLowerCase().includes(query) ||
+        project.customer.name.toLowerCase().includes(query) ||
+        `${project.manager.firstName} ${project.manager.lastName}`.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [projects, statusFilter, searchQuery]);
 
   // Paginate filtered projects
   const totalPages = Math.ceil(filteredProjects.length / ITEMS_PER_PAGE);
@@ -310,7 +327,31 @@ export default function ProjectsPage() {
       </div>
 
       {/* Filters */}
-      <div className="mb-4 flex items-center gap-4">
+      <div className="mb-4 flex flex-wrap items-center gap-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search projects..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-64 px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+            aria-label="Search projects"
+          />
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Clear search"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
         <label className="text-sm font-medium text-gray-700">Status:</label>
         <select
           value={statusFilter}
@@ -322,9 +363,9 @@ export default function ProjectsPage() {
           <option value="Active">Active</option>
           <option value="Completed">Completed</option>
         </select>
-        {statusFilter !== 'All' && (
+        {(statusFilter !== 'All' || searchQuery) && (
           <span className="text-sm text-gray-500">
-            Showing {filteredProjects.length} {statusFilter.toLowerCase()} project{filteredProjects.length !== 1 ? 's' : ''}
+            Showing {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''}
           </span>
         )}
       </div>
@@ -335,9 +376,23 @@ export default function ProjectsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           </div>
         ) : paginatedProjects.length === 0 ? (
-          <p className="text-gray-500 text-center py-12">
-            {statusFilter !== 'All' ? `No ${statusFilter.toLowerCase()} projects found` : 'No projects found'}
-          </p>
+          <div className="text-center py-12">
+            <p className="text-gray-500">
+              {searchQuery
+                ? `No projects found matching "${searchQuery}"`
+                : statusFilter !== 'All'
+                  ? `No ${statusFilter.toLowerCase()} projects found`
+                  : 'No projects found'}
+            </p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="mt-4 text-primary-600 hover:text-primary-800 text-sm font-medium"
+              >
+                Clear search
+              </button>
+            )}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
