@@ -188,4 +188,140 @@ export class ProjectService {
 
     return workload;
   }
+
+  // Project User Management
+  async getProjectUsers(projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const projectUsers = await this.prisma.projectUser.findMany({
+      where: { projectId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return projectUsers;
+  }
+
+  async addProjectUser(projectId: string, userId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if already assigned
+    const existing = await this.prisma.projectUser.findUnique({
+      where: {
+        userId_projectId: {
+          userId,
+          projectId,
+        },
+      },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    const projectUser = await this.prisma.projectUser.create({
+      data: {
+        userId,
+        projectId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return projectUser;
+  }
+
+  async removeProjectUser(projectId: string, userId: string) {
+    const projectUser = await this.prisma.projectUser.findUnique({
+      where: {
+        userId_projectId: {
+          userId,
+          projectId,
+        },
+      },
+    });
+
+    if (!projectUser) {
+      throw new NotFoundException('User not assigned to this project');
+    }
+
+    await this.prisma.projectUser.delete({
+      where: {
+        userId_projectId: {
+          userId,
+          projectId,
+        },
+      },
+    });
+
+    return { message: 'User removed from project successfully' };
+  }
+
+  async getAvailableUsersForProject(projectId: string) {
+    // Get all users that are not already assigned to this project
+    const assignedUserIds = await this.prisma.projectUser.findMany({
+      where: { projectId },
+      select: { userId: true },
+    });
+
+    const assignedIds = assignedUserIds.map((pu) => pu.userId);
+
+    const availableUsers = await this.prisma.user.findMany({
+      where: {
+        id: {
+          notIn: assignedIds,
+        },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+
+    return availableUsers;
+  }
 }

@@ -12,7 +12,7 @@ import {
 import { ProjectService } from './project.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { AdminGuard, ManagerGuard } from '../../common/guards/roles.guard';
+import { AdminGuard, ManagerGuard, ManagerOrTrialGuard } from '../../common/guards/roles.guard';
 
 @Controller('project')
 @UseGuards(JwtAuthGuard) // All routes require authentication
@@ -20,13 +20,13 @@ export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
   @Get()
-  @UseGuards(ManagerGuard)
+  @UseGuards(ManagerOrTrialGuard)
   async findAll(@Query('status') status?: string) {
     return this.projectService.findAll(status);
   }
 
   @Get(':id')
-  @UseGuards(ManagerGuard)
+  @UseGuards(ManagerOrTrialGuard)
   async findOne(@Param('id') id: string) {
     return this.projectService.findOne(id);
   }
@@ -62,5 +62,36 @@ export class ProjectController {
     @Param('userId') userId: string,
   ) {
     return this.projectService.getEmployeeWorkloadOnProject(projectId, userId);
+  }
+
+  // Project User Management endpoints
+  @Get(':projectId/users')
+  @UseGuards(ManagerOrTrialGuard)
+  async getProjectUsers(@Param('projectId') projectId: string) {
+    return this.projectService.getProjectUsers(projectId);
+  }
+
+  @Get(':projectId/available-users')
+  @UseGuards(ManagerGuard)
+  async getAvailableUsersForProject(@Param('projectId') projectId: string) {
+    return this.projectService.getAvailableUsersForProject(projectId);
+  }
+
+  @Post(':projectId/users/:userId')
+  @UseGuards(ManagerGuard)
+  async addProjectUser(
+    @Param('projectId') projectId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.projectService.addProjectUser(projectId, userId);
+  }
+
+  @Delete(':projectId/users/:userId')
+  @UseGuards(ManagerGuard)
+  async removeProjectUser(
+    @Param('projectId') projectId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.projectService.removeProjectUser(projectId, userId);
   }
 }
