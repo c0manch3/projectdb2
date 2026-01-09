@@ -1,5 +1,48 @@
 # ProjectDB - Progress Report
 
+## Session 4: 2025-01-09
+
+### Summary
+Implemented project team management feature (employee assignment to projects) and fixed login error toast bug.
+
+### Completed Tasks
+
+#### 1. Bug Fix: Login Error Toast Not Showing
+- Fixed axios interceptor trying to refresh token on login 401 errors
+- Added check to exclude `/auth/login` and `/auth/refresh` endpoints from token refresh logic
+- Now generic error "Invalid email or password" displays correctly on failed login
+
+#### 2. Project Team Management Feature
+- Added "Team" tab to project detail page
+- Implemented backend API endpoints for project user management:
+  - GET /project/:id/users - list team members
+  - GET /project/:id/available-users - list available employees for assignment
+  - POST /project/:id/users/:userId - assign employee to project
+  - DELETE /project/:id/users/:userId - remove employee from project
+- Frontend UI with dropdown to add team members and table showing assigned employees
+- Role-based permissions (Admin/Manager can manage team)
+
+#### 3. Feature Verified and Passing
+- C9: Created employee appears in assignment dropdown ✅
+  - Created employee "NEW_EMP_001 TestEmployee"
+  - Verified they appear in the Team tab dropdown
+  - Successfully added them to project team
+
+### Features Passing: 54/300 (18.0%)
+
+### Technical Details
+- ProjectUser model already existed in schema, just needed API endpoints
+- Used existing guards (ManagerGuard, ManagerOrTrialGuard) for authorization
+- Frontend fetches team data only when Team tab is active (lazy loading)
+
+### Next Steps
+1. Continue with remaining CRUD features
+2. Implement workload management features
+3. Build payment schedule features
+4. Add analytics visualizations
+
+---
+
 ## Session 3: 2025-01-09
 
 ### Summary
