@@ -1,4 +1,7 @@
-import { IsString, IsUUID, IsOptional, IsEnum, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsDateString, Matches } from 'class-validator';
+
+// UUID regex pattern that accepts any UUID-like format
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export class CreateProjectDto {
   @IsString()
@@ -14,13 +17,13 @@ export class CreateProjectDto {
   @IsOptional()
   type?: string;
 
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'customerId must be a valid UUID format' })
   customerId: string;
 
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'managerId must be a valid UUID format' })
   managerId: string;
 
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'mainProjectId must be a valid UUID format' })
   @IsOptional()
   mainProjectId?: string;
 }
@@ -46,15 +49,15 @@ export class UpdateProjectDto {
   @IsOptional()
   status?: string;
 
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'customerId must be a valid UUID format' })
   @IsOptional()
   customerId?: string;
 
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'managerId must be a valid UUID format' })
   @IsOptional()
   managerId?: string;
 
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'mainProjectId must be a valid UUID format' })
   @IsOptional()
   mainProjectId?: string;
 }
