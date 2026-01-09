@@ -277,6 +277,15 @@ export default function ProjectsPage() {
       errors.expirationDate = 'Expiration date is required';
     }
 
+    // Validate that expiration date is after contract date
+    if (newProject.contractDate && newProject.expirationDate) {
+      const contractDate = new Date(newProject.contractDate);
+      const expirationDate = new Date(newProject.expirationDate);
+      if (expirationDate <= contractDate) {
+        errors.expirationDate = 'Expiration date must be after contract date';
+      }
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };

@@ -55,6 +55,7 @@ export default function EmployeesPage() {
     salary: '',
   });
   const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
     fetchEmployees();
@@ -104,6 +105,7 @@ export default function EmployeesPage() {
       role: 'Employee',
     });
     setEmailError('');
+    setPhoneError('');
     setShowAddModal(true);
   };
 
@@ -148,9 +150,19 @@ export default function EmployeesPage() {
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to create employee';
       toast.error(errorMessage);
-      // Highlight email field if duplicate email/phone error
-      if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('already exists')) {
-        setEmailError('This email is already registered');
+      // Highlight email and/or phone field if duplicate error
+      if (errorMessage.toLowerCase().includes('already exists')) {
+        if (errorMessage.toLowerCase().includes('email')) {
+          setEmailError('This email is already registered');
+        }
+        if (errorMessage.toLowerCase().includes('phone')) {
+          setPhoneError('This phone number is already registered');
+        }
+        // If message says "email or phone", highlight both
+        if (errorMessage.toLowerCase().includes('email or phone')) {
+          setEmailError('This email may already be registered');
+          setPhoneError('This phone number may already be registered');
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -412,10 +424,18 @@ export default function EmployeesPage() {
                 <input
                   type="text"
                   value={newEmployee.phone}
-                  onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                  onChange={(e) => {
+                    setNewEmployee({ ...newEmployee, phone: e.target.value });
+                    if (phoneError) setPhoneError('');
+                  }}
                   placeholder="+1234567890"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                    phoneError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                 />
+                {phoneError && (
+                  <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
