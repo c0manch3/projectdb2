@@ -235,9 +235,47 @@ export default function ProjectDetailPage() {
     });
   };
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+  const BLOCKED_EXTENSIONS = ['.exe', '.bat', '.cmd', '.com', '.msi', '.scr', '.pif', '.vbs', '.js', '.jar', '.sh'];
+  const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.png', '.jpg', '.jpeg', '.gif', '.zip', '.rar', '.7z'];
+
+  const validateFileType = (file: File): boolean => {
+    const fileName = file.name.toLowerCase();
+    const extension = '.' + fileName.split('.').pop();
+
+    // Check if it's a blocked extension
+    if (BLOCKED_EXTENSIONS.includes(extension)) {
+      toast.error(`File type "${extension}" is not allowed for security reasons.`);
+      return false;
+    }
+
+    // Check if it's an allowed extension
+    if (!ALLOWED_EXTENSIONS.includes(extension)) {
+      toast.error(`File type "${extension}" is not supported. Allowed types: PDF, Word, Excel, PowerPoint, images, and archives.`);
+      return false;
+    }
+
+    return true;
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+
+      // Check file type first
+      if (!validateFileType(file)) {
+        e.target.value = ''; // Reset the file input
+        setSelectedFile(null);
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error('File is too large. Maximum size is 50MB.');
+        e.target.value = ''; // Reset the file input
+        setSelectedFile(null);
+        return;
+      }
+      setSelectedFile(file);
     }
   };
 
@@ -289,7 +327,22 @@ export default function ProjectDetailPage() {
 
   const handleReplaceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setReplaceFile(e.target.files[0]);
+      const file = e.target.files[0];
+
+      // Check file type first
+      if (!validateFileType(file)) {
+        e.target.value = ''; // Reset the file input
+        setReplaceFile(null);
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error('File is too large. Maximum size is 50MB.');
+        e.target.value = ''; // Reset the file input
+        setReplaceFile(null);
+        return;
+      }
+      setReplaceFile(file);
     }
   };
 

@@ -54,6 +54,7 @@ export default function EmployeesPage() {
     role: 'Employee',
     salary: '',
   });
+  const [emailError, setEmailError] = useState('');
 
   useEffect(() => {
     fetchEmployees();
@@ -102,6 +103,7 @@ export default function EmployeesPage() {
       phone: '',
       role: 'Employee',
     });
+    setEmailError('');
     setShowAddModal(true);
   };
 
@@ -144,7 +146,12 @@ export default function EmployeesPage() {
       fetchEmployees();
       handleCloseAddModal();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create employee');
+      const errorMessage = error.response?.data?.message || 'Failed to create employee';
+      toast.error(errorMessage);
+      // Highlight email field if duplicate email/phone error
+      if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('already exists')) {
+        setEmailError('This email is already registered');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -377,10 +384,18 @@ export default function EmployeesPage() {
                 <input
                   type="email"
                   value={newEmployee.email}
-                  onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                  onChange={(e) => {
+                    setNewEmployee({ ...newEmployee, email: e.target.value });
+                    if (emailError) setEmailError('');
+                  }}
                   placeholder="email@example.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                    emailError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                 />
+                {emailError && (
+                  <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
