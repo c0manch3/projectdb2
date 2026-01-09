@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -40,7 +41,9 @@ export default function LoginPage() {
       );
       localStorage.setItem('refreshToken', response.refreshToken);
       toast.success('Login successful');
-      navigate('/projects');
+      // Navigate to redirect URL or default to /projects
+      const redirectUrl = searchParams.get('redirect');
+      navigate(redirectUrl ? decodeURIComponent(redirectUrl) : '/projects');
     } catch (error) {
       toast.error('Invalid email or password');
     } finally {

@@ -14,7 +14,7 @@ interface RefreshResponse {
 }
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: `${API_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -45,7 +45,7 @@ api.interceptors.response.use(
         }
 
         const response = await axios.post<RefreshResponse>(
-          `${API_URL}/auth/refresh`,
+          `${API_URL}/api/auth/refresh`,
           { refreshToken }
         );
 

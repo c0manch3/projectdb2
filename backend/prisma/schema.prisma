@@ -5,55 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-}
-
-// Enums
-enum UserRole {
-  Admin
-  Manager
-  Employee
-  Trial
-}
-
-enum CompanyType {
-  Customer
-  Contractor
-}
-
-enum ProjectType {
-  main
-  additional
-}
-
-enum ProjectStatus {
-  Active
-  Completed
-}
-
-enum DocumentType {
-  tz
-  contract
-  project_documentation
-  working_documentation
-}
-
-enum PaymentType {
-  Advance
-  MainPayment
-  FinalPayment
-  Other
-}
-
-enum ChatRole {
-  User
-  Assistant
-}
-
-enum ChatRequestType {
-  Report
-  Proposal
 }
 
 // Models
@@ -65,9 +18,9 @@ model User {
   phone        String    @unique
   passwordHash String
   dateBirth    DateTime?
-  role         UserRole  @default(Employee)
+  role         String    @default("Employee") // Admin, Manager, Employee, Trial
   telegramId   String?
-  salary       Decimal?  @db.Decimal(12, 2)
+  salary       Float?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -84,13 +37,13 @@ model User {
 }
 
 model Company {
-  id          String      @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
-  type        CompanyType
+  type        String   // Customer, Contractor
   address     String?
   phone       String?
   email       String?
-  account     String?     // bank account
+  account     String?  // bank account
   bank        String?
   bik         String?
   corrAccount String?
@@ -98,26 +51,26 @@ model Company {
   kpp         String?
   ogrn        String?
   postalCode  String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   projects Project[] @relation("CustomerCompany")
 }
 
 model Project {
-  id                 String        @id @default(uuid())
+  id                 String   @id @default(uuid())
   name               String
   contractDate       DateTime
   expirationDate     DateTime
-  type               ProjectType   @default(main)
-  status             ProjectStatus @default(Active)
+  type               String   @default("main") // main, additional
+  status             String   @default("Active") // Active, Completed
   customerId         String
   managerId          String
   mainProjectId      String?
   contractDocumentId String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relations
   customer           Company                       @relation("CustomerCompany", fields: [customerId], references: [id])
@@ -145,14 +98,14 @@ model Construction {
 }
 
 model Document {
-  id             String       @id @default(uuid())
-  type           DocumentType
-  version        Int          @default(1)
+  id             String   @id @default(uuid())
+  type           String   // tz, contract, project_documentation, working_documentation
+  version        Int      @default(1)
   path           String
   mimeType       String
   hashName       String
   originalName   String
-  uploadedAt     DateTime     @default(now())
+  uploadedAt     DateTime @default(now())
   uploadedById   String
   projectId      String
   constructionId String?
@@ -184,7 +137,7 @@ model WorkloadActual {
   id          String   @id @default(uuid())
   userId      String
   date        DateTime
-  hoursWorked Decimal  @db.Decimal(4, 2)
+  hoursWorked Float
   userText    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -200,7 +153,7 @@ model ProjectWorkloadDistribution {
   id               String  @id @default(uuid())
   workloadActualId String
   projectId        String
-  hours            Decimal @db.Decimal(4, 2)
+  hours            Float
   description      String?
 
   // Relations
@@ -209,18 +162,18 @@ model ProjectWorkloadDistribution {
 }
 
 model PaymentSchedule {
-  id          String      @id @default(uuid())
+  id          String    @id @default(uuid())
   projectId   String
-  type        PaymentType
+  type        String    // Advance, MainPayment, FinalPayment, Other
   name        String
-  amount      Decimal     @db.Decimal(15, 2)
-  percentage  Decimal?    @db.Decimal(5, 2)
+  amount      Float
+  percentage  Float?
   expectedDate DateTime
   actualDate  DateTime?
-  isPaid      Boolean     @default(false)
+  isPaid      Boolean   @default(false)
   description String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -260,12 +213,12 @@ model EmployeeProposal {
 }
 
 model LenconnectChatLog {
-  id          String          @id @default(uuid())
+  id          String   @id @default(uuid())
   userId      String
-  role        ChatRole
+  role        String   // User, Assistant
   content     String
-  requestType ChatRequestType
-  createdAt   DateTime        @default(now())
+  requestType String   // Report, Proposal
+  createdAt   DateTime @default(now())
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
