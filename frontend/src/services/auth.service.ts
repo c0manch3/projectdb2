@@ -18,6 +18,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 });
 
 // Add auth interceptor
@@ -64,6 +65,16 @@ api.interceptors.response.use(
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
+    }
+
+    // Handle timeout errors with user-friendly message
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      error.message = 'Request timed out. Please check your connection and try again.';
+    }
+
+    // Handle network errors
+    if (!error.response && error.message === 'Network Error') {
+      error.message = 'Unable to connect to server. Please check your internet connection.';
     }
 
     return Promise.reject(error);
