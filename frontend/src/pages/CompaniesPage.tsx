@@ -31,8 +31,18 @@ export default function CompaniesPage() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newCompany, setNewCompany] = useState<NewCompanyForm>({
+    name: '',
+    type: 'Customer',
+    address: '',
+    phone: '',
+    email: '',
+    contactPerson: '',
+  });
+  const [editCompany, setEditCompany] = useState<NewCompanyForm>({
     name: '',
     type: 'Customer',
     address: '',
@@ -123,6 +133,84 @@ export default function CompaniesPage() {
       handleCloseAddModal();
     } catch (error) {
       toast.error('Failed to create company');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenEditModal = () => {
+    if (selectedCompany) {
+      setEditCompany({
+        name: selectedCompany.name,
+        type: selectedCompany.type,
+        address: selectedCompany.address || '',
+        phone: selectedCompany.phone || '',
+        email: selectedCompany.email || '',
+        contactPerson: selectedCompany.contactPerson || '',
+      });
+      setShowDetailModal(false);
+      setShowEditModal(true);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditCompany({
+      name: '',
+      type: 'Customer',
+      address: '',
+      phone: '',
+      email: '',
+      contactPerson: '',
+    });
+  };
+
+  const handleUpdateCompany = async () => {
+    if (!selectedCompany) return;
+    if (!editCompany.name.trim()) {
+      toast.error('Company name is required');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await api.patch(`/company/${selectedCompany.id}`, {
+        name: editCompany.name,
+        type: editCompany.type,
+        address: editCompany.address || undefined,
+        phone: editCompany.phone || undefined,
+        email: editCompany.email || undefined,
+      });
+      toast.success('Company updated successfully');
+      fetchCompanies();
+      handleCloseEditModal();
+      setSelectedCompany(null);
+    } catch (error) {
+      toast.error('Failed to update company');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenDeleteModal = () => {
+    setShowDetailModal(false);
+    setShowDeleteModal(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setShowDeleteModal(false);
+  };
+
+  const handleDeleteCompany = async () => {
+    if (!selectedCompany) return;
+    setIsSubmitting(true);
+    try {
+      await api.delete(`/company/${selectedCompany.id}`);
+      toast.success('Company deleted successfully');
+      fetchCompanies();
+      handleCloseDeleteModal();
+      setSelectedCompany(null);
+    } catch (error) {
+      toast.error('Failed to delete company');
     } finally {
       setIsSubmitting(false);
     }
@@ -241,7 +329,17 @@ export default function CompaniesPage() {
                 )}
               </dl>
             </div>
-            <div className="flex justify-end p-4 border-t">
+            <div className="flex justify-end gap-2 p-4 border-t">
+              {isAdmin && (
+                <>
+                  <button onClick={handleOpenDeleteModal} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">
+                    Delete
+                  </button>
+                  <button onClick={handleOpenEditModal} className="btn-primary">
+                    Edit
+                  </button>
+                </>
+              )}
               <button onClick={handleCloseDetailModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
                 Close
               </button>
@@ -335,6 +433,123 @@ export default function CompaniesPage() {
                 className="btn-primary"
               >
                 {isSubmitting ? 'Creating...' : 'Create Company'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Company Modal */}
+      {showEditModal && selectedCompany && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Edit Company</h2>
+              <button onClick={handleCloseEditModal} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
+                <input
+                  type="text"
+                  value={editCompany.name}
+                  onChange={(e) => setEditCompany({ ...editCompany, name: e.target.value })}
+                  placeholder="Enter company name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+                <select
+                  value={editCompany.type}
+                  onChange={(e) => setEditCompany({ ...editCompany, type: e.target.value as 'Customer' | 'Contractor' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="Customer">Customer</option>
+                  <option value="Contractor">Contractor</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editCompany.email}
+                  onChange={(e) => setEditCompany({ ...editCompany, email: e.target.value })}
+                  placeholder="Enter email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="text"
+                  value={editCompany.phone}
+                  onChange={(e) => setEditCompany({ ...editCompany, phone: e.target.value })}
+                  placeholder="Enter phone number"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <input
+                  type="text"
+                  value={editCompany.address}
+                  onChange={(e) => setEditCompany({ ...editCompany, address: e.target.value })}
+                  placeholder="Enter address"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={handleCloseEditModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateCompany}
+                disabled={isSubmitting}
+                className="btn-primary"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedCompany && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold text-red-600">Delete Company</h2>
+              <button onClick={handleCloseDeleteModal} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-gray-700">
+                Are you sure you want to delete the company <strong>{selectedCompany.name}</strong>?
+              </p>
+              <p className="text-gray-500 text-sm mt-2">
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={handleCloseDeleteModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteCompany}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Deleting...' : 'Delete Company'}
               </button>
             </div>
           </div>

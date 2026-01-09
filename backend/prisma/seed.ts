@@ -131,6 +131,24 @@ async function main() {
   });
   console.log('Created Construction:', construction.name);
 
+  // Create a test document for the project
+  const document = await prisma.document.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000001',
+      type: 'contract',
+      version: 1,
+      path: 'test-contract.pdf',
+      mimeType: 'application/pdf',
+      hashName: 'test-contract-hash',
+      originalName: 'Project_Contract.pdf',
+      projectId: project.id,
+      uploadedById: manager.id,
+    },
+  });
+  console.log('Created Document:', document.originalName);
+
   console.log('Seeding complete!');
 }
 

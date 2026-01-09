@@ -21,6 +21,7 @@ model User {
   role         String    @default("Employee") // Admin, Manager, Employee, Trial
   telegramId   String?
   salary       Float?
+  tokenVersion Int       @default(0) // Incremented on password change to invalidate all tokens
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

@@ -52,9 +52,9 @@ export class UsersController {
     return this.usersService.changePassword(userId, dto);
   }
 
-  // Admin only - get all users
+  // Manager or Admin - get all users (view only for Manager)
   @Get()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, ManagerGuard)
   async findAll() {
     return this.usersService.findAll();
   }

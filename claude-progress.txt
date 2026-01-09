@@ -1,5 +1,132 @@
 # ProjectDB - Progress Report
 
+## Session 7: 2026-01-10
+
+### Summary
+Implemented Document Replace workflow with version tracking.
+
+### Completed Tasks
+
+#### 1. Document Replace Workflow (D15)
+- Added Document Replace modal to ProjectDetailPage
+- Added Version column to documents table showing "v1", "v2", etc.
+- Added "Replace" button for each document (Admin/Manager only)
+- Modal shows current document info and version transition (v1 -> v2)
+- Replace API call to PATCH /document/:id/replace endpoint
+- Backend properly increments version number on replace
+- Old file deleted from disk, new file stored
+- Success toast notification after replacement
+
+### Features Passing: 90/300 (30.0%)
+
+### Files Modified
+- frontend/src/pages/ProjectDetailPage.tsx - Added Replace modal and version column
+
+### Technical Details
+- Version field displays in gray badge (v1, v2, etc.)
+- Replace button styled in amber color
+- Modal shows file info and confirms version increment
+- Backend uses multer for file handling, increments version field
+
+### Next Steps
+1. Continue with next pending feature
+2. Implement remaining document features
+3. Build workload management features
+
+---
+
+## Session 6: 2026-01-10
+
+### Summary
+Implemented company CRUD features (edit, delete) and verified project delete workflow.
+
+### Completed Tasks
+
+#### 1. Project Delete Workflow (D4)
+- Verified existing project delete functionality works correctly
+- Confirmation dialog shows with proper warning about constructions/documents
+- Success message displays after deletion
+- Project removed from list and persists after refresh
+
+#### 2. Company Create Workflow (D5)
+- Verified company creation modal works with all fields
+- New company appears in list immediately
+- Data persists after page refresh
+
+#### 3. Company Update Workflow (D6)
+- Implemented Edit button in Company Details modal
+- Created Edit Company modal with pre-filled data
+- API call to PATCH /company/:id endpoint
+- Changes persist after refresh
+
+#### 4. Company Delete Workflow (D7)
+- Implemented Delete button in Company Details modal
+- Created Delete Confirmation modal with warning
+- API call to DELETE /company/:id endpoint
+- Company removed from list and persists after refresh
+
+### Features Passing: 82/300 (27.3%)
+
+### Files Modified
+- frontend/src/pages/CompaniesPage.tsx - Added Edit and Delete functionality
+
+### Next Steps
+1. Continue with D8: Employee/User Create workflow
+2. Implement remaining CRUD features
+3. Build workload management features
+4. Add payment schedule features
+
+---
+
+## Session 5: 2026-01-09
+
+### Summary
+Implemented data isolation for employees, construction creation, and document upload/download features.
+
+### Completed Tasks
+
+#### 1. Data Isolation for Employees (C13)
+- Modified project controller and service to filter projects based on user role
+- Employees can only see projects they're assigned to via ProjectUser table
+- Admin/Manager/Trial users can still see all projects
+- Implemented access control on findOne endpoint as well
+
+#### 2. Construction Creation Feature (C14)
+- Added "Add Construction" modal to ConstructionsPage
+- Construction can be linked to any project via dropdown
+- Backend API endpoint already existed, just needed frontend UI
+
+#### 3. Document Upload Feature (C15)
+- Implemented POST /document/upload endpoint with multer file handling
+- Added DELETE /document/:id endpoint for document removal
+- Frontend upload modal in ProjectDetailPage Documents tab
+- Documents stored in /uploads directory with hashed filenames
+- Download endpoint verified working
+
+#### 4. Additional Features Verified
+- C10: Created company appears in project customer dropdown ✅
+- C11: Empty state shows when no data ✅
+- C12: Timestamps are real and accurate ✅
+
+### Features Passing: 60/300 (20.0%)
+
+### Files Modified
+- backend/src/modules/project/project.controller.ts - Added user context for filtering
+- backend/src/modules/project/project.service.ts - Filter projects by user assignment
+- backend/src/modules/document/document.controller.ts - Upload/delete endpoints
+- backend/src/modules/document/document.service.ts - Create/delete methods
+- frontend/src/pages/ConstructionsPage.tsx - Add construction modal
+- frontend/src/pages/ProjectDetailPage.tsx - Document upload modal
+- frontend/src/pages/CompaniesPage.tsx - Fixed contactPerson field not in API
+
+### Next Steps
+1. Continue with remaining CRUD features
+2. Implement workload management features
+3. Build payment schedule features
+4. Add analytics visualizations
+
+---
+
 ## Session 4: 2025-01-09
 
 ### Summary

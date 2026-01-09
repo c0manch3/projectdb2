@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 
@@ -6,8 +6,21 @@ import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 export class ProjectService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(status?: string) {
-    const where = status ? { status } : {};
+  async findAll(status?: string, user?: { sub: string; role: string }) {
+    // Build where clause based on user role
+    let where: any = status ? { status } : {};
+
+    // Employees can only see projects they're assigned to
+    if (user?.role === 'Employee') {
+      where = {
+        ...where,
+        projectUsers: {
+          some: {
+            userId: user.sub,
+          },
+        },
+      };
+    }
 
     const projects = await this.prisma.project.findMany({
       where,
@@ -31,7 +44,7 @@ export class ProjectService {
     return projects;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: { sub: string; role: string }) {
     const project = await this.prisma.project.findUnique({
       where: { id },
       include: {
@@ -54,6 +67,9 @@ export class ProjectService {
           },
         },
         paymentSchedules: true,
+        projectUsers: {
+          select: { userId: true },
+        },
         _count: {
           select: { constructions: true, documents: true, projectUsers: true },
         },
@@ -62,6 +78,14 @@ export class ProjectService {
 
     if (!project) {
       throw new NotFoundException('Project not found');
+    }
+
+    // For Employees, verify they're assigned to the project
+    if (user?.role === 'Employee') {
+      const isAssigned = project.projectUsers.some(pu => pu.userId === user.sub);
+      if (!isAssigned) {
+        throw new ForbiddenException('You do not have access to this project');
+      }
     }
 
     return project;

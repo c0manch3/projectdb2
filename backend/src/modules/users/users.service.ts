@@ -27,7 +27,7 @@ export class UsersService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.email, user.role, user.tokenVersion);
 
     // Store refresh token
     await this.prisma.refreshToken.create({
@@ -103,7 +103,12 @@ export class UsersService {
         throw new UnauthorizedException('Invalid token');
       }
 
-      const tokens = await this.generateTokens(user.id, user.email, user.role);
+      // Check if token version matches (invalidates tokens after password change)
+      if (payload.tokenVersion !== undefined && payload.tokenVersion !== user.tokenVersion) {
+        throw new UnauthorizedException('Token has been invalidated');
+      }
+
+      const tokens = await this.generateTokens(user.id, user.email, user.role, user.tokenVersion);
 
       return {
         accessToken: tokens.accessToken,
@@ -130,12 +135,16 @@ export class UsersService {
 
     const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
 
+    // Update password and increment tokenVersion to invalidate all existing tokens
     await this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash: newPasswordHash },
+      data: {
+        passwordHash: newPasswordHash,
+        tokenVersion: { increment: 1 },
+      },
     });
 
-    // Invalidate all refresh tokens
+    // Also invalidate all refresh tokens stored in database
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
     });
@@ -285,8 +294,8 @@ export class UsersService {
     return employees;
   }
 
-  private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  private async generateTokens(userId: string, email: string, role: string, tokenVersion: number) {
+    const payload = { sub: userId, email, role, tokenVersion };
 
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),

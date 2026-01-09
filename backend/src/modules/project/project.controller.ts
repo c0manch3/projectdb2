@@ -13,6 +13,7 @@ import { ProjectService } from './project.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard, ManagerGuard, ManagerOrTrialGuard } from '../../common/guards/roles.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('project')
 @UseGuards(JwtAuthGuard) // All routes require authentication
@@ -20,15 +21,19 @@ export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
   @Get()
-  @UseGuards(ManagerOrTrialGuard)
-  async findAll(@Query('status') status?: string) {
-    return this.projectService.findAll(status);
+  async findAll(
+    @Query('status') status?: string,
+    @CurrentUser() user?: { sub: string; role: string },
+  ) {
+    return this.projectService.findAll(status, user);
   }
 
   @Get(':id')
-  @UseGuards(ManagerOrTrialGuard)
-  async findOne(@Param('id') id: string) {
-    return this.projectService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() user?: { sub: string; role: string },
+  ) {
+    return this.projectService.findOne(id, user);
   }
 
   @Post('create')

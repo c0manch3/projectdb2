@@ -1,16 +1,521 @@
+import { useEffect, useState } from 'react';
+import { useAppSelector } from '@/store';
+import { api } from '@/services/auth.service';
+import toast from 'react-hot-toast';
+
+interface Employee {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role: string;
+}
+
+interface NewEmployeeForm {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone: string;
+  role: 'Admin' | 'Manager' | 'Employee' | 'Trial';
+}
+
+interface EditEmployeeForm {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  role: 'Admin' | 'Manager' | 'Employee' | 'Trial';
+  salary: string;
+}
+
 export default function EmployeesPage() {
+  const { user } = useAppSelector((state) => state.auth);
+  const isAdmin = user?.role === 'Admin';
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newEmployee, setNewEmployee] = useState<NewEmployeeForm>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    phone: '',
+    role: 'Employee',
+  });
+  const [editEmployee, setEditEmployee] = useState<EditEmployeeForm>({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    role: 'Employee',
+    salary: '',
+  });
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await api.get<Employee[]>('/auth');
+      setEmployees(response.data);
+    } catch (error) {
+      toast.error('Failed to load employees');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRowClick = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setShowDetailModal(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this employee?')) return;
+
+    try {
+      await api.delete(`/auth/${id}`);
+      toast.success('Employee deleted successfully');
+      fetchEmployees();
+    } catch (error) {
+      toast.error('Failed to delete employee');
+    }
+  };
+
+  const handleOpenAddModal = () => {
+    setNewEmployee({
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      phone: '',
+      role: 'Employee',
+    });
+    setShowAddModal(true);
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+    setNewEmployee({
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      phone: '',
+      role: 'Employee',
+    });
+  };
+
+  const handleCreateEmployee = async () => {
+    if (!newEmployee.firstName.trim() || !newEmployee.lastName.trim()) {
+      toast.error('First name and last name are required');
+      return;
+    }
+    if (!newEmployee.email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    if (!newEmployee.password.trim() || newEmployee.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await api.post('/auth/register', {
+        firstName: newEmployee.firstName,
+        lastName: newEmployee.lastName,
+        email: newEmployee.email,
+        password: newEmployee.password,
+        phone: newEmployee.phone || undefined,
+        role: newEmployee.role,
+      });
+      toast.success('Employee created successfully');
+      fetchEmployees();
+      handleCloseAddModal();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to create employee');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenEditModal = () => {
+    if (selectedEmployee) {
+      setEditEmployee({
+        firstName: selectedEmployee.firstName,
+        lastName: selectedEmployee.lastName,
+        phone: selectedEmployee.phone || '',
+        role: selectedEmployee.role as EditEmployeeForm['role'],
+        salary: '',
+      });
+      setShowDetailModal(false);
+      setShowEditModal(true);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditEmployee({
+      firstName: '',
+      lastName: '',
+      phone: '',
+      role: 'Employee',
+      salary: '',
+    });
+  };
+
+  const handleUpdateEmployee = async () => {
+    if (!selectedEmployee) return;
+    if (!editEmployee.firstName.trim() || !editEmployee.lastName.trim()) {
+      toast.error('First name and last name are required');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await api.patch(`/auth/${selectedEmployee.id}`, {
+        firstName: editEmployee.firstName,
+        lastName: editEmployee.lastName,
+        phone: editEmployee.phone || undefined,
+        role: editEmployee.role,
+        salary: editEmployee.salary ? parseFloat(editEmployee.salary) : undefined,
+      });
+      toast.success('Employee updated successfully');
+      fetchEmployees();
+      handleCloseEditModal();
+      setSelectedEmployee(null);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update employee');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="page-title">Employees</h1>
-        <button className="btn-primary">Add Employee</button>
+        {isAdmin && <button className="btn-primary" onClick={handleOpenAddModal}>Add Employee</button>}
       </div>
 
-      <div className="card p-6">
-        <p className="text-gray-500 text-center py-12">
-          Employees list will be displayed here
-        </p>
+      <div className="card">
+        {loading ? (
+          <div className="p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+          </div>
+        ) : employees.length === 0 ? (
+          <p className="text-gray-500 text-center py-12">No employees found</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  {isAdmin && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {employees.map((employee) => (
+                  <tr
+                    key={employee.id}
+                    onClick={() => handleRowClick(employee)}
+                    className="hover:bg-gray-50 cursor-pointer"
+                  >
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mr-3">
+                          <span className="text-primary-700 text-sm font-medium">
+                            {employee.firstName[0]}{employee.lastName[0]}
+                          </span>
+                        </div>
+                        <span className="font-medium text-gray-900">{employee.firstName} {employee.lastName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-600">{employee.email}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-600">{employee.phone}</td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        employee.role === 'Admin' ? 'bg-purple-100 text-purple-800' :
+                        employee.role === 'Manager' ? 'bg-blue-100 text-blue-800' :
+                        employee.role === 'Employee' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {employee.role}
+                      </span>
+                    </td>
+                    {isAdmin && (
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <button
+                          onClick={(e) => handleDelete(e, employee.id)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          disabled={employee.id === user?.id}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      {/* Employee Detail Modal */}
+      {showDetailModal && selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Employee Details</h2>
+              <button onClick={handleCloseDetailModal} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex items-center">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mr-4">
+                  <span className="text-primary-700 text-2xl font-medium">
+                    {selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {selectedEmployee.firstName} {selectedEmployee.lastName}
+                  </h3>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    selectedEmployee.role === 'Admin' ? 'bg-purple-100 text-purple-800' :
+                    selectedEmployee.role === 'Manager' ? 'bg-blue-100 text-blue-800' :
+                    selectedEmployee.role === 'Employee' ? 'bg-green-100 text-green-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {selectedEmployee.role}
+                  </span>
+                </div>
+              </div>
+              <dl className="space-y-3 pt-4 border-t">
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Email</dt>
+                  <dd className="text-gray-900">{selectedEmployee.email}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Phone</dt>
+                  <dd className="text-gray-900">{selectedEmployee.phone}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Role</dt>
+                  <dd className="text-gray-900">{selectedEmployee.role}</dd>
+                </div>
+              </dl>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              {isAdmin && (
+                <button onClick={handleOpenEditModal} className="btn-primary">
+                  Edit
+                </button>
+              )}
+              <button onClick={handleCloseDetailModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Employee Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Add New Employee</h2>
+              <button onClick={handleCloseAddModal} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    value={newEmployee.firstName}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, firstName: e.target.value })}
+                    placeholder="First name"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                  <input
+                    type="text"
+                    value={newEmployee.lastName}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, lastName: e.target.value })}
+                    placeholder="Last name"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={newEmployee.email}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                  placeholder="email@example.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                <input
+                  type="password"
+                  value={newEmployee.password}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
+                  placeholder="Min 6 characters"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="text"
+                  value={newEmployee.phone}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                  placeholder="+1234567890"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                <select
+                  value={newEmployee.role}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value as NewEmployeeForm['role'] })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="Employee">Employee</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Trial">Trial</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={handleCloseAddModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateEmployee}
+                disabled={isSubmitting}
+                className="btn-primary"
+              >
+                {isSubmitting ? 'Creating...' : 'Create Employee'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Employee Modal */}
+      {showEditModal && selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Edit Employee</h2>
+              <button onClick={handleCloseEditModal} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    value={editEmployee.firstName}
+                    onChange={(e) => setEditEmployee({ ...editEmployee, firstName: e.target.value })}
+                    placeholder="First name"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                  <input
+                    type="text"
+                    value={editEmployee.lastName}
+                    onChange={(e) => setEditEmployee({ ...editEmployee, lastName: e.target.value })}
+                    placeholder="Last name"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="text"
+                  value={editEmployee.phone}
+                  onChange={(e) => setEditEmployee({ ...editEmployee, phone: e.target.value })}
+                  placeholder="+1234567890"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                <select
+                  value={editEmployee.role}
+                  onChange={(e) => setEditEmployee({ ...editEmployee, role: e.target.value as EditEmployeeForm['role'] })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="Employee">Employee</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Trial">Trial</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Salary</label>
+                <input
+                  type="number"
+                  value={editEmployee.salary}
+                  onChange={(e) => setEditEmployee({ ...editEmployee, salary: e.target.value })}
+                  placeholder="Enter salary"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={handleCloseEditModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateEmployee}
+                disabled={isSubmitting}
+                className="btn-primary"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

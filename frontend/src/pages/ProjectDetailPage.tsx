@@ -8,6 +8,7 @@ interface Document {
   id: string;
   originalName: string;
   type: string;
+  version: number;
   uploadedAt: string;
   uploadedBy: {
     id: string;
@@ -83,6 +84,19 @@ export default function ProjectDetailPage() {
   const [addingUser, setAddingUser] = useState(false);
 
   const canManageTeam = user?.role === 'Admin' || user?.role === 'Manager';
+  const canUploadDocs = user?.role === 'Admin' || user?.role === 'Manager';
+
+  // Document upload state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [docType, setDocType] = useState('project_documentation');
+
+  // Document replace state
+  const [showReplaceModal, setShowReplaceModal] = useState(false);
+  const [replacingDoc, setReplacingDoc] = useState(false);
+  const [replaceFile, setReplaceFile] = useState<File | null>(null);
+  const [documentToReplace, setDocumentToReplace] = useState<Document | null>(null);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -170,6 +184,99 @@ export default function ProjectDetailPage() {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUploadDocument = async () => {
+    if (!selectedFile || !id) return;
+
+    setUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('projectId', id);
+      formData.append('type', docType);
+
+      await api.post('/document/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      toast.success('Document uploaded successfully');
+      setShowUploadModal(false);
+      setSelectedFile(null);
+      setDocType('project_documentation');
+
+      // Refresh project to get updated documents
+      const response = await api.get<Project>(`/project/${id}`);
+      setProject(response.data);
+    } catch (error) {
+      toast.error('Failed to upload document');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+
+    try {
+      await api.delete(`/document/${docId}`);
+      toast.success('Document deleted');
+
+      // Refresh project to get updated documents
+      const response = await api.get<Project>(`/project/${id}`);
+      setProject(response.data);
+    } catch (error) {
+      toast.error('Failed to delete document');
+    }
+  };
+
+  const handleReplaceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setReplaceFile(e.target.files[0]);
+    }
+  };
+
+  const openReplaceModal = (doc: Document) => {
+    setDocumentToReplace(doc);
+    setReplaceFile(null);
+    setShowReplaceModal(true);
+  };
+
+  const handleReplaceDocument = async () => {
+    if (!replaceFile || !documentToReplace || !id) return;
+
+    setReplacingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', replaceFile);
+
+      await api.patch(`/document/${documentToReplace.id}/replace`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      toast.success('Document replaced successfully. Version incremented.');
+      setShowReplaceModal(false);
+      setReplaceFile(null);
+      setDocumentToReplace(null);
+
+      // Refresh project to get updated documents
+      const response = await api.get<Project>(`/project/${id}`);
+      setProject(response.data);
+    } catch (error) {
+      toast.error('Failed to replace document');
+    } finally {
+      setReplacingDoc(false);
+    }
   };
 
   if (loading) {
@@ -349,7 +456,17 @@ export default function ProjectDetailPage() {
 
       {activeTab === 'documents' && (
         <div className="card p-6">
-          <h2 className="text-lg font-semibold mb-4">Documents</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Documents</h2>
+            {canUploadDocs && (
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="btn-primary"
+              >
+                Upload Document
+              </button>
+            )}
+          </div>
           {project.documents && project.documents.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -357,6 +474,7 @@ export default function ProjectDetailPage() {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Uploaded By</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Upload Date</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -371,11 +489,16 @@ export default function ProjectDetailPage() {
                           {doc.type}
                         </span>
                       </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                          v{doc.version}
+                        </span>
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap text-gray-600">
                         {doc.uploadedBy.firstName} {doc.uploadedBy.lastName}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-gray-600">{formatDate(doc.uploadedAt)}</td>
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap space-x-2">
                         <a
                           href={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/document/${doc.id}/download`}
                           target="_blank"
@@ -387,6 +510,22 @@ export default function ProjectDetailPage() {
                           </svg>
                           Download
                         </a>
+                        {canUploadDocs && (
+                          <>
+                            <button
+                              onClick={() => openReplaceModal(doc)}
+                              className="text-amber-600 hover:text-amber-800 text-sm font-medium"
+                            >
+                              Replace
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDocument(doc.id)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -396,6 +535,112 @@ export default function ProjectDetailPage() {
           ) : (
             <p className="text-gray-500">No documents associated with this project.</p>
           )}
+        </div>
+      )}
+
+      {/* Upload Document Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Upload Document</h2>
+              <button onClick={() => setShowUploadModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">File *</label>
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+                {selectedFile && (
+                  <p className="text-sm text-gray-500 mt-1">Selected: {selectedFile.name}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Document Type *</label>
+                <select
+                  value={docType}
+                  onChange={(e) => setDocType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="contract">Contract</option>
+                  <option value="tz">Technical Specification (TZ)</option>
+                  <option value="project_documentation">Project Documentation</option>
+                  <option value="working_documentation">Working Documentation</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={() => setShowUploadModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleUploadDocument}
+                disabled={uploadingDoc || !selectedFile}
+                className="btn-primary disabled:opacity-50"
+              >
+                {uploadingDoc ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Replace Document Modal */}
+      {showReplaceModal && documentToReplace && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Replace Document</h2>
+              <button onClick={() => setShowReplaceModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800">
+                  <strong>Replacing:</strong> {documentToReplace.originalName}
+                </p>
+                <p className="text-sm text-amber-700 mt-1">
+                  Current version: <strong>v{documentToReplace.version}</strong> → New version: <strong>v{documentToReplace.version + 1}</strong>
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New File *</label>
+                <input
+                  type="file"
+                  onChange={handleReplaceFileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+                {replaceFile && (
+                  <p className="text-sm text-gray-500 mt-1">Selected: {replaceFile.name}</p>
+                )}
+              </div>
+              <p className="text-sm text-gray-500">
+                The document type will remain as <strong>{documentToReplace.type}</strong>.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={() => setShowReplaceModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleReplaceDocument}
+                disabled={replacingDoc || !replaceFile}
+                className="btn-primary disabled:opacity-50"
+              >
+                {replacingDoc ? 'Replacing...' : 'Replace'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

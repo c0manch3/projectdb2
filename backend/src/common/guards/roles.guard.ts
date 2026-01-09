@@ -74,3 +74,15 @@ export class NotTrialGuard implements CanActivate {
     return true;
   }
 }
+
+// Manager or Trial guard - Admin, Manager, or Trial (for view-only access)
+@Injectable()
+export class ManagerOrTrialGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const { user } = context.switchToHttp().getRequest();
+    if (!['Admin', 'Manager', 'Trial'].includes(user?.role)) {
+      throw new ForbiddenException('Manager or Trial access required');
+    }
+    return true;
+  }
+}
