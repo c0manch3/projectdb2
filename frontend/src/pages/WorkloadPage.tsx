@@ -22,13 +22,32 @@ interface WorkloadPlanEntry {
   project: { id: string; name: string };
 }
 
+interface WorkloadActualEntry {
+  id: string;
+  date: string;
+  hoursWorked: number;
+  userText?: string;
+  distributions?: {
+    id: string;
+    projectId: string;
+    project: { id: string; name: string };
+    hours: number;
+    description?: string;
+  }[];
+}
+
 interface CalendarData {
   [date: string]: WorkloadPlanEntry[];
+}
+
+interface ActualCalendarData {
+  [date: string]: WorkloadActualEntry;
 }
 
 export default function WorkloadPage() {
   const { user } = useAppSelector((state) => state.auth);
   const isManager = user?.role === 'Admin' || user?.role === 'Manager';
+  const isEmployee = user?.role === 'Employee';
   const [projects, setProjects] = useState<Project[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
@@ -37,6 +56,12 @@ export default function WorkloadPage() {
   const [calendarData, setCalendarData] = useState<CalendarData>({});
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
+  // Tab state: 'plan' for managers, 'actual' for employees logging hours
+  const [activeTab, setActiveTab] = useState<'plan' | 'actual'>(isEmployee ? 'actual' : 'plan');
+
+  // Actual workload data
+  const [actualCalendarData, setActualCalendarData] = useState<ActualCalendarData>({});
+
   // Add workload modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -44,14 +69,31 @@ export default function WorkloadPage() {
   const [newPlanProject, setNewPlanProject] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Edit workload modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<WorkloadPlanEntry | null>(null);
+  const [editingPlanDate, setEditingPlanDate] = useState<string>('');
+  const [editPlanProject, setEditPlanProject] = useState<string>('');
+
+  // Add actual hours modal state
+  const [showAddActualModal, setShowAddActualModal] = useState(false);
+  const [actualDate, setActualDate] = useState<string>('');
+  const [actualHours, setActualHours] = useState<string>('8');
+  const [actualNotes, setActualNotes] = useState<string>('');
+  const [actualDistributions, setActualDistributions] = useState<{ projectId: string; hours: string; description: string }[]>([]);
+
   useEffect(() => {
     fetchProjects();
     fetchEmployees();
   }, []);
 
   useEffect(() => {
-    fetchCalendarData();
-  }, [currentMonth, selectedProject, selectedEmployee]);
+    if (activeTab === 'plan') {
+      fetchCalendarData();
+    } else {
+      fetchActualCalendarData();
+    }
+  }, [currentMonth, selectedProject, selectedEmployee, activeTab]);
 
   const fetchProjects = async () => {
     try {
@@ -95,6 +137,29 @@ export default function WorkloadPage() {
       setCalendarData(response.data);
     } catch (error) {
       console.error('Failed to fetch calendar data:', error);
+    }
+  };
+
+  const fetchActualCalendarData = async () => {
+    try {
+      const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+
+      const response = await api.get(`/workload-actual/my?${params}`);
+      // Convert array to date-keyed object
+      const calendarObj: ActualCalendarData = {};
+      response.data.forEach((entry: WorkloadActualEntry) => {
+        const dateKey = new Date(entry.date).toISOString().split('T')[0];
+        calendarObj[dateKey] = entry;
+      });
+      setActualCalendarData(calendarObj);
+    } catch (error) {
+      console.error('Failed to fetch actual calendar data:', error);
     }
   };
 
@@ -143,6 +208,99 @@ export default function WorkloadPage() {
       fetchCalendarData();
     } catch (error) {
       toast.error('Failed to delete workload plan');
+    }
+  };
+
+  const handleOpenEditModal = (plan: WorkloadPlanEntry, dateKey: string) => {
+    setEditingPlan(plan);
+    setEditingPlanDate(dateKey);
+    setEditPlanProject(plan.project.id);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateWorkloadPlan = async () => {
+    if (!editingPlan || !editPlanProject) {
+      toast.error('Please select a project');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await api.patch(`/workload-plan/${editingPlan.id}`, {
+        projectId: editPlanProject,
+      });
+      toast.success('Workload plan updated');
+      setShowEditModal(false);
+      setEditingPlan(null);
+      fetchCalendarData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update workload plan');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Actual hours handlers
+  const handleOpenAddActualModal = (date: string) => {
+    setActualDate(date);
+    setActualHours('8');
+    setActualNotes('');
+    setActualDistributions([{ projectId: '', hours: '8', description: '' }]);
+    setShowAddActualModal(true);
+  };
+
+  const handleAddDistribution = () => {
+    setActualDistributions([...actualDistributions, { projectId: '', hours: '', description: '' }]);
+  };
+
+  const handleRemoveDistribution = (index: number) => {
+    setActualDistributions(actualDistributions.filter((_, i) => i !== index));
+  };
+
+  const handleDistributionChange = (index: number, field: 'projectId' | 'hours' | 'description', value: string) => {
+    const updated = [...actualDistributions];
+    updated[index][field] = value;
+    setActualDistributions(updated);
+  };
+
+  const handleCreateActualHours = async () => {
+    if (!actualDate || !actualHours) {
+      toast.error('Please enter hours worked');
+      return;
+    }
+
+    const totalDistHours = actualDistributions.reduce((sum, d) => sum + (parseFloat(d.hours) || 0), 0);
+    const totalHours = parseFloat(actualHours);
+
+    if (totalDistHours > totalHours) {
+      toast.error('Distribution hours exceed total hours worked');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const distributions = actualDistributions
+        .filter(d => d.projectId && d.hours)
+        .map(d => ({
+          projectId: d.projectId,
+          hours: parseFloat(d.hours),
+          description: d.description || undefined,
+        }));
+
+      await api.post('/workload-actual/create', {
+        date: actualDate,
+        hoursWorked: totalHours,
+        userText: actualNotes || undefined,
+        distributions: distributions.length > 0 ? distributions : undefined,
+      });
+
+      toast.success('Hours logged successfully');
+      setShowAddActualModal(false);
+      fetchActualCalendarData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to log hours');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -203,7 +361,32 @@ export default function WorkloadPage() {
         <h1 className="page-title">Workload</h1>
       </div>
 
-      {/* Filters */}
+      {/* Tabs for Plan vs Actual */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          onClick={() => setActiveTab('plan')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 ${
+            activeTab === 'plan'
+              ? 'border-primary-600 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          Plan
+        </button>
+        <button
+          onClick={() => setActiveTab('actual')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 ${
+            activeTab === 'actual'
+              ? 'border-primary-600 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          My Hours
+        </button>
+      </div>
+
+      {/* Filters - only show for Plan tab */}
+      {activeTab === 'plan' && (
       <div className="card p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -245,8 +428,10 @@ export default function WorkloadPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Workload Calendar */}
+      {activeTab === 'plan' && (
       <div className="card">
         {/* Calendar Header */}
         <div className="flex items-center justify-between p-4 border-b">
@@ -322,8 +507,9 @@ export default function WorkloadPage() {
                     {dayPlans.map((plan) => (
                       <div
                         key={plan.id}
-                        className="text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative"
-                        title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}`}
+                        className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                        title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager ? ' (Click to edit)' : ''}`}
+                        onClick={() => isManager && handleOpenEditModal(plan, dateKey)}
                       >
                         <span className="font-medium">{plan.user.firstName}</span>
                         <span className="text-primary-600"> - {plan.project.name}</span>
@@ -350,6 +536,102 @@ export default function WorkloadPage() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Actual Hours Calendar */}
+      {activeTab === 'actual' && (
+      <div className="card">
+        {/* Calendar Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <button
+            onClick={handlePrevMonth}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+            aria-label="Previous month"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h2 className="text-lg font-semibold">
+            {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          </h2>
+          <button
+            onClick={handleNextMonth}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+            aria-label="Next month"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="p-4">
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Days */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((day, index) => {
+              const dateKey = formatDateKey(day.date);
+              const dayActual = actualCalendarData[dateKey];
+              const dayIsToday = isToday(day.date);
+
+              return (
+                <div
+                  key={index}
+                  className={`min-h-24 p-2 border rounded-lg ${
+                    day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
+                  } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span
+                      className={`text-sm font-medium ${
+                        day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+                      } ${dayIsToday ? 'text-primary-600' : ''}`}
+                    >
+                      {day.date.getDate()}
+                    </span>
+                    {day.isCurrentMonth && !dayActual && (
+                      <button
+                        onClick={() => handleOpenAddActualModal(dateKey)}
+                        className="text-primary-600 hover:text-primary-800 p-1"
+                        aria-label={`Add hours for ${dateKey}`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {dayActual && (
+                    <div className="text-xs bg-green-100 text-green-800 p-1 rounded">
+                      <div className="font-medium">{dayActual.hoursWorked}h worked</div>
+                      {dayActual.distributions && dayActual.distributions.length > 0 && (
+                        <div className="text-green-600 mt-1">
+                          {dayActual.distributions.map((d, i) => (
+                            <div key={i} className="truncate">
+                              {d.hours}h - {d.project.name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      )}
 
       {/* Add Workload Plan Modal */}
       {showAddModal && (
@@ -426,6 +708,218 @@ export default function WorkloadPage() {
                 className="btn-primary"
               >
                 {isSubmitting ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Workload Plan Modal */}
+      {showEditModal && editingPlan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Edit Workload Plan</h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date
+                </label>
+                <input
+                  type="text"
+                  value={editingPlanDate}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Employee
+                </label>
+                <input
+                  type="text"
+                  value={`${editingPlan.user.firstName} ${editingPlan.user.lastName}`}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Project *
+                </label>
+                <select
+                  value={editPlanProject}
+                  onChange={(e) => setEditPlanProject(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">Select Project</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateWorkloadPlan}
+                disabled={isSubmitting}
+                className="btn-primary"
+              >
+                {isSubmitting ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Actual Hours Modal */}
+      {showAddActualModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Log Hours</h2>
+              <button
+                onClick={() => setShowAddActualModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date
+                </label>
+                <input
+                  type="text"
+                  value={actualDate}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Total Hours Worked *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="24"
+                  step="0.5"
+                  value={actualHours}
+                  onChange={(e) => setActualHours(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={actualNotes}
+                  onChange={(e) => setActualNotes(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="What did you work on today?"
+                />
+              </div>
+
+              {/* Project Distributions */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Distribute to Projects
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddDistribution}
+                    className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                  >
+                    + Add Project
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {actualDistributions.map((dist, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-600">Project {index + 1}</span>
+                        {actualDistributions.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDistribution(index)}
+                            className="text-red-600 hover:text-red-800 text-xs"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={dist.projectId}
+                          onChange={(e) => handleDistributionChange(index, 'projectId', e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        >
+                          <option value="">Select Project</option>
+                          {projects.map((project) => (
+                            <option key={project.id} value={project.id}>
+                              {project.name}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          placeholder="Hours"
+                          value={dist.hours}
+                          onChange={(e) => handleDistributionChange(index, 'hours', e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Description (optional)"
+                        value={dist.description}
+                        onChange={(e) => handleDistributionChange(index, 'description', e.target.value)}
+                        className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button
+                onClick={() => setShowAddActualModal(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateActualHours}
+                disabled={isSubmitting}
+                className="btn-primary"
+              >
+                {isSubmitting ? 'Saving...' : 'Log Hours'}
               </button>
             </div>
           </div>

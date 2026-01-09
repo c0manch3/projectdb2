@@ -3,7 +3,12 @@
 ## Session 7: 2026-01-10
 
 ### Summary
-Implemented Document Replace workflow with version tracking.
+Implemented multiple workload and document management features:
+- Document Replace with version tracking (D15)
+- Document Delete workflow (D16)
+- Workload Plan Create (D17)
+- Workload Plan Update with edit modal (D18)
+- Workload Actual Create - employee hour logging (D19)
 
 ### Completed Tasks
 
@@ -14,24 +19,48 @@ Implemented Document Replace workflow with version tracking.
 - Modal shows current document info and version transition (v1 -> v2)
 - Replace API call to PATCH /document/:id/replace endpoint
 - Backend properly increments version number on replace
-- Old file deleted from disk, new file stored
-- Success toast notification after replacement
 
-### Features Passing: 90/300 (30.0%)
+#### 2. Document Delete Workflow (D16)
+- Verified existing delete functionality works correctly
+- Confirmation dialog with confirm()
+- API call to DELETE /document/:id
+- Success toast notification and list refresh
+
+#### 3. Workload Plan Create (D17)
+- Calendar view with "+" button on each day
+- Add Workload Plan modal with employee/project dropdowns
+- POST /workload-plan/create endpoint
+- Plan appears in calendar after creation
+
+#### 4. Workload Plan Update (D18)
+- Added edit modal for workload plans
+- Click on plan entry to open edit modal
+- Change project assignment
+- PATCH /workload-plan/:id endpoint
+
+#### 5. Workload Actual Create (D19)
+- Added "My Hours" tab to WorkloadPage for employees
+- Separate calendar for actual hours
+- "Log Hours" modal with total hours, notes, project distributions
+- POST /workload-actual/create with distributions
+- Hours appear in calendar with project breakdown
+
+### Features Passing: 94/300 (31.3%)
 
 ### Files Modified
-- frontend/src/pages/ProjectDetailPage.tsx - Added Replace modal and version column
+- frontend/src/pages/ProjectDetailPage.tsx - Document Replace modal, version column
+- frontend/src/pages/WorkloadPage.tsx - Edit modal, Actual Hours tab, Log Hours modal
 
 ### Technical Details
-- Version field displays in gray badge (v1, v2, etc.)
-- Replace button styled in amber color
-- Modal shows file info and confirms version increment
-- Backend uses multer for file handling, increments version field
+- WorkloadPage now has Plan/My Hours tabs
+- Employees default to "My Hours" tab
+- Actual hours shown in green badges with hour breakdowns
+- Distribution validation ensures total doesn't exceed hours worked
 
 ### Next Steps
-1. Continue with next pending feature
-2. Implement remaining document features
-3. Build workload management features
+1. Continue with D20: Workload Actual Update
+2. Implement payment schedule features
+3. Complete remaining workload features
 
 ---
 
