@@ -69,6 +69,7 @@ export default function ProjectsPage() {
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [newProject, setNewProject] = useState<NewProjectForm>({
@@ -446,7 +447,8 @@ export default function ProjectsPage() {
   };
 
   const confirmDelete = async () => {
-    if (!deletingProject) return;
+    if (!deletingProject || isDeleting) return;
+    setIsDeleting(true);
     try {
       await api.delete(`/project/${deletingProject.id}`);
       toast.success('Project deleted successfully');
@@ -454,6 +456,8 @@ export default function ProjectsPage() {
       handleCloseDeleteModal();
     } catch (error) {
       toast.error('Failed to delete project');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -745,11 +749,19 @@ export default function ProjectsPage() {
               </p>
             </div>
             <div className="flex justify-end gap-3 p-4 border-t">
-              <button onClick={handleCloseDeleteModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+              <button
+                onClick={handleCloseDeleteModal}
+                disabled={isDeleting}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+              >
                 Cancel
               </button>
-              <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                Delete Project
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Project'}
               </button>
             </div>
           </div>
