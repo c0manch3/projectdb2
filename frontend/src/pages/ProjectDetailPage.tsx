@@ -121,7 +121,7 @@ interface Project {
   documents?: Document[];
 }
 
-type TabType = 'overview' | 'constructions' | 'documents' | 'team' | 'payments' | 'workload';
+type TabType = 'overview' | 'constructions' | 'documents' | 'payments' | 'workload';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -134,7 +134,7 @@ export default function ProjectDetailPage() {
   // Get initial tab from URL hash or default to 'overview'
   const getTabFromHash = (): TabType => {
     const hash = location.hash.replace('#', '');
-    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'team', 'payments', 'workload'];
+    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'payments', 'workload'];
     return validTabs.includes(hash as TabType) ? (hash as TabType) : 'overview';
   };
 
@@ -218,7 +218,7 @@ export default function ProjectDetailPage() {
   // Sync active tab with URL hash
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'team', 'payments', 'workload'];
+    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'payments', 'workload'];
     if (validTabs.includes(hash as TabType) && hash !== activeTab) {
       setActiveTab(hash as TabType);
     }
@@ -229,28 +229,6 @@ export default function ProjectDetailPage() {
     setActiveTab(tab);
     navigate(`#${tab}`, { replace: true });
   };
-
-  // Fetch team members when team tab is active
-  useEffect(() => {
-    const fetchTeamData = async () => {
-      if (activeTab === 'team' && id) {
-        setLoadingTeam(true);
-        try {
-          const [teamResponse, availableResponse] = await Promise.all([
-            api.get<TeamMember[]>(`/project/${id}/users`),
-            canManageTeam ? api.get<AvailableUser[]>(`/project/${id}/available-users`) : Promise.resolve({ data: [] }),
-          ]);
-          setTeamMembers(teamResponse.data);
-          setAvailableUsers(availableResponse.data);
-        } catch (error) {
-          toast.error('Failed to load team data');
-        } finally {
-          setLoadingTeam(false);
-        }
-      }
-    };
-    fetchTeamData();
-  }, [activeTab, id, canManageTeam]);
 
   // Fetch payments when payments tab is active
   useEffect(() => {
@@ -685,9 +663,8 @@ export default function ProjectDetailPage() {
     { id: 'overview', label: 'Overview' },
     { id: 'constructions', label: `Constructions (${project.constructions?.length || 0})` },
     { id: 'documents', label: `Documents (${project.documents?.length || 0})` },
-    { id: 'team', label: `Team (${teamMembers.length})` },
     { id: 'payments', label: `Payments (${payments.length})` },
-    { id: 'workload', label: `Workload (${projectWorkload?.employeeCount || 0})` },
+    { id: 'workload', label: 'Workload' },
   ];
 
   return (
@@ -1174,107 +1151,6 @@ export default function ProjectDetailPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'team' && (
-        <div className="card p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold">Team Members</h2>
-          </div>
-
-          {/* Add Team Member Form */}
-          {canManageTeam && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Add Team Member</h3>
-              <div className="flex gap-3">
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  disabled={addingUser || availableUsers.length === 0}
-                >
-                  <option value="">Select an employee to add...</option>
-                  {availableUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.firstName} {u.lastName} ({u.role}) - {u.email}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAddTeamMember}
-                  disabled={!selectedUserId || addingUser}
-                  className="btn-primary px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {addingUser ? 'Adding...' : 'Add'}
-                </button>
-              </div>
-              {availableUsers.length === 0 && !loadingTeam && (
-                <p className="text-sm text-gray-500 mt-2">All employees have been assigned to this project.</p>
-              )}
-            </div>
-          )}
-
-          {/* Team Members List */}
-          {loadingTeam ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
-          ) : teamMembers.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                    {canManageTeam && (
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {teamMembers.map((member) => (
-                    <tr key={member.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-medium text-sm mr-3">
-                            {member.user.firstName[0]}{member.user.lastName[0]}
-                          </div>
-                          <span className="text-gray-900">{member.user.firstName} {member.user.lastName}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-gray-600">{member.user.email}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-gray-600">{member.user.phone}</td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          member.user.role === 'Admin' ? 'bg-purple-100 text-purple-800' :
-                          member.user.role === 'Manager' ? 'bg-blue-100 text-blue-800' :
-                          member.user.role === 'Employee' ? 'bg-green-100 text-green-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {member.user.role}
-                        </span>
-                      </td>
-                      {canManageTeam && (
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => handleRemoveTeamMember(member.user.id)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium"
-                          >
-                            Remove
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">No team members assigned to this project yet.</p>
-          )}
         </div>
       )}
 

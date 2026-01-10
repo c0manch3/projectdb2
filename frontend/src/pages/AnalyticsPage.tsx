@@ -201,8 +201,6 @@ export default function AnalyticsPage() {
     yPos += 6;
     doc.text(`Completed Projects: ${projectsData.summary.completedProjects}`, 14, yPos);
     yPos += 6;
-    doc.text(`Total Hours Worked: ${projectsData.summary.totalHoursWorked}h`, 14, yPos);
-    yPos += 6;
     doc.text(`Total Employees: ${employeesData.summary.totalEmployees}`, 14, yPos);
     yPos += 6;
     doc.text(`Average Hours per Employee: ${employeesData.summary.averageHoursWorked}h`, 14, yPos);
@@ -369,7 +367,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="card p-4">
           <div className="text-sm text-gray-500 mb-1">Total Projects</div>
           <div className="text-2xl font-bold text-gray-900">
@@ -386,12 +384,6 @@ export default function AnalyticsPage() {
           <div className="text-sm text-gray-500 mb-1">Total Employees</div>
           <div className="text-2xl font-bold text-blue-600">
             {employeesData?.summary.totalEmployees || 0}
-          </div>
-        </div>
-        <div className="card p-4">
-          <div className="text-sm text-gray-500 mb-1">Total Hours Worked</div>
-          <div className="text-2xl font-bold text-purple-600">
-            {projectsData?.summary.totalHoursWorked || 0}h
           </div>
         </div>
       </div>

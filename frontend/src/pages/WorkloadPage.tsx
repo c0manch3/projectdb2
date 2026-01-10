@@ -313,9 +313,9 @@ export default function WorkloadPage() {
   }, [currentWeekStart]);
 
   const handleOpenAddModal = (date: string) => {
-    // Check if date is in the past - cannot add work for past dates
-    if (isPastDateString(date)) {
-      toast.error('Cannot add workload for past dates');
+    // Workload plan can only be added for future dates (not today, not past)
+    if (!isFutureDateString(date)) {
+      toast.error('Workload plan can only be added for future dates');
       return;
     }
     setSelectedDate(date);
@@ -347,7 +347,12 @@ export default function WorkloadPage() {
     }
   };
 
-  const handleDeleteWorkloadPlan = async (planId: string) => {
+  const handleDeleteWorkloadPlan = async (planId: string, dateKey: string) => {
+    // Workload plan can only be deleted for future dates
+    if (!isFutureDateString(dateKey)) {
+      toast.error('Cannot delete workload plan for past or current date');
+      return;
+    }
     try {
       await api.delete(`/workload-plan/${planId}`);
       toast.success('Workload plan deleted');
@@ -358,6 +363,11 @@ export default function WorkloadPage() {
   };
 
   const handleOpenEditModal = (plan: WorkloadPlanEntry, dateKey: string) => {
+    // Workload plan can only be edited for future dates
+    if (!isFutureDateString(dateKey)) {
+      toast.error('Cannot edit workload plan for past or current date');
+      return;
+    }
     setEditingPlan(plan);
     setEditingPlanDate(dateKey);
     setEditPlanProject(plan.project.id);
@@ -386,13 +396,42 @@ export default function WorkloadPage() {
     }
   };
 
+  // Check if date is in the future (after today)
+  const isFutureDate = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    return compareDate > today;
+  };
+
+  // Check if date string is in the future
+  const isFutureDateString = (dateStr: string) => {
+    return isFutureDate(new Date(dateStr));
+  };
+
   // Actual hours handlers
   const handleOpenAddActualModal = (date: string) => {
+    // Prevent adding hours for future dates
+    if (isFutureDateString(date)) {
+      toast.error('Cannot log hours for future dates');
+      return;
+    }
     setActualDate(date);
     setActualHours('8');
     setActualNotes('');
     setActualDistributions([{ projectId: '', hours: '8', description: '' }]);
     setShowAddActualModal(true);
+  };
+
+  // View actual hours report modal state
+  const [showViewActualModal, setShowViewActualModal] = useState(false);
+  const [viewingActualEntry, setViewingActualEntry] = useState<WorkloadActualEntry | null>(null);
+
+  // Handle viewing an existing actual hours entry
+  const handleViewActualEntry = (entry: WorkloadActualEntry) => {
+    setViewingActualEntry(entry);
+    setShowViewActualModal(true);
   };
 
   const handleAddDistribution = () => {
@@ -764,7 +803,7 @@ export default function WorkloadPage() {
                 const dateKey = formatDateKey(currentDay);
                 const dayPlans = calendarData[dateKey] || [];
                 const dayIsToday = isToday(currentDay);
-                const dayIsPast = isPastDate(currentDay);
+                const dayIsFuture = isFutureDate(currentDay);
                 const isAllEmployeesMode = !selectedEmployee;
 
                 return (
@@ -773,7 +812,7 @@ export default function WorkloadPage() {
                       <span className={`text-xl font-semibold ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
                         {currentDay.getDate()}
                       </span>
-                      {isManager && !dayIsPast && (
+                      {isManager && dayIsFuture && (
                         <button
                           onClick={() => handleOpenAddModal(dateKey)}
                           className="btn-primary text-sm"
@@ -802,11 +841,11 @@ export default function WorkloadPage() {
                           >
                             <div className="font-medium text-lg">{plan.user.firstName} {plan.user.lastName}</div>
                             <div className="text-primary-600">{plan.project.name}</div>
-                            {isManager && !isAllEmployeesMode && (
+                            {isManager && !isAllEmployeesMode && dayIsFuture && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDeleteWorkloadPlan(plan.id);
+                                  handleDeleteWorkloadPlan(plan.id, dateKey);
                                 }}
                                 className="absolute right-2 top-2 text-red-600 hover:text-red-800 p-2"
                                 aria-label="Delete"
@@ -849,7 +888,7 @@ export default function WorkloadPage() {
                   const dateKey = formatDateKey(day);
                   const dayPlans = calendarData[dateKey] || [];
                   const dayIsToday = isToday(day);
-                  const dayIsPast = isPastDate(day);
+                  const dayIsFuture = isFutureDate(day);
                   const isAllEmployeesMode = !selectedEmployee;
 
                   return (
@@ -876,7 +915,7 @@ export default function WorkloadPage() {
                         >
                           {day.getDate()}
                         </span>
-                        {isManager && !dayIsPast && (
+                        {isManager && dayIsFuture && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -941,7 +980,7 @@ export default function WorkloadPage() {
                   const dateKey = formatDateKey(day.date);
                   const dayPlans = calendarData[dateKey] || [];
                   const dayIsToday = isToday(day.date);
-                  const dayIsPast = isPastDate(day.date);
+                  const dayIsFuture = isFutureDate(day.date);
                   const isAllEmployeesMode = !selectedEmployee;
 
                   return (
@@ -974,7 +1013,7 @@ export default function WorkloadPage() {
                         >
                           {day.date.getDate()}
                         </span>
-                        {isManager && day.isCurrentMonth && !dayIsPast && (
+                        {isManager && day.isCurrentMonth && dayIsFuture && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1015,11 +1054,11 @@ export default function WorkloadPage() {
                           >
                             <span className="font-medium">{plan.user.firstName}</span>
                             <span className="text-primary-600"> - {plan.project.name}</span>
-                            {isManager && !isAllEmployeesMode && (
+                            {isManager && !isAllEmployeesMode && dayIsFuture && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDeleteWorkloadPlan(plan.id);
+                                  handleDeleteWorkloadPlan(plan.id, dateKey);
                                 }}
                                 className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:block text-red-600 hover:text-red-800"
                                 aria-label="Delete"
@@ -1142,6 +1181,7 @@ export default function WorkloadPage() {
                 const dateKey = formatDateKey(currentDay);
                 const dayActual = actualCalendarData[dateKey];
                 const dayIsToday = isToday(currentDay);
+                const dayIsFuture = isFutureDate(currentDay);
 
                 return (
                   <div className={`p-4 border rounded-lg ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}>
@@ -1149,7 +1189,8 @@ export default function WorkloadPage() {
                       <span className={`text-xl font-semibold ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
                         {currentDay.getDate()}
                       </span>
-                      {!dayActual && (
+                      {/* Only show Log Hours button if no existing entry and not future date */}
+                      {!dayActual && !dayIsFuture && (
                         <button
                           onClick={() => handleOpenAddActualModal(dateKey)}
                           className="btn-primary text-sm"
@@ -1158,9 +1199,16 @@ export default function WorkloadPage() {
                           + Log Hours
                         </button>
                       )}
+                      {dayIsFuture && !dayActual && (
+                        <span className="text-sm text-gray-400">Future date</span>
+                      )}
                     </div>
                     {dayActual ? (
-                      <div className="bg-green-100 text-green-800 p-4 rounded-lg">
+                      <div
+                        className="bg-green-100 text-green-800 p-4 rounded-lg cursor-pointer hover:bg-green-200 transition-colors"
+                        onClick={() => handleViewActualEntry(dayActual)}
+                        title="Click to view details"
+                      >
                         <div className="font-medium text-lg">{dayActual.hoursWorked}h worked</div>
                         {dayActual.userText && <div className="text-green-600 mt-2">{dayActual.userText}</div>}
                         {dayActual.distributions && dayActual.distributions.length > 0 && (
@@ -1175,7 +1223,9 @@ export default function WorkloadPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="text-gray-500 text-center py-8">No hours logged for this day</div>
+                      <div className="text-gray-500 text-center py-8">
+                        {dayIsFuture ? 'Cannot log hours for future dates' : 'No hours logged for this day'}
+                      </div>
                     )}
                   </div>
                 );
@@ -1198,6 +1248,7 @@ export default function WorkloadPage() {
                   const dateKey = formatDateKey(day);
                   const dayActual = actualCalendarData[dateKey];
                   const dayIsToday = isToday(day);
+                  const dayIsFuture = isFutureDate(day);
 
                   return (
                     <div
@@ -1208,7 +1259,8 @@ export default function WorkloadPage() {
                         <span className={`text-sm font-medium ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
                           {day.getDate()}
                         </span>
-                        {!dayActual && (
+                        {/* Only show Add button if no existing entry and not future date */}
+                        {!dayActual && !dayIsFuture && (
                           <button
                             onClick={() => handleOpenAddActualModal(dateKey)}
                             className="text-primary-600 hover:text-primary-800 p-1"
@@ -1221,7 +1273,11 @@ export default function WorkloadPage() {
                         )}
                       </div>
                       {dayActual && (
-                        <div className="text-xs bg-green-100 text-green-800 p-1 rounded">
+                        <div
+                          className="text-xs bg-green-100 text-green-800 p-1 rounded cursor-pointer hover:bg-green-200 transition-colors"
+                          onClick={() => handleViewActualEntry(dayActual)}
+                          title="Click to view details"
+                        >
                           <div className="font-medium">{dayActual.hoursWorked}h</div>
                         </div>
                       )}
@@ -1247,6 +1303,7 @@ export default function WorkloadPage() {
                   const dateKey = formatDateKey(day.date);
                   const dayActual = actualCalendarData[dateKey];
                   const dayIsToday = isToday(day.date);
+                  const dayIsFuture = isFutureDate(day.date);
 
                   return (
                     <div
@@ -1263,7 +1320,8 @@ export default function WorkloadPage() {
                         >
                           {day.date.getDate()}
                         </span>
-                        {day.isCurrentMonth && !dayActual && (
+                        {/* Only show Add button for current month, no existing entry, and not future date */}
+                        {day.isCurrentMonth && !dayActual && !dayIsFuture && (
                           <button
                             onClick={() => handleOpenAddActualModal(dateKey)}
                             className="text-primary-600 hover:text-primary-800 p-1"
@@ -1276,7 +1334,11 @@ export default function WorkloadPage() {
                         )}
                       </div>
                       {dayActual && (
-                        <div className="text-xs bg-green-100 text-green-800 p-1 rounded">
+                        <div
+                          className="text-xs bg-green-100 text-green-800 p-1 rounded cursor-pointer hover:bg-green-200 transition-colors"
+                          onClick={() => handleViewActualEntry(dayActual)}
+                          title="Click to view details"
+                        >
                           <div className="font-medium">{dayActual.hoursWorked}h worked</div>
                           {dayActual.distributions && dayActual.distributions.length > 0 && (
                             <div className="text-green-600 mt-1">
@@ -1635,7 +1697,7 @@ export default function WorkloadPage() {
                             {plan.project.name}
                           </div>
                         </div>
-                        {isManager && (
+                        {isManager && isFutureDateString(dateEmployeesModalDate) && (
                           <div className="flex gap-2">
                             <button
                               onClick={() => {
@@ -1651,7 +1713,7 @@ export default function WorkloadPage() {
                             </button>
                             <button
                               onClick={() => {
-                                handleDeleteWorkloadPlan(plan.id);
+                                handleDeleteWorkloadPlan(plan.id, dateEmployeesModalDate);
                                 setShowDateEmployeesModal(false);
                               }}
                               className="text-red-600 hover:text-red-800 p-2"
@@ -1675,6 +1737,82 @@ export default function WorkloadPage() {
               </div>
               <button
                 onClick={() => setShowDateEmployeesModal(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Actual Hours Report Modal */}
+      {showViewActualModal && viewingActualEntry && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">
+                Work Report - {new Date(viewingActualEntry.date).toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </h2>
+              <button
+                onClick={() => setShowViewActualModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              {/* Total Hours */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div className="text-sm text-green-600 mb-1">Total Hours Worked</div>
+                <div className="text-3xl font-bold text-green-800">{viewingActualEntry.hoursWorked}h</div>
+              </div>
+
+              {/* Notes */}
+              {viewingActualEntry.userText && (
+                <div className="mb-4">
+                  <div className="text-sm font-medium text-gray-700 mb-2">Notes</div>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-600">
+                    {viewingActualEntry.userText}
+                  </div>
+                </div>
+              )}
+
+              {/* Project Distributions */}
+              {viewingActualEntry.distributions && viewingActualEntry.distributions.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium text-gray-700 mb-2">Project Distribution</div>
+                  <div className="space-y-2">
+                    {viewingActualEntry.distributions.map((dist, index) => (
+                      <div
+                        key={index}
+                        className="bg-primary-50 border border-primary-200 rounded-lg p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-gray-900">{dist.project.name}</div>
+                          <div className="text-primary-700 font-semibold">{dist.hours}h</div>
+                        </div>
+                        {dist.description && (
+                          <div className="text-sm text-gray-500 mt-1">{dist.description}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No distributions message */}
+              {(!viewingActualEntry.distributions || viewingActualEntry.distributions.length === 0) && !viewingActualEntry.userText && (
+                <div className="text-gray-500 text-center py-4">
+                  No additional details for this report
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end p-4 border-t">
+              <button
+                onClick={() => setShowViewActualModal(false)}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
               >
                 Close

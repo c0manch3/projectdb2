@@ -127,7 +127,8 @@ export default function ProjectsPage() {
   }, [isFormDirty, setIsDirty]);
 
   // Get filter, page, and sort from URL params
-  const statusFilter = searchParams.get('status') || 'All';
+  // Default to 'Active' status filter when no URL param is set
+  const statusFilter = searchParams.get('status') || 'Active';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const sortBy = searchParams.get('sortBy') || 'createdAt';
   const sortOrder = searchParams.get('sortOrder') || 'desc';
@@ -146,7 +147,8 @@ export default function ProjectsPage() {
         try {
           const filterState = JSON.parse(saved);
           const newParams = new URLSearchParams();
-          if (filterState.status && filterState.status !== 'All') {
+          // Restore status if it differs from the new default (Active)
+          if (filterState.status && filterState.status !== 'Active') {
             newParams.set('status', filterState.status);
           }
           if (filterState.page && filterState.page !== '1') {

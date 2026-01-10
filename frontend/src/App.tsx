@@ -12,7 +12,6 @@ import EmployeesPage from './pages/EmployeesPage';
 import CompaniesPage from './pages/CompaniesPage';
 import WorkloadPage from './pages/WorkloadPage';
 import AnalyticsPage from './pages/AnalyticsPage';
-import ChatLogsPage from './pages/ChatLogsPage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -126,14 +125,6 @@ function App() {
           element={
             <RoleRoute allowedRoles={['Admin', 'Manager', 'Trial']}>
               <AnalyticsPage />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="chat-logs"
-          element={
-            <RoleRoute allowedRoles={['Admin']}>
-              <ChatLogsPage />
             </RoleRoute>
           }
         />
