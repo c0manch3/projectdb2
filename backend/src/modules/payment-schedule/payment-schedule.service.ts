@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaymentType } from '@prisma/client';
 
 @Injectable()
 export class PaymentScheduleService {
@@ -39,7 +40,7 @@ export class PaymentScheduleService {
 
   async create(data: {
     projectId: string;
-    type: string;
+    type: PaymentType;
     name: string;
     amount: number;
     percentage?: number;
@@ -71,7 +72,7 @@ export class PaymentScheduleService {
   async update(
     id: string,
     data: {
-      type?: string;
+      type?: PaymentType;
       name?: string;
       amount?: number;
       percentage?: number;

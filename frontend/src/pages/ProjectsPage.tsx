@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/store';
 import { api } from '@/services/auth.service';
 import toast from 'react-hot-toast';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChangesWarning';
+import UnsavedChangesDialog from '@/components/common/UnsavedChangesDialog';
 
 interface Project {
   id: string;
@@ -11,19 +13,19 @@ interface Project {
   expirationDate: string;
   type: string;
   status: string;
-  customerId: string;
-  managerId: string;
+  customerId: string | null;
+  managerId: string | null;
   customer: {
     id: string;
     name: string;
     type: string;
-  };
+  } | null;
   manager: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
-  };
+  } | null;
   _count: {
     constructions: number;
     documents: number;
@@ -57,6 +59,18 @@ interface NewProjectForm {
 
 const ITEMS_PER_PAGE = 10;
 
+// Default form values for reset functionality
+const DEFAULT_PROJECT_FORM: NewProjectForm = {
+  name: '',
+  contractDate: '',
+  expirationDate: '',
+  status: 'Active',
+  customerId: '',
+  managerId: '',
+  type: 'main',
+  mainProjectId: '',
+};
+
 export default function ProjectsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
@@ -70,19 +84,11 @@ export default function ProjectsPage() {
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCloseConfirmModal, setShowCloseConfirmModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [newProject, setNewProject] = useState<NewProjectForm>({
-    name: '',
-    contractDate: '',
-    expirationDate: '',
-    status: 'Active',
-    customerId: '',
-    managerId: '',
-    type: 'main',
-    mainProjectId: '',
-  });
+  const [newProject, setNewProject] = useState<NewProjectForm>({ ...DEFAULT_PROJECT_FORM });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -91,6 +97,34 @@ export default function ProjectsPage() {
     expirationDate: '',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Unsaved changes context
+  const {
+    setIsDirty,
+    showConfirmDialog,
+    confirmNavigation,
+    cancelNavigation,
+  } = useUnsavedChanges();
+
+  // Track if form has unsaved changes and update context
+  const isFormDirty = useMemo(() => {
+    // Form is dirty if modal is open and any field has been filled
+    if (!showAddModal) return false;
+    return (
+      newProject.name.trim() !== '' ||
+      newProject.customerId !== '' ||
+      newProject.managerId !== '' ||
+      newProject.contractDate !== '' ||
+      newProject.expirationDate !== '' ||
+      newProject.type !== 'main' ||
+      newProject.mainProjectId !== ''
+    );
+  }, [showAddModal, newProject]);
+
+  // Update context when form dirty state changes
+  useEffect(() => {
+    setIsDirty(isFormDirty);
+  }, [isFormDirty, setIsDirty]);
 
   // Get filter, page, and sort from URL params
   const statusFilter = searchParams.get('status') || 'All';
@@ -206,8 +240,8 @@ export default function ProjectsPage() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(project =>
         project.name.toLowerCase().includes(query) ||
-        project.customer.name.toLowerCase().includes(query) ||
-        `${project.manager.firstName} ${project.manager.lastName}`.toLowerCase().includes(query)
+        (project.customer?.name || '').toLowerCase().includes(query) ||
+        `${project.manager?.firstName || ''} ${project.manager?.lastName || ''}`.toLowerCase().includes(query)
       );
     }
 
@@ -222,12 +256,12 @@ export default function ProjectsPage() {
           bValue = b.name.toLowerCase();
           break;
         case 'customer':
-          aValue = a.customer.name.toLowerCase();
-          bValue = b.customer.name.toLowerCase();
+          aValue = (a.customer?.name || '').toLowerCase();
+          bValue = (b.customer?.name || '').toLowerCase();
           break;
         case 'manager':
-          aValue = `${a.manager.lastName} ${a.manager.firstName}`.toLowerCase();
-          bValue = `${b.manager.lastName} ${b.manager.firstName}`.toLowerCase();
+          aValue = `${a.manager?.lastName || ''} ${a.manager?.firstName || ''}`.toLowerCase();
+          bValue = `${b.manager?.lastName || ''} ${b.manager?.firstName || ''}`.toLowerCase();
           break;
         case 'contractDate':
           aValue = new Date(a.contractDate).getTime();
@@ -368,18 +402,31 @@ export default function ProjectsPage() {
     setShowAddModal(true);
   };
 
+  // Check if form has any data before closing
+  const checkFormDirty = () => {
+    return (
+      newProject.name.trim() !== '' ||
+      newProject.customerId !== '' ||
+      newProject.managerId !== '' ||
+      newProject.contractDate !== '' ||
+      newProject.expirationDate !== '' ||
+      newProject.type !== 'main' ||
+      newProject.mainProjectId !== ''
+    );
+  };
+
+  const handleCloseAddModalAttempt = () => {
+    if (checkFormDirty()) {
+      setShowCloseConfirmModal(true);
+    } else {
+      handleCloseAddModal();
+    }
+  };
+
   const handleCloseAddModal = () => {
     setShowAddModal(false);
-    setNewProject({
-      name: '',
-      contractDate: '',
-      expirationDate: '',
-      status: 'Active',
-      customerId: '',
-      managerId: '',
-      type: 'main',
-      mainProjectId: '',
-    });
+    setShowCloseConfirmModal(false);
+    setNewProject({ ...DEFAULT_PROJECT_FORM });
     setFormErrors({});
   };
 
@@ -389,6 +436,12 @@ export default function ProjectsPage() {
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  // Reset form to default values (not empty)
+  const handleResetForm = () => {
+    setNewProject({ ...DEFAULT_PROJECT_FORM });
+    setFormErrors({});
   };
 
   const validateForm = (): boolean => {
@@ -592,9 +645,9 @@ export default function ProjectsPage() {
                       <div className="font-medium text-gray-900 truncate">{project.name}</div>
                       <div className="text-sm text-gray-500">{project._count.constructions} constructions</div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-gray-600">{project.customer.name}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-600">{project.customer?.name || 'N/A'}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-gray-600">
-                      {project.manager.firstName} {project.manager.lastName}
+                      {project.manager ? `${project.manager.firstName} ${project.manager.lastName}` : 'N/A'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-gray-600">{formatDate(project.contractDate)}</td>
                     <td className="px-4 py-4 whitespace-nowrap">
@@ -782,7 +835,7 @@ export default function ProjectsPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold">Add New Project</h2>
-              <button onClick={handleCloseAddModal} className="text-gray-400 hover:text-gray-600">
+              <button onClick={handleCloseAddModalAttempt} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -883,21 +936,51 @@ export default function ProjectsPage() {
                 {formErrors.expirationDate && <p className="text-red-500 text-sm mt-1">{formErrors.expirationDate}</p>}
               </div>
             </div>
-            <div className="flex justify-end gap-3 p-4 border-t">
-              <button onClick={handleCloseAddModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
-              </button>
+            <div className="flex justify-between p-4 border-t">
               <button
-                onClick={handleCreateProject}
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                type="button"
+                onClick={handleResetForm}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300"
               >
-                {isSubmitting ? 'Creating...' : 'Create Project'}
+                Reset
               </button>
+              <div className="flex gap-3">
+                <button onClick={handleCloseAddModalAttempt} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateProject}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Creating...' : 'Create Project'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Unsaved Changes Warning Dialog - for navigation */}
+      <UnsavedChangesDialog
+        isOpen={showConfirmDialog}
+        onConfirm={() => {
+          handleCloseAddModal();
+          confirmNavigation();
+        }}
+        onCancel={cancelNavigation}
+        title="Unsaved Changes"
+        message="You have unsaved changes in the project form. Are you sure you want to leave? Your changes will be lost."
+      />
+
+      {/* Close Confirmation Dialog - for modal close/cancel */}
+      <UnsavedChangesDialog
+        isOpen={showCloseConfirmModal}
+        onConfirm={handleCloseAddModal}
+        onCancel={() => setShowCloseConfirmModal(false)}
+        title="Unsaved Changes"
+        message="You have unsaved changes in the project form. Are you sure you want to close? Your changes will be lost."
+      />
     </div>
   );
 }

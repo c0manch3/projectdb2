@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserRole } from '@prisma/client';
 
 export interface ProjectWorkloadData {
   id: string;
@@ -69,8 +70,8 @@ export class AnalyticsService {
         id: project.id,
         name: project.name,
         status: project.status,
-        customerName: project.customer.name,
-        managerName: `${project.manager.firstName} ${project.manager.lastName}`,
+        customerName: project.customer?.name || 'N/A',
+        managerName: project.manager ? `${project.manager.firstName} ${project.manager.lastName}` : 'N/A',
         totalPlannedDays,
         totalActualHours: Math.round(totalActualHours * 10) / 10,
         employeeCount,
@@ -135,7 +136,7 @@ export class AnalyticsService {
     const employees = await this.prisma.user.findMany({
       where: {
         role: {
-          in: ['Employee', 'Manager'],
+          in: [UserRole.Employee, UserRole.Manager],
         },
       },
       include: {

@@ -20,6 +20,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ManagerGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { diskStorage } from 'multer';
+import { DocumentType } from '@prisma/client';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -83,7 +84,7 @@ export class DocumentController {
     @UploadedFile() file: Express.Multer.File,
     @Body('projectId') projectId: string,
     @Body('constructionId') constructionId: string | undefined,
-    @Body('type') type: string,
+    @Body('type') type: DocumentType,
     @CurrentUser('sub') userId: string,
   ) {
     if (!file) {

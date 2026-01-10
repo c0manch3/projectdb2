@@ -7,6 +7,7 @@ import {
 import { LenconnectChatLogService } from './lenconnect-chat-log.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/roles.guard';
+import { ChatRequestType } from '@prisma/client';
 
 @Controller('lenconnect-chat-logs')
 @UseGuards(JwtAuthGuard, AdminGuard) // All routes require Admin authentication
@@ -31,7 +32,7 @@ export class LenconnectChatLogController {
   @Get('user/:userId/:requestType')
   async findByUserAndType(
     @Param('userId') userId: string,
-    @Param('requestType') requestType: string,
+    @Param('requestType') requestType: ChatRequestType,
   ) {
     return this.chatLogService.findByUserAndType(userId, requestType);
   }

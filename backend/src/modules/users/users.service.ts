@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto, ChangePasswordDto, UpdateUserDto } from './dto/auth.dto';
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -27,13 +28,14 @@ export class UsersService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role, user.tokenVersion);
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
 
     // Store refresh token
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
         expiresIn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        createdAt: new Date(),
       },
     });
 
@@ -45,7 +47,7 @@ export class UsersService {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        telegramId: user.telegramId,
+        telegramId: user.telegramId ? user.telegramId.toString() : undefined,
         salary: user.salary ? Number(user.salary) : undefined,
         dateBirth: user.dateBirth?.toISOString(),
       },
@@ -75,8 +77,9 @@ export class UsersService {
         email: dto.email,
         phone: dto.phone,
         passwordHash,
-        role: dto.role || 'Employee',
+        role: dto.role || UserRole.Employee,
         salary: dto.salary,
+        dateBirth: dto.dateBirth ? new Date(dto.dateBirth) : new Date(),
       },
     });
 
@@ -105,12 +108,7 @@ export class UsersService {
         throw new UnauthorizedException('Invalid token');
       }
 
-      // Check if token version matches (invalidates tokens after password change)
-      if (payload.tokenVersion !== undefined && payload.tokenVersion !== user.tokenVersion) {
-        throw new UnauthorizedException('Token has been invalidated');
-      }
-
-      const tokens = await this.generateTokens(user.id, user.email, user.role, user.tokenVersion);
+      const tokens = await this.generateTokens(user.id, user.email, user.role);
 
       return {
         accessToken: tokens.accessToken,
@@ -137,16 +135,15 @@ export class UsersService {
 
     const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
 
-    // Update password and increment tokenVersion to invalidate all existing tokens
+    // Update password
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         passwordHash: newPasswordHash,
-        tokenVersion: { increment: 1 },
       },
     });
 
-    // Also invalidate all refresh tokens stored in database
+    // Invalidate all refresh tokens stored in database
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
     });
@@ -192,6 +189,7 @@ export class UsersService {
 
     return users.map((user) => ({
       ...user,
+      telegramId: user.telegramId ? user.telegramId.toString() : undefined,
       salary: user.salary ? Number(user.salary) : undefined,
     }));
   }
@@ -219,6 +217,7 @@ export class UsersService {
 
     return {
       ...user,
+      telegramId: user.telegramId ? user.telegramId.toString() : undefined,
       salary: user.salary ? Number(user.salary) : undefined,
     };
   }
@@ -232,9 +231,18 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    // Convert telegramId to BigInt if provided
+    const updateData: any = { ...dto };
+    if (dto.telegramId !== undefined) {
+      updateData.telegramId = dto.telegramId ? BigInt(dto.telegramId) : null;
+    }
+    if (dto.dateBirth !== undefined) {
+      updateData.dateBirth = new Date(dto.dateBirth);
+    }
+
     const updated = await this.prisma.user.update({
       where: { id },
-      data: dto,
+      data: updateData,
       select: {
         id: true,
         firstName: true,
@@ -250,6 +258,7 @@ export class UsersService {
 
     return {
       ...updated,
+      telegramId: updated.telegramId ? updated.telegramId.toString() : undefined,
       salary: updated.salary ? Number(updated.salary) : undefined,
     };
   }
@@ -274,7 +283,7 @@ export class UsersService {
     // Get all employees who don't have workload planned for this date
     const employees = await this.prisma.user.findMany({
       where: {
-        role: { in: ['Employee', 'Manager'] },
+        role: { in: [UserRole.Employee, UserRole.Manager] },
         workloadPlans: {
           none: {
             date: {
@@ -296,8 +305,8 @@ export class UsersService {
     return employees;
   }
 
-  private async generateTokens(userId: string, email: string, role: string, tokenVersion: number) {
-    const payload = { sub: userId, email, role, tokenVersion };
+  private async generateTokens(userId: string, email: string, role: UserRole) {
+    const payload = { sub: userId, email, role };
 
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),

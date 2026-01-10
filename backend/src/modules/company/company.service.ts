@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCompanyDto, UpdateCompanyDto } from './dto/company.dto';
+import { CompanyType } from '@prisma/client';
 
 @Injectable()
 export class CompanyService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(type?: string) {
+  async findAll(type?: CompanyType) {
     const where = type ? { type } : {};
 
     const companies = await this.prisma.company.findMany({
@@ -44,7 +45,21 @@ export class CompanyService {
 
   async create(dto: CreateCompanyDto) {
     const company = await this.prisma.company.create({
-      data: dto,
+      data: {
+        name: dto.name,
+        type: dto.type,
+        address: dto.address,
+        phone: dto.phone,
+        email: dto.email,
+        account: dto.account,
+        bank: dto.bank,
+        bik: dto.bik,
+        corrAccount: dto.corrAccount,
+        inn: dto.inn,
+        kpp: dto.kpp,
+        ogrn: dto.ogrn,
+        postalCode: dto.postalCode,
+      },
     });
 
     return company;
@@ -61,7 +76,21 @@ export class CompanyService {
 
     const updated = await this.prisma.company.update({
       where: { id },
-      data: dto,
+      data: {
+        name: dto.name,
+        type: dto.type,
+        address: dto.address,
+        phone: dto.phone,
+        email: dto.email,
+        account: dto.account,
+        bank: dto.bank,
+        bik: dto.bik,
+        corrAccount: dto.corrAccount,
+        inn: dto.inn,
+        kpp: dto.kpp,
+        ogrn: dto.ogrn,
+        postalCode: dto.postalCode,
+      },
     });
 
     return updated;

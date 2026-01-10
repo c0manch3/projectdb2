@@ -1,23 +1,21 @@
 import { IsString, IsEmail, IsOptional, IsEnum } from 'class-validator';
+import { CompanyType } from '@prisma/client';
 
 export class CreateCompanyDto {
   @IsString()
   name: string;
 
-  @IsEnum(['Customer', 'Contractor'])
-  type: string;
+  @IsEnum(CompanyType)
+  type: CompanyType;
 
   @IsString()
-  @IsOptional()
-  address?: string;
+  address: string;
 
   @IsString()
-  @IsOptional()
-  phone?: string;
+  phone: string;
 
   @IsEmail()
-  @IsOptional()
-  email?: string;
+  email: string;
 
   @IsString()
   @IsOptional()
@@ -57,9 +55,9 @@ export class UpdateCompanyDto {
   @IsOptional()
   name?: string;
 
-  @IsEnum(['Customer', 'Contractor'])
+  @IsEnum(CompanyType)
   @IsOptional()
-  type?: string;
+  type?: CompanyType;
 
   @IsString()
   @IsOptional()

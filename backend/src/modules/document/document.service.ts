@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { DocumentType } from '@prisma/client';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -88,7 +89,7 @@ export class DocumentService {
     hashName: string;
     projectId: string;
     constructionId?: string;
-    type: string;
+    type: DocumentType;
     uploadedById: string;
   }) {
     return this.prisma.document.create({
@@ -98,6 +99,8 @@ export class DocumentService {
         mimeType: data.mimeType,
         hashName: data.hashName,
         type: data.type,
+        version: 1,
+        uploadedAt: new Date(),
         projectId: data.projectId,
         constructionId: data.constructionId,
         uploadedById: data.uploadedById,

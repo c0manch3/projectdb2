@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
+import { ProjectType, UserRole } from '@prisma/client';
 
 @Injectable()
 export class ProjectService {
@@ -11,7 +12,7 @@ export class ProjectService {
     let where: any = status ? { status } : {};
 
     // Employees can only see projects they're assigned to
-    if (user?.role === 'Employee') {
+    if (user?.role === UserRole.Employee) {
       where = {
         ...where,
         projectUsers: {
@@ -81,8 +82,8 @@ export class ProjectService {
     }
 
     // For Employees, verify they're assigned to the project
-    if (user?.role === 'Employee') {
-      const isAssigned = project.projectUsers.some(pu => pu.userId === user.sub);
+    if (user?.role === UserRole.Employee) {
+      const isAssigned = project.projectUsers.some((pu: { userId: string }) => pu.userId === user.sub);
       if (!isAssigned) {
         throw new ForbiddenException('You do not have access to this project');
       }
@@ -97,7 +98,7 @@ export class ProjectService {
         name: dto.name,
         contractDate: new Date(dto.contractDate),
         expirationDate: new Date(dto.expirationDate),
-        type: dto.type || 'main',
+        type: dto.type || ProjectType.main,
         customerId: dto.customerId,
         managerId: dto.managerId,
         mainProjectId: dto.mainProjectId,
@@ -127,14 +128,14 @@ export class ProjectService {
     const updated = await this.prisma.project.update({
       where: { id },
       data: {
-        ...(dto.name && { name: dto.name }),
-        ...(dto.contractDate && { contractDate: new Date(dto.contractDate) }),
-        ...(dto.expirationDate && { expirationDate: new Date(dto.expirationDate) }),
-        ...(dto.type && { type: dto.type }),
-        ...(dto.status && { status: dto.status }),
-        ...(dto.customerId && { customerId: dto.customerId }),
-        ...(dto.managerId && { managerId: dto.managerId }),
-        ...(dto.mainProjectId !== undefined && { mainProjectId: dto.mainProjectId }),
+        name: dto.name,
+        contractDate: dto.contractDate ? new Date(dto.contractDate) : undefined,
+        expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : undefined,
+        type: dto.type,
+        status: dto.status,
+        customerId: dto.customerId,
+        managerId: dto.managerId,
+        mainProjectId: dto.mainProjectId,
       },
       include: {
         customer: {
@@ -237,7 +238,6 @@ export class ProjectService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
     });
 
     return projectUsers;

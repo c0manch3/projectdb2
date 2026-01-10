@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ChatRequestType } from '@prisma/client';
 
 @Injectable()
 export class LenconnectChatLogService {
@@ -49,7 +50,7 @@ export class LenconnectChatLogService {
     return logs;
   }
 
-  async findByUserAndType(userId: string, requestType: string) {
+  async findByUserAndType(userId: string, requestType: ChatRequestType) {
     const logs = await this.prisma.lenconnectChatLog.findMany({
       where: { userId, requestType },
       include: {

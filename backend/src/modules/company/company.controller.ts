@@ -13,6 +13,7 @@ import { CompanyService } from './company.service';
 import { CreateCompanyDto, UpdateCompanyDto } from './dto/company.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/roles.guard';
+import { CompanyType } from '@prisma/client';
 
 @Controller('company')
 @UseGuards(JwtAuthGuard) // All routes require authentication
@@ -20,7 +21,7 @@ export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
 
   @Get()
-  async findAll(@Query('type') type?: string) {
+  async findAll(@Query('type') type?: CompanyType) {
     return this.companyService.findAll(type);
   }
 

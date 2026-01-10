@@ -1,15 +1,64 @@
-// Prisma schema for ProjectDB
+// Prisma schema for ProjectDB - PostgreSQL/Supabase
+// Maps to existing database tables
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-// Models
+// Enums matching database
+enum UserRole {
+  Admin
+  Manager
+  Employee
+  Trial
+}
+
+enum CompanyType {
+  Customer
+  Contractor
+}
+
+enum ProjectType {
+  main
+  additional
+}
+
+enum ProjectStatus {
+  Active
+  Completed
+}
+
+enum DocumentType {
+  tz
+  contract
+  project_documentation
+  working_documentation
+}
+
+enum PaymentType {
+  Advance
+  MainPayment
+  FinalPayment
+  Other
+}
+
+enum ChatRole {
+  User
+  Assistant
+}
+
+enum ChatRequestType {
+  Report
+  Proposal
+}
+
+// Models - mapped to existing snake_case table names
 model User {
   id           String    @id @default(uuid())
   firstName    String
@@ -17,34 +66,35 @@ model User {
   email        String    @unique
   phone        String    @unique
   passwordHash String
-  dateBirth    DateTime?
-  role         String    @default("Employee") // Admin, Manager, Employee, Trial
-  telegramId   String?
+  dateBirth    DateTime
+  role         UserRole
+  telegramId   BigInt?
   salary       Float?
-  tokenVersion Int       @default(0) // Incremented on password change to invalidate all tokens
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   // Relations
-  managedProjects   Project[]        @relation("ProjectManager")
-  projectUsers      ProjectUser[]
-  uploadedDocuments Document[]
-  workloadPlans     WorkloadPlan[]   @relation("WorkloadPlanUser")
-  managedPlans      WorkloadPlan[]   @relation("WorkloadPlanManager")
-  workloadActuals   WorkloadActual[]
-  refreshTokens     RefreshToken[]
-  employeeProposals EmployeeProposal[]
-  chatLogs          LenconnectChatLog[]
+  managedProjects     Project[]           @relation("ProjectManager")
+  projectUsers        ProjectUser[]
+  uploadedDocuments   Document[]
+  workloadPlans       WorkloadPlan[]      @relation("WorkloadPlanUser")
+  managedWorkloadPlans WorkloadPlan[]     @relation("WorkloadPlanManager")
+  workloadActuals     WorkloadActual[]
+  refreshTokens       RefreshToken[]
+  employeeProposals   EmployeeProposal[]
+  chatLogs            LenconnectChatLog[]
+
+  @@map("users")
 }
 
 model Company {
-  id          String   @id @default(uuid())
+  id          String      @id @default(uuid())
   name        String
-  type        String   // Customer, Contractor
-  address     String?
-  phone       String?
-  email       String?
-  account     String?  // bank account
+  type        CompanyType @default(Customer)
+  address     String
+  phone       String
+  email       String
+  account     String?
   bank        String?
   bik         String?
   corrAccount String?
@@ -52,38 +102,43 @@ model Company {
   kpp         String?
   ogrn        String?
   postalCode  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   // Relations
   projects Project[] @relation("CustomerCompany")
+
+  @@map("companies")
 }
 
 model Project {
-  id                 String   @id @default(uuid())
+  id                 String        @id @default(uuid())
   name               String
   contractDate       DateTime
   expirationDate     DateTime
-  type               String   @default("main") // main, additional
-  status             String   @default("Active") // Active, Completed
-  customerId         String
-  managerId          String
+  type               ProjectType
+  status             ProjectStatus @default(Active)
+  customerId         String?
+  managerId          String?
   mainProjectId      String?
-  contractDocumentId String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  contractDocumentId String?       @unique
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   // Relations
-  customer           Company                       @relation("CustomerCompany", fields: [customerId], references: [id])
-  manager            User                          @relation("ProjectManager", fields: [managerId], references: [id])
-  mainProject        Project?                      @relation("AdditionalProjects", fields: [mainProjectId], references: [id])
-  additionalProjects Project[]                     @relation("AdditionalProjects")
-  constructions      Construction[]
-  documents          Document[]
-  projectUsers       ProjectUser[]
-  workloadPlans      WorkloadPlan[]
+  customer              Company?                      @relation("CustomerCompany", fields: [customerId], references: [id])
+  manager               User?                         @relation("ProjectManager", fields: [managerId], references: [id])
+  mainProject           Project?                      @relation("AdditionalProjects", fields: [mainProjectId], references: [id])
+  additionalProjects    Project[]                     @relation("AdditionalProjects")
+  contractDocument      Document?                     @relation("ContractDocument", fields: [contractDocumentId], references: [id])
+  constructions         Construction[]
+  documents             Document[]                    @relation("ProjectDocuments")
+  projectUsers          ProjectUser[]
+  workloadPlans         WorkloadPlan[]
   workloadDistributions ProjectWorkloadDistribution[]
-  paymentSchedules   PaymentSchedule[]
+  paymentSchedules      PaymentSchedule[]
+
+  @@map("projects")
 }
 
 model Construction {
@@ -91,30 +146,34 @@ model Construction {
   name      String
   projectId String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   // Relations
   project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   documents Document[]
+
+  @@map("constructions")
 }
 
 model Document {
-  id             String   @id @default(uuid())
-  type           String   // tz, contract, project_documentation, working_documentation
-  version        Int      @default(1)
+  id             String       @id @default(uuid())
+  type           DocumentType
+  version        Int
   path           String
   mimeType       String
   hashName       String
   originalName   String
-  uploadedAt     DateTime @default(now())
+  uploadedAt     DateTime
   uploadedById   String
   projectId      String
   constructionId String?
 
   // Relations
-  uploadedBy   User          @relation(fields: [uploadedById], references: [id])
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  construction Construction? @relation(fields: [constructionId], references: [id], onDelete: SetNull)
+  uploadedBy         User          @relation(fields: [uploadedById], references: [id])
+  project            Project       @relation("ProjectDocuments", fields: [projectId], references: [id], onDelete: Cascade)
+  construction       Construction? @relation(fields: [constructionId], references: [id], onDelete: Cascade)
+  contractForProject Project?      @relation("ContractDocument")
+
+  @@map("documents")
 }
 
 model WorkloadPlan {
@@ -127,15 +186,16 @@ model WorkloadPlan {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user    User    @relation("WorkloadPlanUser", fields: [userId], references: [id], onDelete: Cascade)
+  user    User    @relation("WorkloadPlanUser", fields: [userId], references: [id])
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   manager User    @relation("WorkloadPlanManager", fields: [managerId], references: [id])
 
   @@unique([userId, date])
+  @@map("workload_plan")
 }
 
 model WorkloadActual {
-  id          String   @id @default(uuid())
+  id          String   @id @default(dbgenerated("gen_random_uuid()"))
   userId      String
   date        DateTime
   hoursWorked Float
@@ -144,83 +204,94 @@ model WorkloadActual {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  user         User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User                          @relation(fields: [userId], references: [id])
   distributions ProjectWorkloadDistribution[]
 
   @@unique([userId, date])
+  @@map("workload_actual")
 }
 
 model ProjectWorkloadDistribution {
-  id               String  @id @default(uuid())
+  id               String @id @default(dbgenerated("gen_random_uuid()"))
   workloadActualId String
   projectId        String
   hours            Float
-  description      String?
+  description      String
 
   // Relations
   workloadActual WorkloadActual @relation(fields: [workloadActualId], references: [id], onDelete: Cascade)
   project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_workload_distributions")
 }
 
 model PaymentSchedule {
-  id          String    @id @default(uuid())
-  projectId   String
-  type        String    // Advance, MainPayment, FinalPayment, Other
-  name        String
-  amount      Float
-  percentage  Float?
+  id           String      @id @default(uuid())
+  projectId    String
+  type         PaymentType
+  name         String
+  amount       Float
+  percentage   Float?
   expectedDate DateTime
-  actualDate  DateTime?
-  isPaid      Boolean   @default(false)
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  actualDate   DateTime?
+  isPaid       Boolean     @default(false)
+  description  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("payment_schedules")
 }
 
 model RefreshToken {
   id        String   @id @default(uuid())
   userId    String
   expiresIn DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
 }
 
 model ProjectUser {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   userId    String
   projectId String
-  createdAt DateTime @default(now())
 
   // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
+  @@map("project_users")
 }
 
 model EmployeeProposal {
-  id        String   @id @default(uuid())
+  id        String   @id @default(dbgenerated("gen_random_uuid()"))
   userId    String
   proposal  String
   createdAt DateTime @default(now())
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("employee_proposals")
 }
 
 model LenconnectChatLog {
-  id          String   @id @default(uuid())
-  userId      String
-  role        String   // User, Assistant
-  content     String
-  requestType String   // Report, Proposal
-  createdAt   DateTime @default(now())
+  id          String          @id @default(dbgenerated("gen_random_uuid()"))
+  userId      String          @map("user_id")
+  role        ChatRole
+  content     String?
+  requestType ChatRequestType @map("request_type")
+  createdAt   DateTime        @default(now()) @map("created_at")
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("lenconnect_chat_logs")
 }

@@ -7,14 +7,12 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-import { PrismaService } from '../../modules/prisma/prisma.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
-    private prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -29,18 +27,6 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
       });
-
-      // Validate tokenVersion against database to support immediate session invalidation
-      if (payload.tokenVersion !== undefined) {
-        const user = await this.prisma.user.findUnique({
-          where: { id: payload.sub },
-          select: { tokenVersion: true },
-        });
-
-        if (!user || user.tokenVersion !== payload.tokenVersion) {
-          throw new UnauthorizedException('Session has been invalidated');
-        }
-      }
 
       // Attach user info to request
       request['user'] = payload;

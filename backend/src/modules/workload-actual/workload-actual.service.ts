@@ -121,9 +121,11 @@ export class WorkloadActualService {
         distributions: data.distributions
           ? {
               create: data.distributions.map((d) => ({
-                projectId: d.projectId,
+                project: {
+                  connect: { id: d.projectId },
+                },
                 hours: d.hours,
-                description: d.description,
+                description: d.description || '',
               })),
             }
           : undefined,
@@ -217,7 +219,7 @@ export class WorkloadActualService {
         workloadActualId,
         projectId: data.projectId,
         hours: data.hours,
-        description: data.description,
+        description: data.description || '',
       },
       include: {
         project: {

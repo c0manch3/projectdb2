@@ -1,4 +1,5 @@
-import { IsEmail, IsString, MinLength, IsOptional, IsEnum, IsNumber } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional, IsEnum, IsNumber, IsDateString } from 'class-validator';
+import { UserRole } from '@prisma/client';
 
 export class LoginDto {
   @IsEmail()
@@ -26,13 +27,17 @@ export class RegisterDto {
   @MinLength(8)
   password: string;
 
-  @IsEnum(['Admin', 'Manager', 'Employee', 'Trial'])
+  @IsEnum(UserRole)
   @IsOptional()
-  role?: string;
+  role?: UserRole;
 
   @IsNumber()
   @IsOptional()
   salary?: number;
+
+  @IsDateString()
+  @IsOptional()
+  dateBirth?: string;
 }
 
 export class ChangePasswordDto {
@@ -61,9 +66,9 @@ export class UpdateUserDto {
   @IsOptional()
   phone?: string;
 
-  @IsEnum(['Admin', 'Manager', 'Employee', 'Trial'])
+  @IsEnum(UserRole)
   @IsOptional()
-  role?: string;
+  role?: UserRole;
 
   @IsOptional()
   salary?: number;
@@ -72,6 +77,7 @@ export class UpdateUserDto {
   @IsOptional()
   telegramId?: string;
 
+  @IsDateString()
   @IsOptional()
-  dateBirth?: Date;
+  dateBirth?: string;
 }

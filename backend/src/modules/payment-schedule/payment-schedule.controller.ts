@@ -12,6 +12,7 @@ import {
 import { PaymentScheduleService } from './payment-schedule.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ManagerGuard } from '../../common/guards/roles.guard';
+import { PaymentType } from '@prisma/client';
 
 @Controller('payment-schedule')
 @UseGuards(JwtAuthGuard)
@@ -34,7 +35,7 @@ export class PaymentScheduleController {
     @Body()
     dto: {
       projectId: string;
-      type: string;
+      type: PaymentType;
       name: string;
       amount: number;
       percentage?: number;
@@ -53,7 +54,7 @@ export class PaymentScheduleController {
     @Param('id') id: string,
     @Body()
     dto: {
-      type?: string;
+      type?: PaymentType;
       name?: string;
       amount?: number;
       percentage?: number;

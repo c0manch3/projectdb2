@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole, CompanyType, DocumentType, ChatRole, ChatRequestType, ProjectType, ProjectStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -17,7 +17,8 @@ async function main() {
       email: 'admin@projectdb.com',
       phone: '+1234567890',
       passwordHash: adminPassword,
-      role: 'Admin',
+      role: UserRole.Admin,
+      dateBirth: new Date('1990-01-01'),
     },
   });
   console.log('Created Admin user:', admin.email);
@@ -33,7 +34,8 @@ async function main() {
       email: 'manager@projectdb.com',
       phone: '+1234567891',
       passwordHash: managerPassword,
-      role: 'Manager',
+      role: UserRole.Manager,
+      dateBirth: new Date('1985-06-15'),
     },
   });
   console.log('Created Manager user:', manager.email);
@@ -49,7 +51,8 @@ async function main() {
       email: 'employee@projectdb.com',
       phone: '+1234567892',
       passwordHash: employeePassword,
-      role: 'Employee',
+      role: UserRole.Employee,
+      dateBirth: new Date('1995-03-20'),
     },
   });
   console.log('Created Employee user:', employee.email);
@@ -65,7 +68,8 @@ async function main() {
       email: 'trial@projectdb.com',
       phone: '+1234567893',
       passwordHash: trialPassword,
-      role: 'Trial',
+      role: UserRole.Trial,
+      dateBirth: new Date('2000-12-01'),
     },
   });
   console.log('Created Trial user:', trial.email);
@@ -77,7 +81,7 @@ async function main() {
     create: {
       id: '00000000-0000-0000-0000-000000000001',
       name: 'Test Customer LLC',
-      type: 'Customer',
+      type: CompanyType.Customer,
       address: '123 Main St, Test City',
       phone: '+1-555-0100',
       email: 'info@testcustomer.com',
@@ -93,7 +97,7 @@ async function main() {
     create: {
       id: '00000000-0000-0000-0000-000000000002',
       name: 'Test Contractor Inc',
-      type: 'Contractor',
+      type: CompanyType.Contractor,
       address: '456 Builder Ave, Construction Town',
       phone: '+1-555-0200',
       email: 'info@testcontractor.com',
@@ -111,8 +115,8 @@ async function main() {
       name: 'Test Project Alpha',
       contractDate: new Date('2025-01-01'),
       expirationDate: new Date('2025-12-31'),
-      type: 'main',
-      status: 'Active',
+      type: ProjectType.main,
+      status: ProjectStatus.Active,
       customerId: customerCompany.id,
       managerId: manager.id,
     },
@@ -137,7 +141,7 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000001',
-      type: 'contract',
+      type: DocumentType.contract,
       version: 1,
       path: 'test-contract.pdf',
       mimeType: 'application/pdf',
@@ -145,6 +149,7 @@ async function main() {
       originalName: 'Project_Contract.pdf',
       projectId: project.id,
       uploadedById: manager.id,
+      uploadedAt: new Date(),
     },
   });
   console.log('Created Document:', document.originalName);
@@ -156,9 +161,9 @@ async function main() {
     create: {
       id: '00000000-0000-0000-0000-000000000101',
       userId: employee.id,
-      role: 'User',
+      role: ChatRole.User,
       content: 'I need a report on my workload for this week.',
-      requestType: 'Report',
+      requestType: ChatRequestType.Report,
     },
   });
   console.log('Created Chat Log 1');
@@ -169,9 +174,9 @@ async function main() {
     create: {
       id: '00000000-0000-0000-0000-000000000102',
       userId: employee.id,
-      role: 'Assistant',
+      role: ChatRole.Assistant,
       content: 'Here is your workload report for this week:\n\n- Monday: Project Alpha - 8 hours\n- Tuesday: Project Alpha - 6 hours, Project Beta - 2 hours\n- Wednesday: Project Beta - 8 hours\n\nTotal hours: 24 hours across 2 projects.',
-      requestType: 'Report',
+      requestType: ChatRequestType.Report,
     },
   });
   console.log('Created Chat Log 2');
@@ -182,9 +187,9 @@ async function main() {
     create: {
       id: '00000000-0000-0000-0000-000000000103',
       userId: manager.id,
-      role: 'User',
+      role: ChatRole.User,
       content: 'I have a proposal for improving our project tracking workflow.',
-      requestType: 'Proposal',
+      requestType: ChatRequestType.Proposal,
     },
   });
   console.log('Created Chat Log 3');
@@ -195,9 +200,9 @@ async function main() {
     create: {
       id: '00000000-0000-0000-0000-000000000104',
       userId: manager.id,
-      role: 'Assistant',
+      role: ChatRole.Assistant,
       content: 'Thank you for your proposal! I have noted the following improvements:\n\n1. Automated weekly status reports\n2. Integration with calendar for deadline reminders\n3. Enhanced workload visualization\n\nThese suggestions have been forwarded to the development team.',
-      requestType: 'Proposal',
+      requestType: ChatRequestType.Proposal,
     },
   });
   console.log('Created Chat Log 4');
