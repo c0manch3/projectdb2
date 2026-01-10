@@ -55,7 +55,7 @@ export class ProjectController {
   }
 
   @Get(':projectId/workload/employees')
-  @UseGuards(ManagerGuard)
+  @UseGuards(ManagerOrTrialGuard)
   async getProjectEmployeeWorkload(@Param('projectId') projectId: string) {
     return this.projectService.getProjectEmployeeWorkload(projectId);
   }

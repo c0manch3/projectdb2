@@ -169,29 +169,81 @@ export class ProjectService {
   async getProjectEmployeeWorkload(projectId: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      include: {
-        projectUsers: {
-          include: {
-            user: {
-              select: { id: true, firstName: true, lastName: true, email: true },
-            },
-          },
-        },
-        workloadPlans: {
-          include: {
-            user: {
-              select: { id: true, firstName: true, lastName: true },
-            },
-          },
-        },
-      },
     });
 
     if (!project) {
       throw new NotFoundException('Project not found');
     }
 
-    return project;
+    // Get all workload distributions for this project with user and workload details
+    const distributions = await this.prisma.projectWorkloadDistribution.findMany({
+      where: { projectId },
+      include: {
+        workloadActual: {
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true, email: true },
+            },
+          },
+        },
+      },
+      orderBy: {
+        workloadActual: {
+          date: 'desc',
+        },
+      },
+    });
+
+    // Group by user and calculate total hours
+    const employeeWorkloadMap = new Map<string, {
+      user: { id: string; firstName: string; lastName: string; email: string };
+      totalHours: number;
+      reports: {
+        id: string;
+        date: Date;
+        hours: number;
+        description: string;
+        totalDayHours: number;
+        userText: string | null;
+      }[];
+    }>();
+
+    for (const dist of distributions) {
+      const userId = dist.workloadActual.user.id;
+      const existing = employeeWorkloadMap.get(userId);
+
+      const reportEntry = {
+        id: dist.id,
+        date: dist.workloadActual.date,
+        hours: dist.hours,
+        description: dist.description,
+        totalDayHours: dist.workloadActual.hoursWorked,
+        userText: dist.workloadActual.userText,
+      };
+
+      if (existing) {
+        existing.totalHours += dist.hours;
+        existing.reports.push(reportEntry);
+      } else {
+        employeeWorkloadMap.set(userId, {
+          user: dist.workloadActual.user,
+          totalHours: dist.hours,
+          reports: [reportEntry],
+        });
+      }
+    }
+
+    // Convert map to array and calculate totals
+    const employeeWorkload = Array.from(employeeWorkloadMap.values());
+    const totalProjectHours = employeeWorkload.reduce((sum, emp) => sum + emp.totalHours, 0);
+
+    return {
+      projectId,
+      projectName: project.name,
+      totalProjectHours,
+      employeeCount: employeeWorkload.length,
+      employeeWorkload,
+    };
   }
 
   async getEmployeeWorkloadOnProject(projectId: string, userId: string) {

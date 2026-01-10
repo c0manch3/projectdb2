@@ -59,6 +59,34 @@ interface PaymentSchedule {
   };
 }
 
+interface WorkloadReport {
+  id: string;
+  date: string;
+  hours: number;
+  description: string;
+  totalDayHours: number;
+  userText: string | null;
+}
+
+interface EmployeeWorkload {
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  totalHours: number;
+  reports: WorkloadReport[];
+}
+
+interface ProjectWorkload {
+  projectId: string;
+  projectName: string;
+  totalProjectHours: number;
+  employeeCount: number;
+  employeeWorkload: EmployeeWorkload[];
+}
+
 interface Project {
   id: string;
   name: string;
@@ -93,7 +121,7 @@ interface Project {
   documents?: Document[];
 }
 
-type TabType = 'overview' | 'constructions' | 'documents' | 'team' | 'payments';
+type TabType = 'overview' | 'constructions' | 'documents' | 'team' | 'payments' | 'workload';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -106,7 +134,7 @@ export default function ProjectDetailPage() {
   // Get initial tab from URL hash or default to 'overview'
   const getTabFromHash = (): TabType => {
     const hash = location.hash.replace('#', '');
-    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'team', 'payments'];
+    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'team', 'payments', 'workload'];
     return validTabs.includes(hash as TabType) ? (hash as TabType) : 'overview';
   };
 
@@ -164,6 +192,13 @@ export default function ProjectDetailPage() {
   const [savingConstruction, setSavingConstruction] = useState(false);
   const canManageConstructions = user?.role === 'Admin' || user?.role === 'Manager';
 
+  // Workload tab state
+  const [projectWorkload, setProjectWorkload] = useState<ProjectWorkload | null>(null);
+  const [loadingWorkload, setLoadingWorkload] = useState(false);
+  const [selectedEmployeeWorkload, setSelectedEmployeeWorkload] = useState<EmployeeWorkload | null>(null);
+  const [showEmployeeReportsModal, setShowEmployeeReportsModal] = useState(false);
+  const canViewWorkload = user?.role === 'Admin' || user?.role === 'Manager' || user?.role === 'Trial';
+
   useEffect(() => {
     const fetchProject = async () => {
       try {
@@ -183,7 +218,7 @@ export default function ProjectDetailPage() {
   // Sync active tab with URL hash
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'team', 'payments'];
+    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'team', 'payments', 'workload'];
     if (validTabs.includes(hash as TabType) && hash !== activeTab) {
       setActiveTab(hash as TabType);
     }
@@ -234,6 +269,29 @@ export default function ProjectDetailPage() {
     };
     fetchPayments();
   }, [activeTab, id]);
+
+  // Fetch workload when workload tab is active
+  useEffect(() => {
+    const fetchWorkload = async () => {
+      if (activeTab === 'workload' && id && canViewWorkload) {
+        setLoadingWorkload(true);
+        try {
+          const response = await api.get<ProjectWorkload>(`/project/${id}/workload/employees`);
+          setProjectWorkload(response.data);
+        } catch (error) {
+          toast.error('Failed to load workload data');
+        } finally {
+          setLoadingWorkload(false);
+        }
+      }
+    };
+    fetchWorkload();
+  }, [activeTab, id, canViewWorkload]);
+
+  const openEmployeeReportsModal = (employee: EmployeeWorkload) => {
+    setSelectedEmployeeWorkload(employee);
+    setShowEmployeeReportsModal(true);
+  };
 
   const handleAddTeamMember = async () => {
     if (!selectedUserId || !id) return;
@@ -629,6 +687,7 @@ export default function ProjectDetailPage() {
     { id: 'documents', label: `Documents (${project.documents?.length || 0})` },
     { id: 'team', label: `Team (${teamMembers.length})` },
     { id: 'payments', label: `Payments (${payments.length})` },
+    { id: 'workload', label: `Workload (${projectWorkload?.employeeCount || 0})` },
   ];
 
   return (
@@ -1345,6 +1404,175 @@ export default function ProjectDetailPage() {
           ) : (
             <p className="text-gray-500 text-center py-8">No payments scheduled for this project yet.</p>
           )}
+        </div>
+      )}
+
+      {/* Workload Tab */}
+      {activeTab === 'workload' && canViewWorkload && (
+        <div className="card p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold">Project Workload</h2>
+            {projectWorkload && (
+              <div className="text-right">
+                <div className="text-sm text-gray-500">Total Project Hours</div>
+                <div className="text-2xl font-bold text-primary-600">
+                  {projectWorkload.totalProjectHours.toFixed(1)}h
+                </div>
+              </div>
+            )}
+          </div>
+
+          {loadingWorkload ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          ) : projectWorkload && projectWorkload.employeeWorkload.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Hours</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reports Count</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {projectWorkload.employeeWorkload.map((employee) => (
+                    <tr key={employee.user.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-medium text-sm mr-3">
+                            {employee.user.firstName[0]}{employee.user.lastName[0]}
+                          </div>
+                          <span className="text-gray-900 font-medium">
+                            {employee.user.firstName} {employee.user.lastName}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-gray-600">{employee.user.email}</td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className="px-2 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                          {employee.totalHours.toFixed(1)}h
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-gray-600">
+                        {employee.reports.length} report{employee.reports.length !== 1 ? 's' : ''}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => openEmployeeReportsModal(employee)}
+                          className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                        >
+                          View Reports
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {/* Workload Summary */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="flex justify-end gap-8">
+                  <div className="text-right">
+                    <div className="text-sm text-gray-500">Employees</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {projectWorkload.employeeCount}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-gray-500">Total Hours</div>
+                    <div className="text-lg font-semibold text-primary-600">
+                      {projectWorkload.totalProjectHours.toFixed(1)}h
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-gray-500 mt-4">No workload reports have been submitted for this project yet.</p>
+              <p className="text-gray-400 text-sm mt-1">Employees can log their hours on the Workload page.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Employee Reports Modal */}
+      {showEmployeeReportsModal && selectedEmployeeWorkload && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">
+                Reports by {selectedEmployeeWorkload.user.firstName} {selectedEmployeeWorkload.user.lastName}
+              </h2>
+              <button onClick={() => setShowEmployeeReportsModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1">
+              {/* Summary Card */}
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-sm text-primary-600">Total hours on this project</div>
+                    <div className="text-2xl font-bold text-primary-700">
+                      {selectedEmployeeWorkload.totalHours.toFixed(1)} hours
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-primary-600">Report entries</div>
+                    <div className="text-xl font-semibold text-primary-700">
+                      {selectedEmployeeWorkload.reports.length}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reports List */}
+              <div className="space-y-3">
+                {selectedEmployeeWorkload.reports.map((report) => (
+                  <div key={report.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="text-sm text-gray-500">
+                        {new Date(report.date).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </div>
+                      <span className="px-2 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                        {report.hours.toFixed(1)}h
+                      </span>
+                    </div>
+                    {report.description && (
+                      <p className="text-gray-700">{report.description}</p>
+                    )}
+                    {report.userText && (
+                      <p className="text-gray-500 text-sm mt-2 italic">
+                        Day notes: {report.userText}
+                      </p>
+                    )}
+                    <div className="text-xs text-gray-400 mt-2">
+                      Total day hours: {report.totalDayHours.toFixed(1)}h
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={() => setShowEmployeeReportsModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
