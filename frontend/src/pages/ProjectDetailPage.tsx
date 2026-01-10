@@ -117,6 +117,7 @@ export default function ProjectDetailPage() {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docType, setDocType] = useState('project_documentation');
+  const [selectedConstructionId, setSelectedConstructionId] = useState<string>('');
 
   // Document replace state
   const [showReplaceModal, setShowReplaceModal] = useState(false);
@@ -313,6 +314,9 @@ export default function ProjectDetailPage() {
       formData.append('file', selectedFile);
       formData.append('projectId', id);
       formData.append('type', docType);
+      if (selectedConstructionId) {
+        formData.append('constructionId', selectedConstructionId);
+      }
 
       await api.post('/document/upload', formData, {
         headers: {
@@ -324,6 +328,7 @@ export default function ProjectDetailPage() {
       setShowUploadModal(false);
       setSelectedFile(null);
       setDocType('project_documentation');
+      setSelectedConstructionId('');
 
       // Refresh project to get updated documents
       const response = await api.get<Project>(`/project/${id}`);
@@ -774,6 +779,20 @@ export default function ProjectDetailPage() {
                   <option value="project_documentation">Project Documentation</option>
                   <option value="working_documentation">Working Documentation</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Construction (Optional)</label>
+                <select
+                  value={selectedConstructionId}
+                  onChange={(e) => setSelectedConstructionId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">None (Project level)</option>
+                  {project?.constructions?.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <p className="text-sm text-gray-500 mt-1">Optionally link this document to a specific construction</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">

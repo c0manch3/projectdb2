@@ -121,17 +121,45 @@ export default function EmployeesPage() {
     });
   };
 
+  // Simple email validation regex
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Phone validation - must be numeric with optional + prefix
+  const isValidPhone = (phone: string) => {
+    if (!phone) return true; // Phone is optional
+    const phoneRegex = /^\+?[0-9]{7,15}$/;
+    return phoneRegex.test(phone);
+  };
+
   const handleCreateEmployee = async () => {
+    // Reset errors
+    setEmailError('');
+    setPhoneError('');
+
     if (!newEmployee.firstName.trim() || !newEmployee.lastName.trim()) {
       toast.error('First name and last name are required');
       return;
     }
     if (!newEmployee.email.trim()) {
+      setEmailError('Email is required');
       toast.error('Email is required');
       return;
     }
-    if (!newEmployee.password.trim() || newEmployee.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (!isValidEmail(newEmployee.email)) {
+      setEmailError('Invalid email format');
+      toast.error('Invalid email format');
+      return;
+    }
+    if (!newEmployee.password.trim() || newEmployee.password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (newEmployee.phone && !isValidPhone(newEmployee.phone)) {
+      setPhoneError('Invalid phone format. Use numbers only with optional + prefix');
+      toast.error('Invalid phone format');
       return;
     }
     setIsSubmitting(true);
@@ -148,18 +176,23 @@ export default function EmployeesPage() {
       fetchEmployees();
       handleCloseAddModal();
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to create employee';
+      let errorMessage = error.response?.data?.message || 'Failed to create employee';
+      // Handle array of messages from backend validation
+      if (Array.isArray(errorMessage)) {
+        errorMessage = errorMessage.join(', ');
+      }
       toast.error(errorMessage);
-      // Highlight email and/or phone field if duplicate error
-      if (errorMessage.toLowerCase().includes('already exists')) {
-        if (errorMessage.toLowerCase().includes('email')) {
-          setEmailError('This email is already registered');
+      // Highlight email and/or phone field if duplicate or validation error
+      const lowerMessage = errorMessage.toLowerCase();
+      if (lowerMessage.includes('already exists') || lowerMessage.includes('email must be an email')) {
+        if (lowerMessage.includes('email')) {
+          setEmailError(lowerMessage.includes('already') ? 'This email is already registered' : 'Invalid email format');
         }
-        if (errorMessage.toLowerCase().includes('phone')) {
+        if (lowerMessage.includes('phone')) {
           setPhoneError('This phone number is already registered');
         }
         // If message says "email or phone", highlight both
-        if (errorMessage.toLowerCase().includes('email or phone')) {
+        if (lowerMessage.includes('email or phone')) {
           setEmailError('This email may already be registered');
           setPhoneError('This phone number may already be registered');
         }
