@@ -131,6 +131,7 @@ export default function WorkloadPage() {
   useEffect(() => {
     if (activeTab === 'plan') {
       fetchCalendarData();
+      fetchActualCalendarData(); // Also fetch actual data to show green backgrounds
     } else {
       fetchActualCalendarData();
     }
@@ -805,9 +806,10 @@ export default function WorkloadPage() {
                 const dayIsToday = isToday(currentDay);
                 const dayIsFuture = isFutureDate(currentDay);
                 const isAllEmployeesMode = !selectedEmployee;
+                const hasWorkloadData = dayPlans.length > 0 || actualCalendarData[dateKey] !== undefined;
 
                 return (
-                  <div className={`p-4 border rounded-lg ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}>
+                  <div className={`p-4 border rounded-lg ${hasWorkloadData ? 'bg-green-50' : 'bg-white'} ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}>
                     <div className="flex items-center justify-between mb-4">
                       <span className={`text-xl font-semibold ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
                         {currentDay.getDate()}
@@ -890,11 +892,12 @@ export default function WorkloadPage() {
                   const dayIsToday = isToday(day);
                   const dayIsFuture = isFutureDate(day);
                   const isAllEmployeesMode = !selectedEmployee;
+                  const hasWorkloadData = dayPlans.length > 0 || actualCalendarData[dateKey] !== undefined;
 
                   return (
                     <div
                       key={index}
-                      className={`min-h-32 p-2 border rounded-lg bg-white ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
+                      className={`min-h-32 p-2 border rounded-lg ${hasWorkloadData ? 'bg-green-50' : 'bg-white'} ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
                         isAllEmployeesMode && dayPlans.length > 0 ? 'cursor-pointer hover:bg-gray-50' : ''
                       }`}
                       onClick={(e) => {
@@ -983,11 +986,13 @@ export default function WorkloadPage() {
                   const dayIsFuture = isFutureDate(day.date);
                   const isAllEmployeesMode = !selectedEmployee;
 
+                  const hasWorkloadData = dayPlans.length > 0 || actualCalendarData[dateKey] !== undefined;
+
                   return (
                     <div
                       key={index}
                       className={`min-h-24 p-2 border rounded-lg ${
-                        day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
+                        day.isCurrentMonth ? (hasWorkloadData ? 'bg-green-50' : 'bg-white') : 'bg-gray-50'
                       } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
                         isAllEmployeesMode && dayPlans.length > 0 && day.isCurrentMonth ? 'cursor-pointer hover:bg-gray-50' : ''
                       }`}
