@@ -1,7 +1,31 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { api } from '@/services/auth.service';
 import { useAppSelector } from '@/store';
 import toast from 'react-hot-toast';
+
+// Custom hook for responsive breakpoints
+function useResponsiveView() {
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month');
+
+  useEffect(() => {
+    const updateView = () => {
+      const width = window.innerWidth;
+      if (width < 640) {
+        setViewMode('day');
+      } else if (width < 1024) {
+        setViewMode('week');
+      } else {
+        setViewMode('month');
+      }
+    };
+
+    updateView();
+    window.addEventListener('resize', updateView);
+    return () => window.removeEventListener('resize', updateView);
+  }, []);
+
+  return viewMode;
+}
 
 interface Project {
   id: string;
@@ -55,6 +79,17 @@ export default function WorkloadPage() {
   const [loading, setLoading] = useState(true);
   const [calendarData, setCalendarData] = useState<CalendarData>({});
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Responsive view mode
+  const viewMode = useResponsiveView();
+  const [currentDay, setCurrentDay] = useState(new Date());
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - dayOfWeek);
+    return weekStart;
+  });
 
   // Tab state: 'plan' for managers, 'actual' for employees logging hours
   const [activeTab, setActiveTab] = useState<'plan' | 'actual'>(isEmployee ? 'actual' : 'plan');
@@ -171,6 +206,43 @@ export default function WorkloadPage() {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
+  // Day view navigation
+  const handlePrevDay = () => {
+    const newDay = new Date(currentDay);
+    newDay.setDate(newDay.getDate() - 1);
+    setCurrentDay(newDay);
+  };
+
+  const handleNextDay = () => {
+    const newDay = new Date(currentDay);
+    newDay.setDate(newDay.getDate() + 1);
+    setCurrentDay(newDay);
+  };
+
+  // Week view navigation
+  const handlePrevWeek = () => {
+    const newWeekStart = new Date(currentWeekStart);
+    newWeekStart.setDate(newWeekStart.getDate() - 7);
+    setCurrentWeekStart(newWeekStart);
+  };
+
+  const handleNextWeek = () => {
+    const newWeekStart = new Date(currentWeekStart);
+    newWeekStart.setDate(newWeekStart.getDate() + 7);
+    setCurrentWeekStart(newWeekStart);
+  };
+
+  // Get week days for week view
+  const weekDays = useMemo(() => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(currentWeekStart);
+      day.setDate(currentWeekStart.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  }, [currentWeekStart]);
+
   const handleOpenAddModal = (date: string) => {
     setSelectedDate(date);
     setNewPlanEmployee('');
@@ -271,6 +343,16 @@ export default function WorkloadPage() {
 
     const totalDistHours = actualDistributions.reduce((sum, d) => sum + (parseFloat(d.hours) || 0), 0);
     const totalHours = parseFloat(actualHours);
+
+    if (totalHours <= 0) {
+      toast.error('Hours must be a positive number');
+      return;
+    }
+
+    if (totalHours > 24) {
+      toast.error('Hours cannot exceed 24 per day');
+      return;
+    }
 
     if (totalDistHours > totalHours) {
       toast.error('Distribution hours exceed total hours worked');
@@ -433,24 +515,30 @@ export default function WorkloadPage() {
       {/* Workload Calendar */}
       {activeTab === 'plan' && (
       <div className="card">
-        {/* Calendar Header */}
+        {/* Calendar Header - adapts to view mode */}
         <div className="flex items-center justify-between p-4 border-b">
           <button
-            onClick={handlePrevMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            aria-label="Previous month"
+            onClick={viewMode === 'day' ? handlePrevDay : viewMode === 'week' ? handlePrevWeek : handlePrevMonth}
+            className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+            aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'week' ? 'Previous week' : 'Previous month'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h2 className="text-lg font-semibold">
-            {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          <h2 className="text-lg font-semibold text-center">
+            {viewMode === 'day' ? (
+              currentDay.toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+            ) : viewMode === 'week' ? (
+              `${weekDays[0].toLocaleDateString('default', { month: 'short', day: 'numeric' })} - ${weekDays[6].toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}`
+            ) : (
+              currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })
+            )}
           </h2>
           <button
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            aria-label="Next month"
+            onClick={viewMode === 'day' ? handleNextDay : viewMode === 'week' ? handleNextWeek : handleNextMonth}
+            className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+            aria-label={viewMode === 'day' ? 'Next day' : viewMode === 'week' ? 'Next week' : 'Next month'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -458,82 +546,214 @@ export default function WorkloadPage() {
           </button>
         </div>
 
+        {/* View mode indicator for mobile */}
+        {viewMode === 'day' && (
+          <div className="text-center text-xs text-gray-500 py-1 bg-gray-50 border-b">
+            Swipe or tap arrows to navigate days
+          </div>
+        )}
+        {viewMode === 'week' && (
+          <div className="text-center text-xs text-gray-500 py-1 bg-gray-50 border-b">
+            Week view
+          </div>
+        )}
+
         {/* Calendar Grid */}
         <div className="p-4">
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
-                {day}
-              </div>
-            ))}
-          </div>
+          {/* Day View - Mobile */}
+          {viewMode === 'day' && (
+            <div className="min-h-64">
+              {(() => {
+                const dateKey = formatDateKey(currentDay);
+                const dayPlans = calendarData[dateKey] || [];
+                const dayIsToday = isToday(currentDay);
 
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, index) => {
-              const dateKey = formatDateKey(day.date);
-              const dayPlans = calendarData[dateKey] || [];
-              const dayIsToday = isToday(day.date);
-
-              return (
-                <div
-                  key={index}
-                  className={`min-h-24 p-2 border rounded-lg ${
-                    day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
-                  } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span
-                      className={`text-sm font-medium ${
-                        day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
-                      } ${dayIsToday ? 'text-primary-600' : ''}`}
-                    >
-                      {day.date.getDate()}
-                    </span>
-                    {isManager && day.isCurrentMonth && (
-                      <button
-                        onClick={() => handleOpenAddModal(dateKey)}
-                        className="text-primary-600 hover:text-primary-800 p-1"
-                        aria-label={`Add workload for ${dateKey}`}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </button>
+                return (
+                  <div className={`p-4 border rounded-lg ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={`text-xl font-semibold ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
+                        {currentDay.getDate()}
+                      </span>
+                      {isManager && (
+                        <button
+                          onClick={() => handleOpenAddModal(dateKey)}
+                          className="btn-primary text-sm"
+                          aria-label={`Add workload for ${dateKey}`}
+                        >
+                          + Add Plan
+                        </button>
+                      )}
+                    </div>
+                    {dayPlans.length === 0 ? (
+                      <div className="text-gray-500 text-center py-8">No workload plans for this day</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {dayPlans.map((plan) => (
+                          <div
+                            key={plan.id}
+                            className={`bg-primary-100 text-primary-800 p-4 rounded-lg group relative ${isManager ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={isManager ? 'Click to edit' : undefined}
+                            onClick={() => isManager && handleOpenEditModal(plan, dateKey)}
+                          >
+                            <div className="font-medium text-lg">{plan.user.firstName} {plan.user.lastName}</div>
+                            <div className="text-primary-600">{plan.project.name}</div>
+                            {isManager && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteWorkloadPlan(plan.id);
+                                }}
+                                className="absolute right-2 top-2 text-red-600 hover:text-red-800 p-2"
+                                aria-label="Delete"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  <div className="space-y-1">
-                    {dayPlans.map((plan) => (
-                      <div
-                        key={plan.id}
-                        className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                        title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager ? ' (Click to edit)' : ''}`}
-                        onClick={() => isManager && handleOpenEditModal(plan, dateKey)}
-                      >
-                        <span className="font-medium">{plan.user.firstName}</span>
-                        <span className="text-primary-600"> - {plan.project.name}</span>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Week View - Tablet */}
+          {viewMode === 'week' && (
+            <>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {weekDays.map((day, index) => {
+                  const dateKey = formatDateKey(day);
+                  const dayPlans = calendarData[dateKey] || [];
+                  const dayIsToday = isToday(day);
+
+                  return (
+                    <div
+                      key={index}
+                      className={`min-h-32 p-2 border rounded-lg bg-white ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-sm font-medium ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
+                          {day.getDate()}
+                        </span>
                         {isManager && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteWorkloadPlan(plan.id);
-                            }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:block text-red-600 hover:text-red-800"
-                            aria-label="Delete"
+                            onClick={() => handleOpenAddModal(dateKey)}
+                            className="text-primary-600 hover:text-primary-800 p-1"
+                            aria-label={`Add workload for ${dateKey}`}
                           >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
                           </button>
                         )}
                       </div>
-                    ))}
+                      <div className="space-y-1">
+                        {dayPlans.map((plan) => (
+                          <div
+                            key={plan.id}
+                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager ? ' (Click to edit)' : ''}`}
+                            onClick={() => isManager && handleOpenEditModal(plan, dateKey)}
+                          >
+                            <span className="font-medium">{plan.user.firstName}</span>
+                            <span className="text-primary-600"> - {plan.project.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Month View - Desktop */}
+          {viewMode === 'month' && (
+            <>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                    {day}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((day, index) => {
+                  const dateKey = formatDateKey(day.date);
+                  const dayPlans = calendarData[dateKey] || [];
+                  const dayIsToday = isToday(day.date);
+
+                  return (
+                    <div
+                      key={index}
+                      className={`min-h-24 p-2 border rounded-lg ${
+                        day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
+                      } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className={`text-sm font-medium ${
+                            day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+                          } ${dayIsToday ? 'text-primary-600' : ''}`}
+                        >
+                          {day.date.getDate()}
+                        </span>
+                        {isManager && day.isCurrentMonth && (
+                          <button
+                            onClick={() => handleOpenAddModal(dateKey)}
+                            className="text-primary-600 hover:text-primary-800 p-1"
+                            aria-label={`Add workload for ${dateKey}`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        {dayPlans.map((plan) => (
+                          <div
+                            key={plan.id}
+                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager ? ' (Click to edit)' : ''}`}
+                            onClick={() => isManager && handleOpenEditModal(plan, dateKey)}
+                          >
+                            <span className="font-medium">{plan.user.firstName}</span>
+                            <span className="text-primary-600"> - {plan.project.name}</span>
+                            {isManager && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteWorkloadPlan(plan.id);
+                                }}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:block text-red-600 hover:text-red-800"
+                                aria-label="Delete"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
       )}
@@ -541,24 +761,30 @@ export default function WorkloadPage() {
       {/* Actual Hours Calendar */}
       {activeTab === 'actual' && (
       <div className="card">
-        {/* Calendar Header */}
+        {/* Calendar Header - adapts to view mode */}
         <div className="flex items-center justify-between p-4 border-b">
           <button
-            onClick={handlePrevMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            aria-label="Previous month"
+            onClick={viewMode === 'day' ? handlePrevDay : viewMode === 'week' ? handlePrevWeek : handlePrevMonth}
+            className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+            aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'week' ? 'Previous week' : 'Previous month'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h2 className="text-lg font-semibold">
-            {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          <h2 className="text-lg font-semibold text-center">
+            {viewMode === 'day' ? (
+              currentDay.toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+            ) : viewMode === 'week' ? (
+              `${weekDays[0].toLocaleDateString('default', { month: 'short', day: 'numeric' })} - ${weekDays[6].toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}`
+            ) : (
+              currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })
+            )}
           </h2>
           <button
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            aria-label="Next month"
+            onClick={viewMode === 'day' ? handleNextDay : viewMode === 'week' ? handleNextWeek : handleNextMonth}
+            className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+            aria-label={viewMode === 'day' ? 'Next day' : viewMode === 'week' ? 'Next week' : 'Next month'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -566,69 +792,180 @@ export default function WorkloadPage() {
           </button>
         </div>
 
+        {/* View mode indicator */}
+        {viewMode === 'day' && (
+          <div className="text-center text-xs text-gray-500 py-1 bg-gray-50 border-b">
+            Swipe or tap arrows to navigate days
+          </div>
+        )}
+        {viewMode === 'week' && (
+          <div className="text-center text-xs text-gray-500 py-1 bg-gray-50 border-b">
+            Week view
+          </div>
+        )}
+
         {/* Calendar Grid */}
         <div className="p-4">
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
-                {day}
-              </div>
-            ))}
-          </div>
+          {/* Day View - Mobile */}
+          {viewMode === 'day' && (
+            <div className="min-h-64">
+              {(() => {
+                const dateKey = formatDateKey(currentDay);
+                const dayActual = actualCalendarData[dateKey];
+                const dayIsToday = isToday(currentDay);
 
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, index) => {
-              const dateKey = formatDateKey(day.date);
-              const dayActual = actualCalendarData[dateKey];
-              const dayIsToday = isToday(day.date);
-
-              return (
-                <div
-                  key={index}
-                  className={`min-h-24 p-2 border rounded-lg ${
-                    day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
-                  } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span
-                      className={`text-sm font-medium ${
-                        day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
-                      } ${dayIsToday ? 'text-primary-600' : ''}`}
-                    >
-                      {day.date.getDate()}
-                    </span>
-                    {day.isCurrentMonth && !dayActual && (
-                      <button
-                        onClick={() => handleOpenAddActualModal(dateKey)}
-                        className="text-primary-600 hover:text-primary-800 p-1"
-                        aria-label={`Add hours for ${dateKey}`}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </button>
+                return (
+                  <div className={`p-4 border rounded-lg ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={`text-xl font-semibold ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
+                        {currentDay.getDate()}
+                      </span>
+                      {!dayActual && (
+                        <button
+                          onClick={() => handleOpenAddActualModal(dateKey)}
+                          className="btn-primary text-sm"
+                          aria-label={`Log hours for ${dateKey}`}
+                        >
+                          + Log Hours
+                        </button>
+                      )}
+                    </div>
+                    {dayActual ? (
+                      <div className="bg-green-100 text-green-800 p-4 rounded-lg">
+                        <div className="font-medium text-lg">{dayActual.hoursWorked}h worked</div>
+                        {dayActual.userText && <div className="text-green-600 mt-2">{dayActual.userText}</div>}
+                        {dayActual.distributions && dayActual.distributions.length > 0 && (
+                          <div className="text-green-600 mt-2 space-y-1">
+                            {dayActual.distributions.map((d, i) => (
+                              <div key={i}>
+                                {d.hours}h - {d.project.name}
+                                {d.description && <span className="text-green-500 block text-sm">{d.description}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-gray-500 text-center py-8">No hours logged for this day</div>
                     )}
                   </div>
-                  {dayActual && (
-                    <div className="text-xs bg-green-100 text-green-800 p-1 rounded">
-                      <div className="font-medium">{dayActual.hoursWorked}h worked</div>
-                      {dayActual.distributions && dayActual.distributions.length > 0 && (
-                        <div className="text-green-600 mt-1">
-                          {dayActual.distributions.map((d, i) => (
-                            <div key={i} className="truncate">
-                              {d.hours}h - {d.project.name}
-                            </div>
-                          ))}
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Week View - Tablet */}
+          {viewMode === 'week' && (
+            <>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {weekDays.map((day, index) => {
+                  const dateKey = formatDateKey(day);
+                  const dayActual = actualCalendarData[dateKey];
+                  const dayIsToday = isToday(day);
+
+                  return (
+                    <div
+                      key={index}
+                      className={`min-h-32 p-2 border rounded-lg bg-white ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-sm font-medium ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
+                          {day.getDate()}
+                        </span>
+                        {!dayActual && (
+                          <button
+                            onClick={() => handleOpenAddActualModal(dateKey)}
+                            className="text-primary-600 hover:text-primary-800 p-1"
+                            aria-label={`Add hours for ${dateKey}`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      {dayActual && (
+                        <div className="text-xs bg-green-100 text-green-800 p-1 rounded">
+                          <div className="font-medium">{dayActual.hoursWorked}h</div>
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Month View - Desktop */}
+          {viewMode === 'month' && (
+            <>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((day, index) => {
+                  const dateKey = formatDateKey(day.date);
+                  const dayActual = actualCalendarData[dateKey];
+                  const dayIsToday = isToday(day.date);
+
+                  return (
+                    <div
+                      key={index}
+                      className={`min-h-24 p-2 border rounded-lg ${
+                        day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
+                      } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className={`text-sm font-medium ${
+                            day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+                          } ${dayIsToday ? 'text-primary-600' : ''}`}
+                        >
+                          {day.date.getDate()}
+                        </span>
+                        {day.isCurrentMonth && !dayActual && (
+                          <button
+                            onClick={() => handleOpenAddActualModal(dateKey)}
+                            className="text-primary-600 hover:text-primary-800 p-1"
+                            aria-label={`Add hours for ${dateKey}`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      {dayActual && (
+                        <div className="text-xs bg-green-100 text-green-800 p-1 rounded">
+                          <div className="font-medium">{dayActual.hoursWorked}h worked</div>
+                          {dayActual.distributions && dayActual.distributions.length > 0 && (
+                            <div className="text-green-600 mt-1">
+                              {dayActual.distributions.map((d, i) => (
+                                <div key={i} className="truncate">
+                                  {d.hours}h - {d.project.name}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
       )}
