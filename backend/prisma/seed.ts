@@ -149,6 +149,59 @@ async function main() {
   });
   console.log('Created Document:', document.originalName);
 
+  // Create chat logs for LenConnect feature
+  const chatLog1 = await prisma.lenconnectChatLog.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000101' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000101',
+      userId: employee.id,
+      role: 'User',
+      content: 'I need a report on my workload for this week.',
+      requestType: 'Report',
+    },
+  });
+  console.log('Created Chat Log 1');
+
+  const chatLog2 = await prisma.lenconnectChatLog.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000102' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000102',
+      userId: employee.id,
+      role: 'Assistant',
+      content: 'Here is your workload report for this week:\n\n- Monday: Project Alpha - 8 hours\n- Tuesday: Project Alpha - 6 hours, Project Beta - 2 hours\n- Wednesday: Project Beta - 8 hours\n\nTotal hours: 24 hours across 2 projects.',
+      requestType: 'Report',
+    },
+  });
+  console.log('Created Chat Log 2');
+
+  const chatLog3 = await prisma.lenconnectChatLog.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000103' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000103',
+      userId: manager.id,
+      role: 'User',
+      content: 'I have a proposal for improving our project tracking workflow.',
+      requestType: 'Proposal',
+    },
+  });
+  console.log('Created Chat Log 3');
+
+  const chatLog4 = await prisma.lenconnectChatLog.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000104' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000104',
+      userId: manager.id,
+      role: 'Assistant',
+      content: 'Thank you for your proposal! I have noted the following improvements:\n\n1. Automated weekly status reports\n2. Integration with calendar for deadline reminders\n3. Enhanced workload visualization\n\nThese suggestions have been forwarded to the development team.',
+      requestType: 'Proposal',
+    },
+  });
+  console.log('Created Chat Log 4');
+
   console.log('Seeding complete!');
 }
 
