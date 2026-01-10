@@ -1768,3 +1768,31 @@ Completed regression testing on 2 passing features. Both passed successfully wit
 
 ### Status: 313/317 features passing (98.7%)
 
+
+## Session 32: 2026-01-10 - Feature #315: Workload Green Cell Indicator
+
+### Regression Testing
+✅ Feature #78: Project Update workflow - PASSED
+✅ Feature #276: Overdue payment visual indicator - PASSED
+⏭️ Feature #96: Network failure error - SKIPPED (complex to simulate)
+
+### Feature #315: Workload Green Cell Indicator ✅
+**Description**: Mark workload calendar cells green when employee has plan OR actual hours for that date
+
+**Implementation**:
+- Added `hasWorkloadData` check in all three views (Day, Week, Month)
+- Applied `bg-green-50` background when either plan data or actual hours exist
+- Modified data fetching to load both plan and actual data in Plan tab
+- Visual indicator helps users quickly identify dates with any workload activity
+
+**Testing**:
+- ✅ Month view: Green cells display correctly
+- ✅ Week view: Green cells display correctly
+- ✅ Day view: Green background displays correctly
+- ✅ Employee filter: Works with specific employee selection
+- ✅ Data sources: Green appears for both plan and actual hours
+
+**Status**: 314/317 features passing (99.1%)
+
+---
+
