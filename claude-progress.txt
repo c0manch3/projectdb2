@@ -1,5 +1,52 @@
 # ProjectDB - Progress Report
 
+## Session 20: 2026-01-10 - Feature #302: Remove Constructions from Main Menu
+
+### Summary
+Verified and marked Feature #302 as passing. The feature requirement was to remove Constructions from the main navigation menu and make it accessible only from within a specific project's detail page.
+
+### Feature Verification
+
+#### Feature #302: Убрать constructions (Remove constructions from main menu) ✅
+- **Requirement:** Remove constructions from main menu, access only from project menu
+- **Status:** Already implemented
+
+#### Verification Steps:
+1. ✅ Verified main navigation does NOT include "Constructions" link
+   - Menu items: Projects, Employees, Companies, Workload, Analytics, Chat Logs
+2. ✅ Verified /constructions URL redirects to /projects (App.tsx route configuration)
+3. ✅ Verified Constructions accessible from project detail page via "Constructions" tab
+4. ✅ Tested Add Construction functionality:
+   - Created "TEST_FEATURE_302_VERIFY" construction
+   - Toast: "Construction created successfully"
+   - Tab count updated from (1) to (2)
+5. ✅ Tested Edit Construction functionality:
+   - Modal opens with pre-filled construction name
+   - "Cancel" and "Save Changes" buttons available
+6. ✅ Tested Delete Construction functionality:
+   - Confirmation dialog displayed
+   - Toast: "Construction deleted successfully"
+   - Tab count updated back to (1)
+
+### Code Verification
+- frontend/src/components/layout/Sidebar.tsx - No "Constructions" in navigation array
+- frontend/src/App.tsx - Route `/constructions` redirects to `/projects`
+- frontend/src/pages/ProjectDetailPage.tsx - Full construction CRUD in Constructions tab
+
+### Screenshots
+- constructions-from-project-detail.png - Shows constructions accessed via project detail page
+- feature-302-constructions-from-project-verified.png - Final verification screenshot
+
+### Status: 302/302 features passing (100.0%) ✅
+
+### Notes
+- Feature was already implemented in previous sessions
+- This session verified the implementation matches requirements
+- All CRUD operations for constructions work correctly within project context
+- No regressions found
+
+---
+
 ## Session 19: 2026-01-10 - Regression Testing Verification
 
 ### Summary
