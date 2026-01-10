@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '@/services/auth.service';
 import toast from 'react-hot-toast';
 import { useAppSelector } from '@/store';
@@ -87,10 +87,20 @@ type TabType = 'overview' | 'constructions' | 'documents' | 'team' | 'payments';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+
+  // Get initial tab from URL hash or default to 'overview'
+  const getTabFromHash = (): TabType => {
+    const hash = location.hash.replace('#', '');
+    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'team', 'payments'];
+    return validTabs.includes(hash as TabType) ? (hash as TabType) : 'overview';
+  };
+
+  const [activeTab, setActiveTab] = useState<TabType>(getTabFromHash());
 
   // Team management state
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -144,6 +154,21 @@ export default function ProjectDetailPage() {
       fetchProject();
     }
   }, [id]);
+
+  // Sync active tab with URL hash
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    const validTabs: TabType[] = ['overview', 'constructions', 'documents', 'team', 'payments'];
+    if (validTabs.includes(hash as TabType) && hash !== activeTab) {
+      setActiveTab(hash as TabType);
+    }
+  }, [location.hash]);
+
+  // Update URL hash when tab changes
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    navigate(`#${tab}`, { replace: true });
+  };
 
   // Fetch team members when team tab is active
   useEffect(() => {
@@ -523,7 +548,7 @@ export default function ProjectDetailPage() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-primary-500 text-primary-600'
