@@ -1,5 +1,61 @@
 # ProjectDB - Progress Report
 
+## Session 16: 2026-01-10 - PostgreSQL Supabase Database Connection
+
+### Summary
+Successfully migrated from SQLite to PostgreSQL using Supabase as the production database.
+The application now connects to a real Supabase database with existing production data.
+
+### Changes Made
+
+#### 1. Prisma Schema Updates
+- Changed database provider from `sqlite` to `postgresql`
+- Added `@@map()` directives to map PascalCase model names to snake_case table names
+- Added self-referencing relations for Project (mainProject/additionalProjects)
+- Added manager relation to WorkloadPlan model
+- Removed `tokenVersion` field from User (not in production database)
+
+#### 2. Backend Service Updates
+- Updated all services to use Prisma enums instead of string literals:
+  - UserRole (Admin, Manager, Employee, Trial)
+  - CompanyType (Customer, Contractor)
+  - ProjectType (main, additional)
+  - ProjectStatus (Active, Completed)
+  - DocumentType, PaymentType, ChatRole, ChatRequestType
+- Fixed nullable relation handling (customer, manager can be null)
+- Updated guards and decorators to import UserRole from @prisma/client
+
+#### 3. Frontend Fixes
+- Fixed ProjectsPage.tsx to handle nullable customer and manager
+- Updated interface types to allow null values
+- Safe property access with optional chaining (?.)
+
+#### 4. Seed Script
+- Updated seed.ts to use proper enum values
+- Added required `dateBirth` field to user creation
+- Successfully seeded test users (admin@projectdb.com, etc.)
+
+### Verification
+- ✅ Login with admin@projectdb.com / Admin123! works
+- ✅ Projects page loads real production data (Russian project names)
+- ✅ 40+ existing projects from Supabase displayed
+- ✅ Pagination working (4 pages of projects)
+- ✅ Nullable fields handled gracefully (shows "N/A")
+- ✅ No console errors
+
+### Status: 301/301 features passing (100.0%) ✅
+
+### Screenshots
+- supabase-connected-projects.png - Projects page with real Supabase data
+
+### Database Connection
+- Provider: PostgreSQL (Supabase)
+- Region: AWS AP-Southeast-1
+- Connection pooling via PgBouncer on port 6543
+- Direct connection on port 5432 for migrations
+
+---
+
 ## Session 15: 2026-01-10 - Regression Testing & Verification
 
 ### Summary
