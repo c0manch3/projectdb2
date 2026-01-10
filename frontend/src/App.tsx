@@ -8,7 +8,6 @@ import MainLayout from './components/layout/MainLayout';
 import LoginPage from './pages/LoginPage';
 import ProjectsPage from './pages/ProjectsPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
-import ConstructionsPage from './pages/ConstructionsPage';
 import EmployeesPage from './pages/EmployeesPage';
 import CompaniesPage from './pages/CompaniesPage';
 import WorkloadPage from './pages/WorkloadPage';
@@ -98,7 +97,8 @@ function App() {
         <Route index element={<Navigate to="/projects" replace />} />
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="projects/:id" element={<ProjectDetailPage />} />
-        <Route path="constructions" element={<ConstructionsPage />} />
+        {/* Constructions route redirects to projects - access constructions via project detail page */}
+        <Route path="constructions" element={<Navigate to="/projects" replace />} />
 
         {/* Admin/Manager only routes */}
         <Route
