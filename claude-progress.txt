@@ -1,5 +1,58 @@
 # ProjectDB - Progress Report
 
+## Session 26: 2026-01-10 - Regression Testing Verification
+
+### Summary
+Performed regression testing on 3 randomly selected passing features to verify the application continues to work correctly. All tests passed successfully.
+
+### Regression Tests Performed
+
+#### 1. Feature #222: O9: Navigation collapses on mobile ✅
+- Set viewport to 375px (mobile)
+- Verified sidebar not visible by default
+- Hamburger menu button ("Open menu") present in header
+- Clicked hamburger to open sidebar overlay
+- Full navigation menu slides in with all links:
+  - Projects, Employees, Companies, Workload, Analytics, Chat Logs
+- User info (Admin User) and Logout button at bottom
+- Bottom navigation bar visible (Projects, Workload, Profile)
+
+#### 2. Feature #126: F16: Decimal values handled correctly ✅
+- Navigated to Employees page
+- Opened Trial User employee details
+- Clicked Edit to open edit form
+- Set salary to 75000.50 (decimal value)
+- Clicked "Save Changes" - toast: "Employee updated successfully"
+- Reloaded page and opened employee details again
+- Verified salary shows exactly "75000.50" - decimal precision preserved
+
+#### 3. Feature #10: A10: Logout clears all session data ✅
+- Clicked Logout button in sidebar
+- Verified redirect to /login page
+- Checked localStorage: accessToken=null, refreshToken=null (cleared)
+- Attempted to navigate to /projects (protected route)
+- Verified redirect to /login?redirect=%2Fprojects
+- No auto-login occurs - must manually sign in again
+
+### Console Errors
+- No JavaScript errors during testing
+
+### Screenshots
+- regression-test-mobile-nav.png - Mobile sidebar overlay
+- regression-test-session-26.png - Login page after logout
+
+### Status: 302/302 features passing (100.0%) ✅
+
+### Notes
+- Application is production-ready
+- Mobile responsive navigation working correctly
+- Decimal precision preserved in salary/amount fields
+- Session management (logout) working correctly
+- Real Supabase database connected with production data
+- No regressions found
+
+---
+
 ## Session 25: 2026-01-10 - Regression Testing Verification
 
 ### Summary
