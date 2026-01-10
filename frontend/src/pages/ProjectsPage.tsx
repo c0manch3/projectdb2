@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/store';
 import { api } from '@/services/auth.service';
@@ -89,10 +89,70 @@ export default function ProjectsPage() {
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Get filter and page from URL params
+  // Get filter, page, and sort from URL params
   const statusFilter = searchParams.get('status') || 'All';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const sortBy = searchParams.get('sortBy') || 'createdAt';
+  const sortOrder = searchParams.get('sortOrder') || 'desc';
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Track if we've done the initial restore to avoid overwriting sessionStorage
+  const hasRestoredRef = useRef(false);
+  const isInitialMountRef = useRef(true);
+
+  // Restore filter state from sessionStorage on initial load if URL has no params
+  useEffect(() => {
+    const urlHasParams = searchParams.toString().length > 0;
+    if (!urlHasParams && !hasRestoredRef.current) {
+      const saved = sessionStorage.getItem('projectsFilterState');
+      if (saved) {
+        try {
+          const filterState = JSON.parse(saved);
+          const newParams = new URLSearchParams();
+          if (filterState.status && filterState.status !== 'All') {
+            newParams.set('status', filterState.status);
+          }
+          if (filterState.page && filterState.page !== '1') {
+            newParams.set('page', filterState.page);
+          }
+          if (filterState.sortBy && filterState.sortBy !== 'createdAt') {
+            newParams.set('sortBy', filterState.sortBy);
+          }
+          if (filterState.sortOrder && filterState.sortOrder !== 'desc') {
+            newParams.set('sortOrder', filterState.sortOrder);
+          }
+          if (newParams.toString().length > 0) {
+            setSearchParams(newParams, { replace: true });
+          }
+          if (filterState.searchQuery) {
+            setSearchQuery(filterState.searchQuery);
+          }
+        } catch {
+          // Ignore parsing errors
+        }
+      }
+    }
+    hasRestoredRef.current = true;
+    // Mark initial mount as complete after a short delay
+    setTimeout(() => {
+      isInitialMountRef.current = false;
+    }, 100);
+  }, []); // Only run on initial mount
+
+  // Save current filter state to sessionStorage for persistence when returning from detail pages
+  // Skip saving on initial mount to avoid overwriting restored state
+  useEffect(() => {
+    if (isInitialMountRef.current) return;
+
+    const filterState = {
+      status: statusFilter,
+      page: currentPage.toString(),
+      sortBy,
+      sortOrder,
+      searchQuery,
+    };
+    sessionStorage.setItem('projectsFilterState', JSON.stringify(filterState));
+  }, [statusFilter, currentPage, sortBy, sortOrder, searchQuery]);
 
   useEffect(() => {
     fetchProjects();
@@ -129,7 +189,7 @@ export default function ProjectsPage() {
     }
   };
 
-  // Filter projects based on status and search query
+  // Filter and sort projects based on status, search query, and sort params
   const filteredProjects = useMemo(() => {
     let filtered = projects;
 
@@ -148,8 +208,44 @@ export default function ProjectsPage() {
       );
     }
 
+    // Sort projects
+    filtered = [...filtered].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortBy) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'customer':
+          aValue = a.customer.name.toLowerCase();
+          bValue = b.customer.name.toLowerCase();
+          break;
+        case 'manager':
+          aValue = `${a.manager.lastName} ${a.manager.firstName}`.toLowerCase();
+          bValue = `${b.manager.lastName} ${b.manager.firstName}`.toLowerCase();
+          break;
+        case 'contractDate':
+          aValue = new Date(a.contractDate).getTime();
+          bValue = new Date(b.contractDate).getTime();
+          break;
+        case 'status':
+          aValue = a.status.toLowerCase();
+          bValue = b.status.toLowerCase();
+          break;
+        default:
+          aValue = new Date(a.contractDate).getTime();
+          bValue = new Date(b.contractDate).getTime();
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
     return filtered;
-  }, [projects, statusFilter, searchQuery]);
+  }, [projects, statusFilter, searchQuery, sortBy, sortOrder]);
 
   // Paginate filtered projects
   const totalPages = Math.ceil(filteredProjects.length / ITEMS_PER_PAGE);
@@ -173,6 +269,39 @@ export default function ProjectsPage() {
     const newParams = new URLSearchParams(searchParams);
     newParams.set('page', page.toString());
     setSearchParams(newParams);
+  };
+
+  const handleSort = (column: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (sortBy === column) {
+      // Toggle sort order if same column
+      newParams.set('sortOrder', sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to ascending
+      newParams.set('sortBy', column);
+      newParams.set('sortOrder', 'asc');
+    }
+    newParams.set('page', '1'); // Reset to page 1 when sort changes
+    setSearchParams(newParams);
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortBy !== column) {
+      return (
+        <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    return sortOrder === 'asc' ? (
+      <svg className="w-4 h-4 text-primary-600 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    ) : (
+      <svg className="w-4 h-4 text-primary-600 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -407,11 +536,36 @@ export default function ProjectsPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contract Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('name')}
+                  >
+                    <span className="flex items-center">Name{getSortIcon('name')}</span>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('customer')}
+                  >
+                    <span className="flex items-center">Customer{getSortIcon('customer')}</span>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('manager')}
+                  >
+                    <span className="flex items-center">Manager{getSortIcon('manager')}</span>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('contractDate')}
+                  >
+                    <span className="flex items-center">Contract Date{getSortIcon('contractDate')}</span>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('status')}
+                  >
+                    <span className="flex items-center">Status{getSortIcon('status')}</span>
+                  </th>
                   {canEdit && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
                 </tr>
               </thead>
