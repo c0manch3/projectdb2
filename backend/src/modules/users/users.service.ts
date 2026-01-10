@@ -76,6 +76,7 @@ export class UsersService {
         phone: dto.phone,
         passwordHash,
         role: dto.role || 'Employee',
+        salary: dto.salary,
       },
     });
 
@@ -86,6 +87,7 @@ export class UsersService {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      salary: user.salary ? Number(user.salary) : undefined,
     };
   }
 

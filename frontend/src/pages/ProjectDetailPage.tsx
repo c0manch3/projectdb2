@@ -68,6 +68,7 @@ interface Project {
   status: string;
   customerId: string;
   managerId: string;
+  mainProjectId?: string;
   customer: {
     id: string;
     name: string;
@@ -79,6 +80,15 @@ interface Project {
     lastName: string;
     email: string;
   };
+  mainProject?: {
+    id: string;
+    name: string;
+  };
+  additionalProjects?: {
+    id: string;
+    name: string;
+    status: string;
+  }[];
   constructions: Construction[];
   documents?: Document[];
 }
@@ -126,6 +136,9 @@ export default function ProjectDetailPage() {
   const [replaceFile, setReplaceFile] = useState<File | null>(null);
   const [documentToReplace, setDocumentToReplace] = useState<Document | null>(null);
 
+  // Document filter state
+  const [documentTypeFilter, setDocumentTypeFilter] = useState<string>('all');
+
   // Payment schedule state
   const [payments, setPayments] = useState<PaymentSchedule[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
@@ -141,6 +154,15 @@ export default function ProjectDetailPage() {
   });
   const [paymentFormErrors, setPaymentFormErrors] = useState<Record<string, string>>({});
   const canManagePayments = user?.role === 'Admin' || user?.role === 'Manager';
+
+  // Construction management state
+  const [showAddConstructionModal, setShowAddConstructionModal] = useState(false);
+  const [showEditConstructionModal, setShowEditConstructionModal] = useState(false);
+  const [newConstructionName, setNewConstructionName] = useState('');
+  const [editingConstruction, setEditingConstruction] = useState<Construction | null>(null);
+  const [editConstructionName, setEditConstructionName] = useState('');
+  const [savingConstruction, setSavingConstruction] = useState(false);
+  const canManageConstructions = user?.role === 'Admin' || user?.role === 'Manager';
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -513,6 +535,74 @@ export default function ProjectDetailPage() {
     return new Date(expectedDate) < new Date();
   };
 
+  // Construction CRUD handlers
+  const handleAddConstruction = async () => {
+    if (!newConstructionName.trim() || !id) return;
+
+    setSavingConstruction(true);
+    try {
+      await api.post('/construction/create', {
+        name: newConstructionName,
+        projectId: id,
+      });
+      toast.success('Construction created successfully');
+      setShowAddConstructionModal(false);
+      setNewConstructionName('');
+
+      // Refresh project to get updated constructions
+      const response = await api.get<Project>(`/project/${id}`);
+      setProject(response.data);
+    } catch (error) {
+      toast.error('Failed to create construction');
+    } finally {
+      setSavingConstruction(false);
+    }
+  };
+
+  const openEditConstructionModal = (construction: Construction) => {
+    setEditingConstruction(construction);
+    setEditConstructionName(construction.name);
+    setShowEditConstructionModal(true);
+  };
+
+  const handleEditConstruction = async () => {
+    if (!editConstructionName.trim() || !editingConstruction || !id) return;
+
+    setSavingConstruction(true);
+    try {
+      await api.patch(`/construction/${editingConstruction.id}`, {
+        name: editConstructionName,
+      });
+      toast.success('Construction updated successfully');
+      setShowEditConstructionModal(false);
+      setEditingConstruction(null);
+      setEditConstructionName('');
+
+      // Refresh project to get updated constructions
+      const response = await api.get<Project>(`/project/${id}`);
+      setProject(response.data);
+    } catch (error) {
+      toast.error('Failed to update construction');
+    } finally {
+      setSavingConstruction(false);
+    }
+  };
+
+  const handleDeleteConstruction = async (constructionId: string) => {
+    if (!confirm('Are you sure you want to delete this construction? This will also delete all associated documents.')) return;
+
+    try {
+      await api.delete(`/construction/${constructionId}`);
+      toast.success('Construction deleted successfully');
+
+      // Refresh project to get updated constructions
+      const response = await api.get<Project>(`/project/${id}`);
+      setProject(response.data);
+    } catch (error) {
+      toast.error('Failed to delete construction');
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 md:p-6">
@@ -652,12 +742,63 @@ export default function ProjectDetailPage() {
               </div>
             </dl>
           </div>
+
+          {/* Main Project Reference (for additional projects) */}
+          {project.mainProject && (
+            <div className="card p-6">
+              <h2 className="text-lg font-semibold mb-4">Main Project</h2>
+              <p className="text-gray-600 text-sm mb-3">This is an additional project linked to:</p>
+              <Link
+                to={`/projects/${project.mainProject.id}`}
+                className="block p-4 bg-primary-50 rounded-lg border border-primary-200 hover:bg-primary-100 transition-colors"
+              >
+                <div className="font-medium text-primary-700">{project.mainProject.name}</div>
+                <div className="text-sm text-primary-600 mt-1">Click to view main project →</div>
+              </Link>
+            </div>
+          )}
+
+          {/* Additional Projects Section (for main projects) */}
+          {project.additionalProjects && project.additionalProjects.length > 0 && (
+            <div className="card p-6">
+              <h2 className="text-lg font-semibold mb-4">Additional Projects</h2>
+              <p className="text-gray-600 text-sm mb-3">Supplementary projects linked to this main project:</p>
+              <div className="space-y-2">
+                {project.additionalProjects.map((additionalProject) => (
+                  <Link
+                    key={additionalProject.id}
+                    to={`/projects/${additionalProject.id}`}
+                    className="block p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-900">{additionalProject.name}</span>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        additionalProject.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {additionalProject.status}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {activeTab === 'constructions' && (
         <div className="card p-6">
-          <h2 className="text-lg font-semibold mb-4">Constructions</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Constructions</h2>
+            {canManageConstructions && (
+              <button
+                onClick={() => setShowAddConstructionModal(true)}
+                className="btn-primary"
+              >
+                Add Construction
+              </button>
+            )}
+          </div>
           {project.constructions && project.constructions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -665,6 +806,9 @@ export default function ProjectDetailPage() {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    {canManageConstructions && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -678,13 +822,39 @@ export default function ProjectDetailPage() {
                           {construction.status}
                         </span>
                       </td>
+                      {canManageConstructions && (
+                        <td className="px-4 py-4 whitespace-nowrap space-x-2">
+                          <button
+                            onClick={() => openEditConstructionModal(construction)}
+                            className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteConstruction(construction.id)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="text-gray-500">No constructions associated with this project.</p>
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">No constructions associated with this project.</p>
+              {canManageConstructions && (
+                <button
+                  onClick={() => setShowAddConstructionModal(true)}
+                  className="btn-primary"
+                >
+                  Add First Construction
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -693,17 +863,56 @@ export default function ProjectDetailPage() {
         <div className="card p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Documents</h2>
-            {canUploadDocs && (
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="btn-primary"
-              >
-                Upload Document
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {project.documents && project.documents.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600">Filter by type:</label>
+                  <select
+                    value={documentTypeFilter}
+                    onChange={(e) => setDocumentTypeFilter(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    aria-label="Filter documents by type"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="contract">Contract</option>
+                    <option value="tz">Technical Specification (TZ)</option>
+                    <option value="project_documentation">Project Documentation</option>
+                    <option value="working_documentation">Working Documentation</option>
+                  </select>
+                </div>
+              )}
+              {canUploadDocs && (
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="btn-primary"
+                >
+                  Upload Document
+                </button>
+              )}
+            </div>
           </div>
           {project.documents && project.documents.length > 0 ? (
             <div className="overflow-x-auto">
+              {(() => {
+                const filteredDocs = documentTypeFilter === 'all'
+                  ? project.documents
+                  : project.documents.filter(doc => doc.type === documentTypeFilter);
+
+                if (filteredDocs.length === 0) {
+                  return (
+                    <p className="text-gray-500 text-center py-4">
+                      No documents match the selected filter.
+                      <button
+                        onClick={() => setDocumentTypeFilter('all')}
+                        className="ml-2 text-primary-600 hover:text-primary-800"
+                      >
+                        Clear filter
+                      </button>
+                    </p>
+                  );
+                }
+
+                return (
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
@@ -716,7 +925,7 @@ export default function ProjectDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {project.documents.map((doc) => (
+                  {filteredDocs.map((doc) => (
                     <tr key={doc.id} className="hover:bg-gray-50">
                       <td className="px-4 py-4 whitespace-nowrap text-gray-900">{doc.originalName}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
@@ -766,6 +975,8 @@ export default function ProjectDetailPage() {
                   ))}
                 </tbody>
               </table>
+                );
+              })()}
             </div>
           ) : (
             <p className="text-gray-500">No documents associated with this project.</p>
@@ -1221,6 +1432,94 @@ export default function ProjectDetailPage() {
                 className="btn-primary disabled:opacity-50"
               >
                 {savingPayment ? 'Saving...' : 'Add Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Construction Modal */}
+      {showAddConstructionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Add Construction</h2>
+              <button onClick={() => setShowAddConstructionModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Construction Name *</label>
+                <input
+                  type="text"
+                  value={newConstructionName}
+                  onChange={(e) => setNewConstructionName(e.target.value)}
+                  placeholder="Enter construction name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                <p className="text-gray-900">{project.name}</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={() => setShowAddConstructionModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleAddConstruction}
+                disabled={savingConstruction || !newConstructionName.trim()}
+                className="btn-primary disabled:opacity-50"
+              >
+                {savingConstruction ? 'Creating...' : 'Create Construction'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Construction Modal */}
+      {showEditConstructionModal && editingConstruction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Edit Construction</h2>
+              <button onClick={() => setShowEditConstructionModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Construction Name *</label>
+                <input
+                  type="text"
+                  value={editConstructionName}
+                  onChange={(e) => setEditConstructionName(e.target.value)}
+                  placeholder="Enter construction name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                <p className="text-gray-900">{project.name}</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button onClick={() => setShowEditConstructionModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleEditConstruction}
+                disabled={savingConstruction || !editConstructionName.trim()}
+                className="btn-primary disabled:opacity-50"
+              >
+                {savingConstruction ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>

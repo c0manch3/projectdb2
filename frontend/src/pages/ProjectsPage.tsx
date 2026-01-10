@@ -52,6 +52,7 @@ interface NewProjectForm {
   customerId: string;
   managerId: string;
   type: string;
+  mainProjectId: string;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -80,6 +81,7 @@ export default function ProjectsPage() {
     customerId: '',
     managerId: '',
     type: 'main',
+    mainProjectId: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -376,6 +378,7 @@ export default function ProjectsPage() {
       customerId: '',
       managerId: '',
       type: 'main',
+      mainProjectId: '',
     });
     setFormErrors({});
   };
@@ -439,6 +442,7 @@ export default function ProjectsPage() {
         customerId: newProject.customerId,
         managerId: newProject.managerId,
         type: newProject.type,
+        ...(newProject.type === 'additional' && newProject.mainProjectId && { mainProjectId: newProject.mainProjectId }),
       });
       toast.success('Project created successfully');
       fetchProjects();
@@ -829,13 +833,35 @@ export default function ProjectsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Project Type</label>
                 <select
                   value={newProject.type}
-                  onChange={(e) => handleNewProjectChange('type', e.target.value)}
+                  onChange={(e) => {
+                    handleNewProjectChange('type', e.target.value);
+                    // Clear mainProjectId when switching back to main
+                    if (e.target.value === 'main') {
+                      handleNewProjectChange('mainProjectId', '');
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="main">Main Project</option>
                   <option value="additional">Additional (Supplementary)</option>
                 </select>
               </div>
+              {newProject.type === 'additional' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Main Project (Link to)</label>
+                  <select
+                    value={newProject.mainProjectId}
+                    onChange={(e) => handleNewProjectChange('mainProjectId', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">Select a main project (optional)</option>
+                    {projects.filter(p => p.type === 'main').map(project => (
+                      <option key={project.id} value={project.id}>{project.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-sm text-gray-500 mt-1">Link this additional project to a main project</p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contract Date *</label>
                 <input

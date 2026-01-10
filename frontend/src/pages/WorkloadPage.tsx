@@ -262,6 +262,41 @@ export default function WorkloadPage() {
   const setViewWeek = () => setManualViewMode('week');
   const setViewMonth = () => setManualViewMode('month');
 
+  // Touch swipe handling for mobile navigation
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      // Swipe left = go to next
+      if (viewMode === 'day') handleNextDay();
+      else if (viewMode === 'week') handleNextWeek();
+      else handleNextMonth();
+    } else if (isRightSwipe) {
+      // Swipe right = go to previous
+      if (viewMode === 'day') handlePrevDay();
+      else if (viewMode === 'week') handlePrevWeek();
+      else handlePrevMonth();
+    }
+  };
+
   // Get week days for week view
   const weekDays = useMemo(() => {
     const days = [];
@@ -544,7 +579,12 @@ export default function WorkloadPage() {
 
       {/* Workload Calendar */}
       {activeTab === 'plan' && (
-      <div className="card">
+      <div
+        className="card"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         {/* Calendar Header - adapts to view mode */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
@@ -830,7 +870,12 @@ export default function WorkloadPage() {
 
       {/* Actual Hours Calendar */}
       {activeTab === 'actual' && (
-      <div className="card">
+      <div
+        className="card"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         {/* Calendar Header - adapts to view mode */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">

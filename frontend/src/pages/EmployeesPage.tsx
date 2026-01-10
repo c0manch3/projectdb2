@@ -10,6 +10,7 @@ interface Employee {
   email: string;
   phone: string;
   role: string;
+  salary?: number;
 }
 
 interface NewEmployeeForm {
@@ -19,6 +20,7 @@ interface NewEmployeeForm {
   password: string;
   phone: string;
   role: 'Admin' | 'Manager' | 'Employee' | 'Trial';
+  salary: string;
 }
 
 interface EditEmployeeForm {
@@ -46,6 +48,7 @@ export default function EmployeesPage() {
     password: '',
     phone: '',
     role: 'Employee',
+    salary: '',
   });
   const [editEmployee, setEditEmployee] = useState<EditEmployeeForm>({
     firstName: '',
@@ -103,6 +106,7 @@ export default function EmployeesPage() {
       password: '',
       phone: '',
       role: 'Employee',
+      salary: '',
     });
     setEmailError('');
     setPhoneError('');
@@ -118,6 +122,7 @@ export default function EmployeesPage() {
       password: '',
       phone: '',
       role: 'Employee',
+      salary: '',
     });
   };
 
@@ -171,6 +176,7 @@ export default function EmployeesPage() {
         password: newEmployee.password,
         phone: newEmployee.phone || undefined,
         role: newEmployee.role,
+        salary: newEmployee.salary ? parseFloat(newEmployee.salary) : undefined,
       });
       toast.success('Employee created successfully');
       fetchEmployees();
@@ -209,7 +215,9 @@ export default function EmployeesPage() {
         lastName: selectedEmployee.lastName,
         phone: selectedEmployee.phone || '',
         role: selectedEmployee.role as EditEmployeeForm['role'],
-        salary: '',
+        salary: selectedEmployee.salary !== undefined && selectedEmployee.salary !== null
+          ? String(selectedEmployee.salary)
+          : '',
       });
       setShowDetailModal(false);
       setShowEditModal(true);
@@ -373,6 +381,12 @@ export default function EmployeesPage() {
                   <dt className="text-gray-500">Role</dt>
                   <dd className="text-gray-900">{selectedEmployee.role}</dd>
                 </div>
+                {selectedEmployee.salary !== undefined && selectedEmployee.salary !== null && (
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500">Salary</dt>
+                    <dd className="text-gray-900">{selectedEmployee.salary.toFixed(2)}</dd>
+                  </div>
+                )}
               </dl>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
@@ -483,6 +497,17 @@ export default function EmployeesPage() {
                   <option value="Trial">Trial</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Salary</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={newEmployee.salary}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, salary: e.target.value })}
+                  placeholder="Enter salary"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={handleCloseAddModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
@@ -562,6 +587,7 @@ export default function EmployeesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Salary</label>
                 <input
                   type="number"
+                  step="0.01"
                   value={editEmployee.salary}
                   onChange={(e) => setEditEmployee({ ...editEmployee, salary: e.target.value })}
                   placeholder="Enter salary"
