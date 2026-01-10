@@ -1,5 +1,61 @@
 # ProjectDB - Progress Report
 
+## Session 30: 2026-01-10 - Feature #306: Analytics Employee Hours Modal
+
+### Summary
+Implemented Feature #306: When clicking on an employee in Analytics → Employee Hours tab, a modal opens showing all their reports for the selected period.
+
+### Feature #306: Analytics Employee hours ✅
+
+**Requirements:**
+- When clicking on an employee in the Analytics → Employee Hours tab, a modal should appear showing all reports for that employee for the selected period.
+
+### Implementation Details
+
+#### Frontend Changes (AnalyticsPage.tsx)
+- Added `EmployeeWorkloadReport` interface for typing report data
+- Added state variables for modal: `showEmployeeReportsModal`, `selectedEmployee`, `employeeReports`, `loadingReports`
+- Added `fetchEmployeeReports()` function to fetch workload data from `/workload-actual` API
+- Added `closeEmployeeReportsModal()` function to close the modal and clear state
+- Made employee rows clickable with `cursor-pointer` style and arrow icon indicator
+- Added Employee Reports Modal with:
+  - Header showing employee name and date range
+  - Summary cards: Total Hours, Expected Hours, Deviation, Reports Count
+  - Loading spinner while fetching
+  - Empty state with icon and message when no reports
+  - Report cards showing date, hours, user notes, and project distributions
+  - Close button in footer
+
+### Verification
+- ✅ Employee rows are clickable (cursor changes to pointer)
+- ✅ Arrow icon visible next to employee names
+- ✅ Clicking on "Илья Пекарский" (8h) opens modal showing:
+  - Header: "Илья Пекарский" with period "31.12.2025 - 30.01.2026"
+  - Summary: Total 8h, Expected 184h, Deviation -176h, Reports Count 1
+  - Report card with date "ср, 31 дек. 2025 г." and 8h
+  - Project distribution: "ПИК Балашиха (резервуар)" - 8h with description
+- ✅ Clicking on "Игорь Чижов" (0h) shows empty state:
+  - "No reports found for this period" message with icon
+- ✅ Close button works correctly
+- ✅ Backdrop click closes modal
+- ✅ No console errors
+
+### Screenshots
+- feature-306-employee-reports-modal.png - Modal with employee report details
+- feature-306-empty-state.png - Empty state for employee with no reports
+
+### Git Commit
+- (pending commit)
+
+### Status: 305/311 features passing (98.1%)
+
+### Notes
+- API endpoint `/workload-actual?userId=xxx&startDate=xxx&endDate=xxx` provides all needed data
+- Report includes project distributions with project name, hours, and description
+- Russian date localization used for user-friendly display
+
+---
+
 ## Session 29: 2026-01-10 - Feature #304: Workload Main Page Enhancements
 
 ### Summary

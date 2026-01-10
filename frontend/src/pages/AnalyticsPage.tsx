@@ -57,6 +57,22 @@ interface EmployeeWorkHoursResponse {
   };
 }
 
+interface EmployeeWorkloadReport {
+  id: string;
+  date: string;
+  hoursWorked: number;
+  userText?: string;
+  distributions: {
+    id: string;
+    hours: number;
+    description: string;
+    project: {
+      id: string;
+      name: string;
+    };
+  }[];
+}
+
 export default function AnalyticsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const [projectsData, setProjectsData] = useState<ProjectsWorkloadResponse | null>(null);
@@ -64,6 +80,12 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'projects' | 'employees'>('projects');
+
+  // Employee reports modal state
+  const [showEmployeeReportsModal, setShowEmployeeReportsModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWorkHoursData | null>(null);
+  const [employeeReports, setEmployeeReports] = useState<EmployeeWorkloadReport[]>([]);
+  const [loadingReports, setLoadingReports] = useState(false);
 
   // Date range state
   const now = new Date();
@@ -109,6 +131,32 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Fetch employee workload reports for the selected period
+  const fetchEmployeeReports = async (employee: EmployeeWorkHoursData) => {
+    setSelectedEmployee(employee);
+    setShowEmployeeReportsModal(true);
+    setLoadingReports(true);
+    setEmployeeReports([]);
+
+    try {
+      const response = await api.get<EmployeeWorkloadReport[]>(
+        `/workload-actual?userId=${employee.id}&startDate=${startDate}&endDate=${endDate}`
+      );
+      setEmployeeReports(response.data);
+    } catch (err) {
+      console.error('Failed to fetch employee reports:', err);
+      toast.error('Failed to load employee reports');
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
+  const closeEmployeeReportsModal = () => {
+    setShowEmployeeReportsModal(false);
+    setSelectedEmployee(null);
+    setEmployeeReports([]);
+  };
 
   // D3 Bubble Chart
   useEffect(() => {
@@ -703,10 +751,18 @@ export default function AnalyticsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {employeesData.employees.map((employee) => (
-                    <tr key={employee.id} className="hover:bg-gray-50">
+                    <tr
+                      key={employee.id}
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => fetchEmployeeReports(employee)}
+                      title="Click to view detailed reports"
+                    >
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-gray-900 flex items-center gap-2">
                           {employee.firstName} {employee.lastName}
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-gray-600">{employee.email}</td>
@@ -734,6 +790,143 @@ export default function AnalyticsPage() {
           ) : (
             <div className="p-6 text-center text-gray-500">No employee data available</div>
           )}
+        </div>
+      )}
+
+      {/* Employee Reports Modal */}
+      {showEmployeeReportsModal && selectedEmployee && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+              onClick={closeEmployeeReportsModal}
+            />
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {selectedEmployee.firstName} {selectedEmployee.lastName}
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Reports for {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <button
+                  onClick={closeEmployeeReportsModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Summary */}
+              <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500">Total Hours</div>
+                    <div className="text-xl font-bold text-gray-900">{selectedEmployee.totalHoursWorked}h</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500">Expected Hours</div>
+                    <div className="text-xl font-bold text-gray-900">{selectedEmployee.expectedHours}h</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500">Deviation</div>
+                    <div className={`text-xl font-bold ${
+                      selectedEmployee.deviation < 0 ? 'text-red-600' : 'text-green-600'
+                    }`}>
+                      {selectedEmployee.deviation > 0 ? '+' : ''}{selectedEmployee.deviation}h
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500">Reports Count</div>
+                    <div className="text-xl font-bold text-blue-600">{employeeReports.length}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-200px)]">
+                {loadingReports ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="ml-3 text-gray-500">Loading reports...</span>
+                  </div>
+                ) : employeeReports.length === 0 ? (
+                  <div className="text-center py-12">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="text-gray-500">No reports found for this period</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {employeeReports.map((report) => (
+                      <div key={report.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                              {new Date(report.date).toLocaleDateString('ru-RU', {
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </div>
+                            <div className="text-lg font-semibold text-gray-900">
+                              {report.hoursWorked}h
+                            </div>
+                          </div>
+                        </div>
+
+                        {report.userText && (
+                          <p className="text-gray-600 text-sm mb-3 italic">"{report.userText}"</p>
+                        )}
+
+                        {report.distributions && report.distributions.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Project Distribution</p>
+                            <div className="space-y-2">
+                              {report.distributions.map((dist) => (
+                                <div
+                                  key={dist.id}
+                                  className="flex items-center justify-between bg-gray-100 rounded-md px-3 py-2"
+                                >
+                                  <div className="flex-1">
+                                    <span className="font-medium text-gray-900">{dist.project.name}</span>
+                                    {dist.description && (
+                                      <span className="text-gray-500 text-sm ml-2">- {dist.description}</span>
+                                    )}
+                                  </div>
+                                  <span className="text-blue-600 font-semibold">{dist.hours}h</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end">
+                <button
+                  onClick={closeEmployeeReportsModal}
+                  className="btn-secondary"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
