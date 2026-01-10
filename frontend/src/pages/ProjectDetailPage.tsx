@@ -73,13 +73,13 @@ interface Project {
     id: string;
     name: string;
     type: string;
-  };
+  } | null;
   manager: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
-  };
+  } | null;
   mainProject?: {
     id: string;
     name: string;
@@ -726,19 +726,19 @@ export default function ProjectDetailPage() {
             <dl className="space-y-3">
               <div className="flex justify-between">
                 <dt className="text-gray-500">Customer</dt>
-                <dd className="text-gray-900">{project.customer.name}</dd>
+                <dd className="text-gray-900">{project.customer?.name || 'N/A'}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500">Customer Type</dt>
-                <dd className="text-gray-900">{project.customer.type}</dd>
+                <dd className="text-gray-900">{project.customer?.type || 'N/A'}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500">Manager</dt>
-                <dd className="text-gray-900">{project.manager.firstName} {project.manager.lastName}</dd>
+                <dd className="text-gray-900">{project.manager ? `${project.manager.firstName} ${project.manager.lastName}` : 'N/A'}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500">Manager Email</dt>
-                <dd className="text-gray-900">{project.manager.email}</dd>
+                <dd className="text-gray-900">{project.manager?.email || 'N/A'}</dd>
               </div>
             </dl>
           </div>
