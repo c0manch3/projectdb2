@@ -1,7 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAppSelector } from '@/store';
 import { api } from '@/services/auth.service';
-import * as d3 from 'd3';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 
@@ -98,9 +97,8 @@ export default function AnalyticsPage() {
   const [compareDate, setCompareDate] = useState<string>('');
   const [showComparison, setShowComparison] = useState(false);
 
-  // Bubble chart ref
-  const bubbleChartRef = useRef<SVGSVGElement>(null);
-  const bubbleChartContainerRef = useRef<HTMLDivElement>(null);
+  // Project status filter
+  const [projectStatusFilter, setProjectStatusFilter] = useState<'all' | 'Active' | 'Completed'>('all');
 
   const fetchData = useCallback(async () => {
     try {
@@ -158,140 +156,11 @@ export default function AnalyticsPage() {
     setEmployeeReports([]);
   };
 
-  // D3 Bubble Chart
-  useEffect(() => {
-    if (!projectsData || !bubbleChartRef.current || activeTab !== 'projects') return;
-
-    const svg = d3.select(bubbleChartRef.current);
-    svg.selectAll('*').remove();
-
-    const container = bubbleChartContainerRef.current;
-    if (!container) return;
-
-    const width = container.clientWidth || 600;
-    const height = 400;
-
-    svg.attr('width', width).attr('height', height);
-
-    const projects = projectsData.projects.filter(p => p.totalActualHours > 0 || p.employeeCount > 0);
-
-    if (projects.length === 0) {
-      svg.append('text')
-        .attr('x', width / 2)
-        .attr('y', height / 2)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#6b7280')
-        .text('No workload data to display');
-      return;
-    }
-
-    // Create bubble data
-    const bubbleData = projects.map(p => ({
-      ...p,
-      radius: Math.max(20, Math.min(60, p.totalActualHours * 2 + 10)),
-    }));
-
-    // Create color scale
-    const colorScale = d3.scaleOrdinal<string>()
-      .domain(['Active', 'Completed'])
-      .range(['#3b82f6', '#22c55e']);
-
-    // Create simulation
-    const simulation = d3.forceSimulation(bubbleData as any)
-      .force('x', d3.forceX(width / 2).strength(0.05))
-      .force('y', d3.forceY(height / 2).strength(0.05))
-      .force('collide', d3.forceCollide((d: any) => d.radius + 2))
-      .stop();
-
-    // Run simulation
-    for (let i = 0; i < 120; i++) simulation.tick();
-
-    // Create tooltip
-    const tooltip = d3.select('body').append('div')
-      .attr('class', 'analytics-tooltip')
-      .style('position', 'absolute')
-      .style('visibility', 'hidden')
-      .style('background', 'white')
-      .style('border', '1px solid #e5e7eb')
-      .style('border-radius', '8px')
-      .style('padding', '12px')
-      .style('box-shadow', '0 4px 6px -1px rgba(0,0,0,0.1)')
-      .style('font-size', '14px')
-      .style('z-index', '1000')
-      .style('pointer-events', 'none');
-
-    // Draw bubbles
-    const bubbles = svg.selectAll('g.bubble')
-      .data(bubbleData)
-      .enter()
-      .append('g')
-      .attr('class', 'bubble')
-      .attr('transform', (d: any) => `translate(${d.x},${d.y})`);
-
-    bubbles.append('circle')
-      .attr('r', (d: any) => d.radius)
-      .attr('fill', (d: any) => colorScale(d.status))
-      .attr('opacity', 0.8)
-      .attr('stroke', (d: any) => d3.color(colorScale(d.status))?.darker(0.5)?.toString() || '#000')
-      .attr('stroke-width', 2)
-      .style('cursor', 'pointer')
-      .on('mouseover', function(event, d: any) {
-        d3.select(this).attr('opacity', 1);
-        tooltip.style('visibility', 'visible')
-          .html(`
-            <div style="font-weight: 600; margin-bottom: 4px;">${d.name}</div>
-            <div style="color: #6b7280;">Customer: ${d.customerName}</div>
-            <div style="color: #6b7280;">Manager: ${d.managerName}</div>
-            <div style="color: #6b7280;">Hours: ${d.totalActualHours}h</div>
-            <div style="color: #6b7280;">Team: ${d.employeeCount} members</div>
-            <div style="color: #6b7280;">Progress: ${d.progress}%</div>
-          `);
-      })
-      .on('mousemove', function(event) {
-        tooltip.style('top', (event.pageY - 10) + 'px')
-          .style('left', (event.pageX + 10) + 'px');
-      })
-      .on('mouseout', function() {
-        d3.select(this).attr('opacity', 0.8);
-        tooltip.style('visibility', 'hidden');
-      });
-
-    // Add labels for larger bubbles
-    bubbles.filter((d: any) => d.radius > 30)
-      .append('text')
-      .attr('text-anchor', 'middle')
-      .attr('dy', '0.3em')
-      .attr('fill', 'white')
-      .attr('font-size', '10px')
-      .attr('font-weight', '500')
-      .style('pointer-events', 'none')
-      .text((d: any) => d.name.length > 10 ? d.name.substring(0, 10) + '...' : d.name);
-
-    // Add legend
-    const legend = svg.append('g')
-      .attr('transform', `translate(${width - 120}, 20)`);
-
-    ['Active', 'Completed'].forEach((status, i) => {
-      const g = legend.append('g')
-        .attr('transform', `translate(0, ${i * 25})`);
-
-      g.append('circle')
-        .attr('r', 8)
-        .attr('fill', colorScale(status));
-
-      g.append('text')
-        .attr('x', 15)
-        .attr('y', 4)
-        .attr('font-size', '12px')
-        .attr('fill', '#374151')
-        .text(status);
-    });
-
-    // Cleanup tooltip on unmount
-    return () => {
-      d3.selectAll('.analytics-tooltip').remove();
-    };
-  }, [projectsData, activeTab]);
+  // Filter projects based on status
+  const filteredProjects = projectsData?.projects.filter(project => {
+    if (projectStatusFilter === 'all') return true;
+    return project.status === projectStatusFilter;
+  }) || [];
 
   // Export to PDF
   const exportToPDF = () => {
@@ -554,17 +423,6 @@ export default function AnalyticsPage() {
       {/* Projects Workload Tab */}
       {activeTab === 'projects' && (
         <div className="space-y-6">
-          {/* D3 Bubble Chart */}
-          <div className="card">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold">Projects Workload Visualization</h2>
-              <p className="text-sm text-gray-500 mt-1">Bubble size represents hours worked. Hover for details.</p>
-            </div>
-            <div ref={bubbleChartContainerRef} className="p-4">
-              <svg ref={bubbleChartRef} className="w-full" style={{ minHeight: '400px' }}></svg>
-            </div>
-          </div>
-
           {/* Comparison Data */}
           {showComparison && projectsData?.comparison && (
             <div className="card">
@@ -583,7 +441,7 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {projectsData.projects.map((project, idx) => {
+                    {filteredProjects.map((project, idx) => {
                       const prev = projectsData.comparison?.[idx];
                       const change = prev ? project.totalActualHours - prev.totalActualHours : 0;
                       const changeRounded = Math.round(change * 10) / 10;
@@ -615,10 +473,47 @@ export default function AnalyticsPage() {
 
           {/* Projects Table */}
           <div className="card">
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <h2 className="text-lg font-semibold">Projects Workload Details</h2>
+
+              {/* Status Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Filter:</span>
+                <div className="flex rounded-lg overflow-hidden border border-gray-200">
+                  <button
+                    onClick={() => setProjectStatusFilter('all')}
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                      projectStatusFilter === 'all'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setProjectStatusFilter('Active')}
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-200 ${
+                      projectStatusFilter === 'Active'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    Active
+                  </button>
+                  <button
+                    onClick={() => setProjectStatusFilter('Completed')}
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-200 ${
+                      projectStatusFilter === 'Completed'
+                        ? 'bg-gray-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    Completed
+                  </button>
+                </div>
+              </div>
             </div>
-          {projectsData && projectsData.projects.length > 0 ? (
+          {filteredProjects.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
@@ -636,7 +531,7 @@ export default function AnalyticsPage() {
                       Status
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Team
+                      Members
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Hours
@@ -647,7 +542,7 @@ export default function AnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {projectsData.projects.map((project) => (
+                  {filteredProjects.map((project) => (
                     <tr key={project.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{project.name}</div>
@@ -665,7 +560,14 @@ export default function AnalyticsPage() {
                           {project.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{project.employeeCount} members</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span>{project.employeeCount}</span>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-gray-600">{project.totalActualHours}h</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center">
@@ -684,7 +586,12 @@ export default function AnalyticsPage() {
               </table>
             </div>
           ) : (
-            <div className="p-6 text-center text-gray-500">No project data available</div>
+            <div className="p-6 text-center text-gray-500">
+              {projectsData && projectsData.projects.length > 0
+                ? `No ${projectStatusFilter.toLowerCase()} projects found`
+                : 'No project data available'
+              }
+            </div>
           )}
           </div>
         </div>

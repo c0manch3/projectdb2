@@ -1,6 +1,51 @@
 # ProjectDB - Progress Report
 
-## Session 30: 2026-01-10 - Feature #306: Analytics Employee Hours Modal
+## Session 30: 2026-01-10 - Features #306 & #307: Analytics Improvements
+
+### Summary
+Implemented two Analytics page features:
+1. Feature #306: Employee hours modal - shows detailed reports when clicking on an employee
+2. Feature #307: Project Workload improvements - removed bubble chart, added status filter, renamed Team to Members
+
+---
+
+## Feature #307: Analytics/Project Workload ✅
+
+**Requirements:**
+- Remove bubble chart (not needed)
+- Add Active/Completed filter for projects
+- Replace "Team" field with "Members" showing employee count from reports
+
+### Implementation Details
+
+#### Frontend Changes (AnalyticsPage.tsx)
+- Removed D3.js bubble chart completely (removed `useRef` for SVG, removed D3 useEffect block)
+- Removed `d3` import (chart no longer needed)
+- Added `projectStatusFilter` state: `'all' | 'Active' | 'Completed'`
+- Added `filteredProjects` computed value that filters based on selected status
+- Added filter button group in header with "All", "Active", "Completed" buttons
+- Renamed table column from "Team" to "Members"
+- Added people icon next to member count for better visual
+- Updated table to use `filteredProjects` instead of raw `projectsData.projects`
+- Added empty state message when filter returns no results
+
+### Verification
+- ✅ Bubble chart removed - no longer visible on page
+- ✅ Status filter shows: "All", "Active", "Completed" buttons
+- ✅ "All" button highlighted blue when selected
+- ✅ "Active" button highlighted green when selected
+- ✅ "Completed" button highlighted gray when selected
+- ✅ Filtering works correctly - only shows projects with selected status
+- ✅ Column renamed from "Team" to "Members"
+- ✅ Member count shows with people icon
+- ✅ No console errors
+
+### Screenshots
+- feature-307-analytics-project-workload.png - Project Workload with Completed filter active
+
+---
+
+## Session 30 (continued): Feature #306: Analytics Employee Hours Modal
 
 ### Summary
 Implemented Feature #306: When clicking on an employee in Analytics → Employee Hours tab, a modal opens showing all their reports for the selected period.
@@ -47,7 +92,7 @@ Implemented Feature #306: When clicking on an employee in Analytics → Employee
 ### Git Commit
 - (pending commit)
 
-### Status: 305/311 features passing (98.1%)
+### Status: 306/313 features passing (97.8%)
 
 ### Notes
 - API endpoint `/workload-actual?userId=xxx&startDate=xxx&endDate=xxx` provides all needed data
