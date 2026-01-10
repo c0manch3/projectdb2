@@ -1,3 +1,46 @@
+## Session 35: 2026-01-10 - Regression Testing
+
+### Summary
+Performed regression testing on 2 randomly selected passing features. Both tests passed successfully with no regressions found.
+
+### Regression Testing: 2/2 PASSED ✅
+
+#### Feature #51: C6: Deleted project removed from dropdowns ✅
+- Created test project "DROPDOWN_TEST_REGRESSION"
+- Project created successfully with all required fields
+- Deleted project via confirmation dialog
+- Toast: "Project deleted successfully"
+- Navigated to Workload page and opened project dropdown
+- Verified "DROPDOWN_TEST_REGRESSION" NOT in dropdown list
+- Project count updated correctly (30 → 29 active projects)
+- Cascade delete working correctly
+
+#### Feature #81: D6: Company Update workflow complete ✅
+- Opened "Test Customer LLC" company details
+- Clicked Edit button to open edit form
+- Modified Phone from "+1-555-0100" to "+1-555-9999"
+- Modified Postal Code from empty to "12345-TEST"
+- Clicked "Save Changes"
+- Toast: "Company updated successfully"
+- Reopened company details to verify persistence
+- Phone shows "+1-555-9999" (updated correctly)
+- Postal Code shows "12345-TEST" (persisted correctly)
+- All form fields save and persist correctly
+
+### Console Errors
+- No JavaScript errors during testing
+
+### Status: 314/317 features passing (99.1%)
+
+### Notes
+- No regressions found during testing
+- Application stable and production-ready
+- All CRUD operations working correctly
+- Form validation and persistence working as expected
+- Ready to continue with Feature #316 (Internationalization)
+
+---
+
 ## Session 34: 2026-01-10 - Regression Testing
 
 ### Summary
