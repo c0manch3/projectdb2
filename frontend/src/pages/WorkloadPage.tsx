@@ -106,6 +106,10 @@ export default function WorkloadPage() {
   const [newPlanProject, setNewPlanProject] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Modal to show employees with work on a specific date (All Employees mode)
+  const [showDateEmployeesModal, setShowDateEmployeesModal] = useState(false);
+  const [dateEmployeesModalDate, setDateEmployeesModalDate] = useState<string>('');
+
   // Edit workload modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState<WorkloadPlanEntry | null>(null);
@@ -309,6 +313,11 @@ export default function WorkloadPage() {
   }, [currentWeekStart]);
 
   const handleOpenAddModal = (date: string) => {
+    // Check if date is in the past - cannot add work for past dates
+    if (isPastDateString(date)) {
+      toast.error('Cannot add workload for past dates');
+      return;
+    }
     setSelectedDate(date);
     setNewPlanEmployee('');
     setNewPlanProject('');
@@ -491,6 +500,43 @@ export default function WorkloadPage() {
     const today = new Date();
     return date.toDateString() === today.toDateString();
   };
+
+  // Check if date is in the past (before today)
+  const isPastDate = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    return compareDate < today;
+  };
+
+  // Check if date string is in the past
+  const isPastDateString = (dateStr: string) => {
+    return isPastDate(new Date(dateStr));
+  };
+
+  // Open modal to show employees with work on a specific date (All Employees mode)
+  const handleOpenDateEmployeesModal = (date: string) => {
+    setDateEmployeesModalDate(date);
+    setShowDateEmployeesModal(true);
+  };
+
+  // Get employees with work assigned for a specific date
+  const getEmployeesForDate = (dateKey: string) => {
+    return calendarData[dateKey] || [];
+  };
+
+  // Get employees who are busy on a specific date (have work assigned)
+  const getBusyEmployeeIdsForDate = useCallback((dateKey: string) => {
+    const plans = calendarData[dateKey] || [];
+    return plans.map(plan => plan.user.id);
+  }, [calendarData]);
+
+  // Get available employees (not busy) for a specific date
+  const getAvailableEmployeesForDate = useCallback((dateKey: string) => {
+    const busyIds = getBusyEmployeeIdsForDate(dateKey);
+    return employees.filter(emp => !busyIds.includes(emp.id));
+  }, [employees, getBusyEmployeeIdsForDate]);
 
   // Export workload data to CSV
   const handleExportWorkload = () => {
@@ -718,6 +764,8 @@ export default function WorkloadPage() {
                 const dateKey = formatDateKey(currentDay);
                 const dayPlans = calendarData[dateKey] || [];
                 const dayIsToday = isToday(currentDay);
+                const dayIsPast = isPastDate(currentDay);
+                const isAllEmployeesMode = !selectedEmployee;
 
                 return (
                   <div className={`p-4 border rounded-lg ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}>
@@ -725,7 +773,7 @@ export default function WorkloadPage() {
                       <span className={`text-xl font-semibold ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
                         {currentDay.getDate()}
                       </span>
-                      {isManager && (
+                      {isManager && !dayIsPast && (
                         <button
                           onClick={() => handleOpenAddModal(dateKey)}
                           className="btn-primary text-sm"
@@ -742,13 +790,19 @@ export default function WorkloadPage() {
                         {dayPlans.map((plan) => (
                           <div
                             key={plan.id}
-                            className={`bg-primary-100 text-primary-800 p-4 rounded-lg group relative ${isManager ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={isManager ? 'Click to edit' : undefined}
-                            onClick={() => isManager && handleOpenEditModal(plan, dateKey)}
+                            className={`bg-primary-100 text-primary-800 p-4 rounded-lg group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={isManager && !isAllEmployeesMode ? 'Click to edit' : undefined}
+                            onClick={() => {
+                              if (isManager && !isAllEmployeesMode) {
+                                handleOpenEditModal(plan, dateKey);
+                              } else if (isAllEmployeesMode && dayPlans.length > 0) {
+                                handleOpenDateEmployeesModal(dateKey);
+                              }
+                            }}
                           >
                             <div className="font-medium text-lg">{plan.user.firstName} {plan.user.lastName}</div>
                             <div className="text-primary-600">{plan.project.name}</div>
-                            {isManager && (
+                            {isManager && !isAllEmployeesMode && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -765,6 +819,14 @@ export default function WorkloadPage() {
                           </div>
                         ))}
                       </div>
+                    )}
+                    {isAllEmployeesMode && dayPlans.length > 0 && (
+                      <button
+                        onClick={() => handleOpenDateEmployeesModal(dateKey)}
+                        className="mt-4 w-full text-center text-primary-600 hover:text-primary-800 text-sm font-medium py-2 border border-primary-200 rounded-lg hover:bg-primary-50"
+                      >
+                        View all {dayPlans.length} employee(s) assigned
+                      </button>
                     )}
                   </div>
                 );
@@ -787,19 +849,39 @@ export default function WorkloadPage() {
                   const dateKey = formatDateKey(day);
                   const dayPlans = calendarData[dateKey] || [];
                   const dayIsToday = isToday(day);
+                  const dayIsPast = isPastDate(day);
+                  const isAllEmployeesMode = !selectedEmployee;
 
                   return (
                     <div
                       key={index}
-                      className={`min-h-32 p-2 border rounded-lg bg-white ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
+                      className={`min-h-32 p-2 border rounded-lg bg-white ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
+                        isAllEmployeesMode && dayPlans.length > 0 ? 'cursor-pointer hover:bg-gray-50' : ''
+                      }`}
+                      onClick={(e) => {
+                        if (isAllEmployeesMode && dayPlans.length > 0 && e.target === e.currentTarget) {
+                          handleOpenDateEmployeesModal(dateKey);
+                        }
+                      }}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`text-sm font-medium ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
+                        <span
+                          className={`text-sm font-medium ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isAllEmployeesMode && dayPlans.length > 0) {
+                              handleOpenDateEmployeesModal(dateKey);
+                            }
+                          }}
+                        >
                           {day.getDate()}
                         </span>
-                        {isManager && (
+                        {isManager && !dayIsPast && (
                           <button
-                            onClick={() => handleOpenAddModal(dateKey)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAddModal(dateKey);
+                            }}
                             className="text-primary-600 hover:text-primary-800 p-1"
                             aria-label={`Add workload for ${dateKey}`}
                           >
@@ -809,13 +891,28 @@ export default function WorkloadPage() {
                           </button>
                         )}
                       </div>
-                      <div className="space-y-1">
+                      <div
+                        className="space-y-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isAllEmployeesMode && dayPlans.length > 0) {
+                            handleOpenDateEmployeesModal(dateKey);
+                          }
+                        }}
+                      >
                         {dayPlans.map((plan) => (
                           <div
                             key={plan.id}
-                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager ? ' (Click to edit)' : ''}`}
-                            onClick={() => isManager && handleOpenEditModal(plan, dateKey)}
+                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode ? ' (Click to edit)' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isManager && !isAllEmployeesMode) {
+                                handleOpenEditModal(plan, dateKey);
+                              } else if (isAllEmployeesMode && dayPlans.length > 0) {
+                                handleOpenDateEmployeesModal(dateKey);
+                              }
+                            }}
                           >
                             <span className="font-medium">{plan.user.firstName}</span>
                             <span className="text-primary-600"> - {plan.project.name}</span>
@@ -844,25 +941,45 @@ export default function WorkloadPage() {
                   const dateKey = formatDateKey(day.date);
                   const dayPlans = calendarData[dateKey] || [];
                   const dayIsToday = isToday(day.date);
+                  const dayIsPast = isPastDate(day.date);
+                  const isAllEmployeesMode = !selectedEmployee;
 
                   return (
                     <div
                       key={index}
                       className={`min-h-24 p-2 border rounded-lg ${
                         day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
-                      } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
+                      } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
+                        isAllEmployeesMode && dayPlans.length > 0 && day.isCurrentMonth ? 'cursor-pointer hover:bg-gray-50' : ''
+                      }`}
+                      onClick={(e) => {
+                        // Only open modal if clicking on the cell itself (not on + button or plan items) and in All Employees mode
+                        if (isAllEmployeesMode && dayPlans.length > 0 && day.isCurrentMonth && e.target === e.currentTarget) {
+                          handleOpenDateEmployeesModal(dateKey);
+                        }
+                      }}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span
                           className={`text-sm font-medium ${
                             day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
                           } ${dayIsToday ? 'text-primary-600' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Clicking on date number also opens modal in All Employees mode
+                            if (isAllEmployeesMode && dayPlans.length > 0 && day.isCurrentMonth) {
+                              handleOpenDateEmployeesModal(dateKey);
+                            }
+                          }}
                         >
                           {day.date.getDate()}
                         </span>
-                        {isManager && day.isCurrentMonth && (
+                        {isManager && day.isCurrentMonth && !dayIsPast && (
                           <button
-                            onClick={() => handleOpenAddModal(dateKey)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAddModal(dateKey);
+                            }}
                             className="text-primary-600 hover:text-primary-800 p-1"
                             aria-label={`Add workload for ${dateKey}`}
                           >
@@ -872,17 +989,33 @@ export default function WorkloadPage() {
                           </button>
                         )}
                       </div>
-                      <div className="space-y-1">
+                      <div
+                        className="space-y-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Clicking on plans area also opens modal in All Employees mode
+                          if (isAllEmployeesMode && dayPlans.length > 0 && day.isCurrentMonth) {
+                            handleOpenDateEmployeesModal(dateKey);
+                          }
+                        }}
+                      >
                         {dayPlans.map((plan) => (
                           <div
                             key={plan.id}
-                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager ? ' (Click to edit)' : ''}`}
-                            onClick={() => isManager && handleOpenEditModal(plan, dateKey)}
+                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode ? ' (Click to edit)' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isManager && !isAllEmployeesMode) {
+                                handleOpenEditModal(plan, dateKey);
+                              } else if (isAllEmployeesMode && dayPlans.length > 0) {
+                                handleOpenDateEmployeesModal(dateKey);
+                              }
+                            }}
                           >
                             <span className="font-medium">{plan.user.firstName}</span>
                             <span className="text-primary-600"> - {plan.project.name}</span>
-                            {isManager && (
+                            {isManager && !isAllEmployeesMode && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1203,12 +1336,17 @@ export default function WorkloadPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">Select Employee</option>
-                  {employees.map((employee) => (
+                  {getAvailableEmployeesForDate(selectedDate).map((employee) => (
                     <option key={employee.id} value={employee.id}>
                       {employee.firstName} {employee.lastName}
                     </option>
                   ))}
                 </select>
+                {getAvailableEmployeesForDate(selectedDate).length === 0 && (
+                  <p className="text-sm text-amber-600 mt-1">
+                    All employees are already assigned work for this date
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1453,6 +1591,93 @@ export default function WorkloadPage() {
                 className="btn-primary"
               >
                 {isSubmitting ? 'Saving...' : 'Log Hours'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Date Employees Modal - shows all employees with work assigned on a specific date */}
+      {showDateEmployeesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">
+                Work Assignments for {new Date(dateEmployeesModalDate).toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </h2>
+              <button
+                onClick={() => setShowDateEmployeesModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              {getEmployeesForDate(dateEmployeesModalDate).length === 0 ? (
+                <div className="text-gray-500 text-center py-8">
+                  No employees assigned for this date
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {getEmployeesForDate(dateEmployeesModalDate).map((plan) => (
+                    <div
+                      key={plan.id}
+                      className="bg-primary-50 border border-primary-200 rounded-lg p-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {plan.user.firstName} {plan.user.lastName}
+                          </div>
+                          <div className="text-sm text-primary-600">
+                            {plan.project.name}
+                          </div>
+                        </div>
+                        {isManager && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setShowDateEmployeesModal(false);
+                                handleOpenEditModal(plan, dateEmployeesModalDate);
+                              }}
+                              className="text-primary-600 hover:text-primary-800 p-2"
+                              title="Edit"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleDeleteWorkloadPlan(plan.id);
+                                setShowDateEmployeesModal(false);
+                              }}
+                              className="text-red-600 hover:text-red-800 p-2"
+                              title="Delete"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-between items-center p-4 border-t">
+              <div className="text-sm text-gray-500">
+                {getEmployeesForDate(dateEmployeesModalDate).length} employee(s) assigned
+              </div>
+              <button
+                onClick={() => setShowDateEmployeesModal(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                Close
               </button>
             </div>
           </div>
