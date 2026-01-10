@@ -1,5 +1,56 @@
 # ProjectDB - Progress Report
 
+## Session 27: 2026-01-10 - Regression Testing Verification
+
+### Summary
+Performed regression testing on 3 randomly selected passing features to verify the application continues to work correctly. All tests passed successfully.
+
+### Regression Tests Performed
+
+#### 1. Feature #148: H8: Sharing filtered URL preserves filters ✅
+- Set status filter to "Active" on Projects page
+- URL updated to: /projects?status=Active&page=1
+- Navigated away to Companies page
+- Navigated back using filtered URL directly
+- Verified "Active" filter pre-selected in dropdown
+- Showing 29 projects (Active only) instead of 39 total
+- Pagination correctly shows "Page 1 of 3" (filtered)
+
+#### 2. Feature #253: S4: Export preserves data integrity ✅
+- Navigated to Analytics page
+- Verified summary stats: 39 Total Projects, 29 Active, 23 Employees, 4129.4h Hours
+- Clicked "Export PDF" button
+- PDF file downloaded: analytics-report-2025-12-31-to-2026-01-30.pdf
+- Toast message: "PDF report exported successfully"
+- D3 bubble chart rendered correctly with project workload visualization
+
+#### 3. Feature #282: Calendar swipe navigation mobile ✅
+- Set viewport to 375x667 (mobile)
+- Navigated to Workload page via bottom navigation
+- Day view displayed: "суббота, 10 января 2026 г." (Saturday, Jan 10, 2026)
+- Clicked Previous day → moved to "пятница, 9 января 2026 г." (Friday, Jan 9)
+- Clicked Previous day → moved to "четверг, 8 января 2026 г." (Thursday, Jan 8)
+- Clicked Next day → moved back correctly
+- Hint text "Swipe or tap arrows to navigate days" displayed
+
+### Console Errors
+- No JavaScript errors during testing
+
+### Screenshots
+- regression-test-session-27.png - Mobile workload calendar with day navigation
+
+### Status: 302/302 features passing (100.0%) ✅
+
+### Notes
+- Application is production-ready
+- URL filter preservation working correctly for shareable links
+- PDF export with jsPDF functioning properly
+- Mobile calendar day navigation working correctly
+- Real Supabase database connected with production data
+- No regressions found
+
+---
+
 ## Session 26: 2026-01-10 - Regression Testing Verification
 
 ### Summary
