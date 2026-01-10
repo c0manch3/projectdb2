@@ -1,0 +1,77 @@
+{
+  "common": {
+    "loading": "Загрузка...",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "add": "Добавить",
+    "search": "Поиск",
+    "filter": "Фильтр",
+    "actions": "Действия",
+    "yes": "Да",
+    "no": "Нет",
+    "confirm": "Подтвердить",
+    "back": "Назад",
+    "next": "Далее",
+    "close": "Закрыть"
+  },
+  "auth": {
+    "login": "Вход",
+    "logout": "Выход",
+    "email": "Email",
+    "password": "Пароль",
+    "loginTitle": "Вход в систему",
+    "loginButton": "Войти",
+    "invalidCredentials": "Неверный email или пароль"
+  },
+  "navigation": {
+    "projects": "Проекты",
+    "employees": "Сотрудники",
+    "companies": "Компании",
+    "workload": "Нагрузка",
+    "analytics": "Аналитика",
+    "profile": "Профиль"
+  },
+  "projects": {
+    "title": "Проекты",
+    "newProject": "Новый проект",
+    "projectName": "Название проекта",
+    "customer": "Заказчик",
+    "manager": "Менеджер",
+    "status": "Статус",
+    "active": "Активный",
+    "completed": "Завершён"
+  },
+  "employees": {
+    "title": "Сотрудники",
+    "newEmployee": "Новый сотрудник",
+    "name": "Имя",
+    "email": "Email",
+    "phone": "Телефон",
+    "role": "Роль",
+    "salary": "Зарплата"
+  },
+  "companies": {
+    "title": "Компании",
+    "newCompany": "Новая компания",
+    "companyName": "Название компании",
+    "type": "Тип",
+    "customer": "Заказчик",
+    "contractor": "Подрядчик"
+  },
+  "workload": {
+    "title": "Нагрузка",
+    "planned": "Планируемая",
+    "actual": "Фактическая",
+    "hours": "Часы",
+    "employee": "Сотрудник",
+    "date": "Дата"
+  },
+  "analytics": {
+    "title": "Аналитика",
+    "projectWorkload": "Нагрузка по проектам",
+    "employeeHours": "Часы сотрудников",
+    "exportPdf": "Экспорт PDF"
+  }
+}

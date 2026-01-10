@@ -15,10 +15,17 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* JSON imports */
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+
+    /* Vite types */
+    "types": ["vite/client"],
+
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 

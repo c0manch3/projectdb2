@@ -1,0 +1,77 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "actions": "Actions",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "loginTitle": "Sign In",
+    "loginButton": "Sign In",
+    "invalidCredentials": "Invalid email or password"
+  },
+  "navigation": {
+    "projects": "Projects",
+    "employees": "Employees",
+    "companies": "Companies",
+    "workload": "Workload",
+    "analytics": "Analytics",
+    "profile": "Profile"
+  },
+  "projects": {
+    "title": "Projects",
+    "newProject": "New Project",
+    "projectName": "Project Name",
+    "customer": "Customer",
+    "manager": "Manager",
+    "status": "Status",
+    "active": "Active",
+    "completed": "Completed"
+  },
+  "employees": {
+    "title": "Employees",
+    "newEmployee": "New Employee",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "salary": "Salary"
+  },
+  "companies": {
+    "title": "Companies",
+    "newCompany": "New Company",
+    "companyName": "Company Name",
+    "type": "Type",
+    "customer": "Customer",
+    "contractor": "Contractor"
+  },
+  "workload": {
+    "title": "Workload",
+    "planned": "Planned",
+    "actual": "Actual",
+    "hours": "Hours",
+    "employee": "Employee",
+    "date": "Date"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "projectWorkload": "Project Workload",
+    "employeeHours": "Employee Hours",
+    "exportPdf": "Export PDF"
+  }
+}
