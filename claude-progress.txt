@@ -1,5 +1,59 @@
 # ProjectDB - Progress Report
 
+## Session 29: 2026-01-10 - Feature #304: Workload Main Page Enhancements
+
+### Summary
+Implemented Feature #304: Workload enhancements on the main page with date validation, employee assignment modal, and busy employee filtering.
+
+### Feature #304: Workload на осныной странице ✅
+
+**Requirements:**
+1. Can only add work for current or future dates
+2. In "All Employees" mode, clicking on a cell shows list of employees with work assigned for that day
+3. Cannot assign work to an employee who is already busy on that day
+4. Only project manager can assign work to a specific project
+5. In single employee mode, calendar shows all work for that employee
+
+### Implementation Details
+
+#### Frontend Changes (WorkloadPage.tsx)
+- Added `isPastDate()` and `isPastDateString()` helper functions for date validation
+- Added `showDateEmployeesModal` and `dateEmployeesModalDate` state for employee list modal
+- Added `handleOpenDateEmployeesModal()` function to open the modal
+- Added `getEmployeesForDate()`, `getBusyEmployeeIdsForDate()`, `getAvailableEmployeesForDate()` helper functions
+- Updated `handleOpenAddModal()` to check for past dates and show error toast
+- Updated Day, Week, and Month views to:
+  - Hide "+" button for past dates
+  - Make cells clickable in "All Employees" mode to open employee list modal
+  - Filter out busy employees from assignment dropdown
+- Added "Date Employees Modal" showing:
+  - Title with full date
+  - List of employees with work assigned (name + project)
+  - Edit/Delete buttons for managers
+  - Employee count footer
+
+### Verification
+- ✅ Past dates (Jan 1-9) don't show "+" button
+- ✅ Today (Jan 10) and future dates have "+" button
+- ✅ Added workload for Employee User on Jan 10 → success toast
+- ✅ Clicked on cell with workload → "Work Assignments" modal opened
+- ✅ Modal shows employee name, project name, edit/delete buttons
+- ✅ Opening Add modal for same date shows Employee User NOT in dropdown (busy)
+- ✅ Deleted test workload → success toast
+- ✅ No console errors
+
+### Git Commit
+- df37145: Implement Workload main page enhancements (Feature #304)
+
+### Status: 304/306 features passing (99.3%)
+
+### Notes
+- 2 new features were added to the queue (306 total now)
+- All date validation, modal, and filtering functionality working correctly
+- Feature allows managers to efficiently see who is assigned on any given day
+
+---
+
 ## Session 28: 2026-01-10 - Feature #303: Workload Tab on Project Page 🎉 100% COMPLETE!
 
 ### Summary
