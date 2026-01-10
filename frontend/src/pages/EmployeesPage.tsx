@@ -11,6 +11,8 @@ interface Employee {
   phone: string;
   role: string;
   salary?: number;
+  telegramId?: string;
+  dateBirth?: string;
 }
 
 interface NewEmployeeForm {
@@ -29,6 +31,8 @@ interface EditEmployeeForm {
   phone: string;
   role: 'Admin' | 'Manager' | 'Employee' | 'Trial';
   salary: string;
+  telegramId: string;
+  dateBirth: string;
 }
 
 export default function EmployeesPage() {
@@ -56,6 +60,8 @@ export default function EmployeesPage() {
     phone: '',
     role: 'Employee',
     salary: '',
+    telegramId: '',
+    dateBirth: '',
   });
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -218,6 +224,8 @@ export default function EmployeesPage() {
         salary: selectedEmployee.salary !== undefined && selectedEmployee.salary !== null
           ? String(selectedEmployee.salary)
           : '',
+        telegramId: selectedEmployee.telegramId || '',
+        dateBirth: selectedEmployee.dateBirth ? selectedEmployee.dateBirth.split('T')[0] : '',
       });
       setShowDetailModal(false);
       setShowEditModal(true);
@@ -232,6 +240,8 @@ export default function EmployeesPage() {
       phone: '',
       role: 'Employee',
       salary: '',
+      telegramId: '',
+      dateBirth: '',
     });
   };
 
@@ -249,6 +259,8 @@ export default function EmployeesPage() {
         phone: editEmployee.phone || undefined,
         role: editEmployee.role,
         salary: editEmployee.salary ? parseFloat(editEmployee.salary) : undefined,
+        telegramId: editEmployee.telegramId || undefined,
+        dateBirth: editEmployee.dateBirth ? new Date(editEmployee.dateBirth) : undefined,
       });
       toast.success('Employee updated successfully');
       fetchEmployees();
@@ -385,6 +397,18 @@ export default function EmployeesPage() {
                   <div className="flex justify-between">
                     <dt className="text-gray-500">Salary</dt>
                     <dd className="text-gray-900">{selectedEmployee.salary.toFixed(2)}</dd>
+                  </div>
+                )}
+                {selectedEmployee.telegramId && (
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500">Telegram ID</dt>
+                    <dd className="text-gray-900">{selectedEmployee.telegramId}</dd>
+                  </div>
+                )}
+                {selectedEmployee.dateBirth && (
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500">Birth Date</dt>
+                    <dd className="text-gray-900">{new Date(selectedEmployee.dateBirth).toLocaleDateString()}</dd>
                   </div>
                 )}
               </dl>
@@ -591,6 +615,25 @@ export default function EmployeesPage() {
                   value={editEmployee.salary}
                   onChange={(e) => setEditEmployee({ ...editEmployee, salary: e.target.value })}
                   placeholder="Enter salary"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Telegram ID</label>
+                <input
+                  type="text"
+                  value={editEmployee.telegramId}
+                  onChange={(e) => setEditEmployee({ ...editEmployee, telegramId: e.target.value })}
+                  placeholder="@username or ID"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
+                <input
+                  type="date"
+                  value={editEmployee.dateBirth}
+                  onChange={(e) => setEditEmployee({ ...editEmployee, dateBirth: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>

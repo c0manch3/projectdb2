@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { logout } from '@/store/slices/authSlice';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChangesWarning';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,10 +22,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { attemptNavigation } = useUnsavedChanges();
 
   const handleLogout = () => {
     dispatch(logout());
     navigate('/login');
+  };
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (!attemptNavigation(href)) {
+      e.preventDefault();
+    } else {
+      onClose();
+    }
   };
 
   const filteredNavigation = navigation.filter(
@@ -41,9 +51,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - z-[55] to be above modal overlays (z-50) but below unsaved changes dialog (z-[60]) */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-[55] w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -59,7 +69,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <NavLink
                 key={item.name}
                 to={item.href}
-                onClick={onClose}
+                onClick={(e) => handleNavClick(e, item.href)}
                 className={({ isActive }) =>
                   `flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     isActive
@@ -91,7 +101,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             {user && (
               <NavLink
                 to="/profile"
-                onClick={onClose}
+                onClick={(e) => handleNavClick(e, '/profile')}
                 className="flex items-center mb-4 hover:bg-gray-100 rounded-lg p-2 -mx-2 transition-colors"
               >
                 <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">

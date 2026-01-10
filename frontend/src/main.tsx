@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { store } from './store';
+import { UnsavedChangesProvider } from './hooks/useUnsavedChangesWarning';
 import './styles/index.css';
 
 const queryClient = new QueryClient({
@@ -24,8 +25,9 @@ createRoot(document.getElementById('root')!).render(
       <Provider store={store}>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
-            <App />
-            <Toaster
+            <UnsavedChangesProvider>
+              <App />
+              <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
@@ -47,6 +49,7 @@ createRoot(document.getElementById('root')!).render(
               },
             }}
             />
+            </UnsavedChangesProvider>
           </BrowserRouter>
         </QueryClientProvider>
       </Provider>

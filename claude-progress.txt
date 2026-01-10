@@ -1,5 +1,51 @@
 # ProjectDB - Progress Report
 
+## Session 17: 2026-01-10 - Regression Testing Verification
+
+### Summary
+Performed regression testing on 3 randomly selected passing features to verify the application is still working correctly after Supabase migration.
+
+### Regression Tests Performed
+
+#### 1. Feature N10: Success messages are specific ✅
+- Created test project "REGRESSION_TEST_PROJECT_001"
+- Verified toast shows "Project created successfully" (not generic "Success")
+- Specific success message confirms feature working
+
+#### 2. Feature M15: Form shows all errors at once ✅
+- Submitted empty Add Project form
+- Verified all 5 validation errors displayed simultaneously:
+  - "Project name is required"
+  - "Please select a customer"
+  - "Please select a manager"
+  - "Contract date is required"
+  - "Expiration date is required"
+- Form correctly shows all errors, not just the first one
+
+#### 3. Feature Q6: This Week filter works ✅
+- Navigated to Workload page
+- Clicked "Week" button to apply This Week filter
+- Calendar switched to week view showing "4 янв. - 10 янв. 2026 г."
+- Correct 7 days displayed (Sunday to Saturday of current week)
+
+### Cleanup
+- Deleted test project "REGRESSION_TEST_PROJECT_001"
+- Verified project removed from list
+- Delete success toast: "Project deleted successfully"
+
+### Console Errors
+- No console errors found during testing
+
+### Status: 301/301 features passing (100.0%) ✅
+
+### Notes
+- Application is production-ready
+- All core functionality verified working after Supabase migration
+- No regressions found
+- Real Supabase database connected with production data
+
+---
+
 ## Session 16: 2026-01-10 - PostgreSQL Supabase Database Connection
 
 ### Summary

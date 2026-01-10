@@ -11,6 +11,7 @@ interface Company {
   phone?: string;
   email?: string;
   contactPerson?: string;
+  postalCode?: string;
   createdAt: string;
 }
 
@@ -21,6 +22,7 @@ interface NewCompanyForm {
   phone: string;
   email: string;
   contactPerson: string;
+  postalCode: string;
 }
 
 export default function CompaniesPage() {
@@ -41,6 +43,7 @@ export default function CompaniesPage() {
     phone: '',
     email: '',
     contactPerson: '',
+    postalCode: '',
   });
   const [editCompany, setEditCompany] = useState<NewCompanyForm>({
     name: '',
@@ -49,6 +52,7 @@ export default function CompaniesPage() {
     phone: '',
     email: '',
     contactPerson: '',
+    postalCode: '',
   });
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -97,6 +101,7 @@ export default function CompaniesPage() {
       phone: '',
       email: '',
       contactPerson: '',
+      postalCode: '',
     });
     setShowAddModal(true);
   };
@@ -110,6 +115,7 @@ export default function CompaniesPage() {
       phone: '',
       email: '',
       contactPerson: '',
+      postalCode: '',
     });
   };
 
@@ -147,6 +153,7 @@ export default function CompaniesPage() {
         phone: selectedCompany.phone || '',
         email: selectedCompany.email || '',
         contactPerson: selectedCompany.contactPerson || '',
+        postalCode: selectedCompany.postalCode || '',
       });
       setShowDetailModal(false);
       setShowEditModal(true);
@@ -162,6 +169,7 @@ export default function CompaniesPage() {
       phone: '',
       email: '',
       contactPerson: '',
+      postalCode: '',
     });
   };
 
@@ -179,6 +187,7 @@ export default function CompaniesPage() {
         address: editCompany.address || undefined,
         phone: editCompany.phone || undefined,
         email: editCompany.email || undefined,
+        postalCode: editCompany.postalCode || undefined,
       });
       toast.success('Company updated successfully');
       fetchCompanies();
@@ -325,6 +334,12 @@ export default function CompaniesPage() {
                   <div className="flex justify-between">
                     <dt className="text-gray-500">Address</dt>
                     <dd className="text-gray-900">{selectedCompany.address}</dd>
+                  </div>
+                )}
+                {selectedCompany.postalCode && (
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500">Postal Code</dt>
+                    <dd className="text-gray-900">{selectedCompany.postalCode}</dd>
                   </div>
                 )}
               </dl>
@@ -500,6 +515,16 @@ export default function CompaniesPage() {
                   value={editCompany.address}
                   onChange={(e) => setEditCompany({ ...editCompany, address: e.target.value })}
                   placeholder="Enter address"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                <input
+                  type="text"
+                  value={editCompany.postalCode}
+                  onChange={(e) => setEditCompany({ ...editCompany, postalCode: e.target.value })}
+                  placeholder="Enter postal code"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
