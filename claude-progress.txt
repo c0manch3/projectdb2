@@ -1733,3 +1733,38 @@ Set up the foundation for ProjectDB application.
 - NEVER remove or edit existing features - only mark as passing
 - Follow mobile-first approach from app_spec.txt
 - All data must be real (from database), NO mock data
+
+
+---
+
+## Session 32: 2026-01-10 - Regression Testing & Feature #315 Investigation
+
+### Summary
+Completed regression testing on 2 passing features. Both passed successfully with no regressions found. Began investigation of Feature #315 (green calendar cells for workload).
+
+### Regression Testing Results
+
+#### Feature #78: Project Update workflow ✅
+- Verified complete CRUD workflow: open modal, edit data, save, verify changes
+- Changed project name and status, confirmed in UI
+- Reverted changes back to original state
+- No issues found
+
+#### Feature #276: Overdue payment visual indicator ✅
+- Created payment with yesterday's date
+- Verified red background and 'Overdue' badge displayed
+- Marked as paid, verified indicator removed
+- Cleaned up test payment
+- No issues found
+
+### Feature #315: Workload Green Cells (In Progress)
+**Requirement:** Mark calendar cells green if employee has plan OR actual hours for that date.
+
+**Investigation:**
+- Located: frontend/src/pages/WorkloadPage.tsx (1827 lines)
+- Plan tab currently shows blue indicators for plans only
+- Need to add green background when data exists (plan OR actual)
+- Ready for implementation in next session
+
+### Status: 313/317 features passing (98.7%)
+
