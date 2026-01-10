@@ -1,5 +1,57 @@
 # ProjectDB - Progress Report
 
+## Session 18: 2026-01-10 - Bug Fix: ProjectDetailPage Null Pointer Crash
+
+### Summary
+Performed regression testing and discovered a critical bug in the ProjectDetailPage component. The page crashed with "Cannot read properties of null (reading 'name')" when navigating to project details where the customer or manager was null.
+
+### Bug Found and Fixed
+**Issue:** ProjectDetailPage crashed when `customer` or `manager` was null
+**Root Cause:** The interface defined `customer` and `manager` as required objects, but the Supabase database contains projects with null values for these fields
+**Fix Applied:**
+- Updated Project interface to allow `customer: {...} | null` and `manager: {...} | null`
+- Added optional chaining (`?.`) for safe property access in the template
+- Display "N/A" as fallback when customer or manager data is missing
+
+### Regression Tests Performed
+
+#### 1. Feature F1: Project list loads from API ✅
+- Navigated to /projects
+- Network requests show GET /api/project => 200 OK
+- Real Supabase data displayed (Russian project names)
+- 40+ projects visible with pagination
+
+#### 2. Feature O8: Tables scroll horizontally on mobile ✅
+- Resized viewport to 375x667 (mobile)
+- Employees table displays with all columns
+- Horizontal scroll available to access all column data
+- Touch-friendly layout with bottom navigation
+
+#### 3. Project Detail Page (after fix) ✅
+- Navigated to project detail page
+- Page loads correctly without crashing
+- Customer shows "N/A" when null
+- Manager displays correctly when present
+- All tabs (Overview, Constructions, Documents, Team, Payments) accessible
+
+### Console Errors
+- No console errors after fix
+
+### Files Modified
+- frontend/src/pages/ProjectDetailPage.tsx - Added null checks for customer/manager
+
+### Git Commit
+- ed41de3: Fix null pointer crash on ProjectDetailPage when customer/manager is null
+
+### Status: 301/301 features passing (100.0%) ✅
+
+### Notes
+- Critical regression fixed before it could impact production
+- Application remains production-ready
+- Database schema allows null customer/manager, frontend now handles this gracefully
+
+---
+
 ## Session 17: 2026-01-10 - Regression Testing Verification
 
 ### Summary
