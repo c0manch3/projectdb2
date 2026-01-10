@@ -80,8 +80,10 @@ export default function WorkloadPage() {
   const [calendarData, setCalendarData] = useState<CalendarData>({});
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Responsive view mode
-  const viewMode = useResponsiveView();
+  // Responsive view mode with manual override
+  const responsiveViewMode = useResponsiveView();
+  const [manualViewMode, setManualViewMode] = useState<'day' | 'week' | 'month' | null>(null);
+  const viewMode = manualViewMode || responsiveViewMode;
   const [currentDay, setCurrentDay] = useState(new Date());
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = new Date();
@@ -242,6 +244,23 @@ export default function WorkloadPage() {
     weekStart.setDate(today.getDate() - dayOfWeek);
     setCurrentWeekStart(weekStart);
   };
+
+  // Go to this week and switch to week view
+  const goToThisWeek = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - dayOfWeek);
+    setCurrentWeekStart(weekStart);
+    setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+    setCurrentDay(today);
+    setManualViewMode('week');
+  };
+
+  // View mode setters
+  const setViewDay = () => setManualViewMode('day');
+  const setViewWeek = () => setManualViewMode('week');
+  const setViewMonth = () => setManualViewMode('month');
 
   // Get week days for week view
   const weekDays = useMemo(() => {
@@ -545,6 +564,37 @@ export default function WorkloadPage() {
             >
               Today
             </button>
+            <button
+              onClick={goToThisWeek}
+              className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg touch-target"
+              aria-label="Go to this week"
+            >
+              Week
+            </button>
+          </div>
+          {/* View mode toggle */}
+          <div className="hidden sm:flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={setViewDay}
+              className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'day' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
+              aria-label="Day view"
+            >
+              Day
+            </button>
+            <button
+              onClick={setViewWeek}
+              className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'week' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
+              aria-label="Week view"
+            >
+              Week
+            </button>
+            <button
+              onClick={setViewMonth}
+              className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'month' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
+              aria-label="Month view"
+            >
+              Month
+            </button>
           </div>
           <h2 className="text-lg font-semibold text-center">
             {viewMode === 'day' ? (
@@ -799,6 +849,37 @@ export default function WorkloadPage() {
               aria-label="Go to today"
             >
               Today
+            </button>
+            <button
+              onClick={goToThisWeek}
+              className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg touch-target"
+              aria-label="Go to this week"
+            >
+              Week
+            </button>
+          </div>
+          {/* View mode toggle */}
+          <div className="hidden sm:flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={setViewDay}
+              className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'day' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
+              aria-label="Day view"
+            >
+              Day
+            </button>
+            <button
+              onClick={setViewWeek}
+              className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'week' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
+              aria-label="Week view"
+            >
+              Week
+            </button>
+            <button
+              onClick={setViewMonth}
+              className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'month' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
+              aria-label="Month view"
+            >
+              Month
             </button>
           </div>
           <h2 className="text-lg font-semibold text-center">
