@@ -1324,6 +1324,23 @@ export default function ProjectDetailPage() {
                   ))}
                 </tbody>
               </table>
+              {/* Payment Summary */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="flex justify-end gap-8">
+                  <div className="text-right">
+                    <div className="text-sm text-gray-500">Total Amount</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-gray-500">Total Percentage</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {payments.reduce((sum, p) => sum + (p.percentage || 0), 0).toFixed(0)}%
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <p className="text-gray-500 text-center py-8">No payments scheduled for this project yet.</p>
