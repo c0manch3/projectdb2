@@ -1,0 +1,87 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  SERVER_HOST: 45.131.42.199
+  SERVER_USER: root
+  APP_DIR: /opt/projectdb2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create app directory on server
+        run: |
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "mkdir -p ${{ env.APP_DIR }}"
+
+      - name: Copy files to server
+        run: |
+          rsync -avz --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude '.env' \
+            --exclude 'dist' \
+            --exclude 'coverage' \
+            --exclude '*.log' \
+            ./ ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.APP_DIR }}/
+
+      - name: Create .env file on server
+        run: |
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "cat > ${{ env.APP_DIR }}/.env << 'EOF'
+          # Database
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          DIRECT_URL=${{ secrets.DIRECT_URL }}
+
+          # JWT
+          JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}
+          JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+          JWT_ACCESS_EXPIRATION=15m
+          JWT_REFRESH_EXPIRATION=7d
+
+          # Server
+          NODE_ENV=production
+          PORT=3000
+
+          # Uploads
+          UPLOAD_MAX_SIZE=52428800
+          UPLOAD_DEST=/app/uploads
+
+          # Frontend
+          VITE_API_URL=http://${{ env.SERVER_HOST }}:3000
+          VITE_WS_URL=ws://${{ env.SERVER_HOST }}:3000
+          EOF"
+
+      - name: Build and deploy with Docker Compose
+        run: |
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "cd ${{ env.APP_DIR }} && \
+            docker compose down --remove-orphans || true && \
+            docker compose build --no-cache && \
+            docker compose up -d && \
+            docker compose ps"
+
+      - name: Cleanup old Docker images
+        run: |
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "docker image prune -f"
+
+      - name: Health check
+        run: |
+          echo "Waiting for services to start..."
+          sleep 30
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "curl -f http://localhost:3000/api || echo 'Backend health check failed'"
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "curl -f http://localhost:80 || echo 'Frontend health check failed'"
+          echo "Deployment completed!"
