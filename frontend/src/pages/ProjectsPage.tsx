@@ -393,6 +393,10 @@ export default function ProjectsPage() {
 
     if (!newProject.name.trim()) {
       errors.name = 'Project name is required';
+    } else if (newProject.name.trim().length < 3) {
+      errors.name = 'Project name must be at least 3 characters';
+    } else if (newProject.name.trim().length > 200) {
+      errors.name = 'Project name must be less than 200 characters';
     }
     if (!newProject.customerId) {
       errors.customerId = 'Please select a customer';
@@ -580,8 +584,8 @@ export default function ProjectsPage() {
                     onClick={() => navigate(`/projects/${project.id}`)}
                     className="hover:bg-gray-50 cursor-pointer"
                   >
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{project.name}</div>
+                    <td className="px-4 py-4 whitespace-nowrap max-w-xs">
+                      <div className="font-medium text-gray-900 truncate">{project.name}</div>
                       <div className="text-sm text-gray-500">{project._count.constructions} constructions</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-gray-600">{project.customer.name}</td>
@@ -788,6 +792,7 @@ export default function ProjectsPage() {
                   placeholder="Enter project name"
                   value={newProject.name}
                   onChange={(e) => handleNewProjectChange('name', e.target.value)}
+                  maxLength={200}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${formErrors.name ? 'border-red-500' : 'border-gray-300'}`}
                 />
                 {formErrors.name && <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>}

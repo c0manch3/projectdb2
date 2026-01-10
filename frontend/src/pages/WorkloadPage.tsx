@@ -232,6 +232,17 @@ export default function WorkloadPage() {
     setCurrentWeekStart(newWeekStart);
   };
 
+  // Go to today's date
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentDay(today);
+    setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+    const dayOfWeek = today.getDay();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - dayOfWeek);
+    setCurrentWeekStart(weekStart);
+  };
+
   // Get week days for week view
   const weekDays = useMemo(() => {
     const days = [];
@@ -517,15 +528,24 @@ export default function WorkloadPage() {
       <div className="card">
         {/* Calendar Header - adapts to view mode */}
         <div className="flex items-center justify-between p-4 border-b">
-          <button
-            onClick={viewMode === 'day' ? handlePrevDay : viewMode === 'week' ? handlePrevWeek : handlePrevMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg touch-target"
-            aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'week' ? 'Previous week' : 'Previous month'}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={viewMode === 'day' ? handlePrevDay : viewMode === 'week' ? handlePrevWeek : handlePrevMonth}
+              className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+              aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'week' ? 'Previous week' : 'Previous month'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={goToToday}
+              className="px-3 py-1.5 text-sm font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg touch-target"
+              aria-label="Go to today"
+            >
+              Today
+            </button>
+          </div>
           <h2 className="text-lg font-semibold text-center">
             {viewMode === 'day' ? (
               currentDay.toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
@@ -763,15 +783,24 @@ export default function WorkloadPage() {
       <div className="card">
         {/* Calendar Header - adapts to view mode */}
         <div className="flex items-center justify-between p-4 border-b">
-          <button
-            onClick={viewMode === 'day' ? handlePrevDay : viewMode === 'week' ? handlePrevWeek : handlePrevMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg touch-target"
-            aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'week' ? 'Previous week' : 'Previous month'}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={viewMode === 'day' ? handlePrevDay : viewMode === 'week' ? handlePrevWeek : handlePrevMonth}
+              className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+              aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'week' ? 'Previous week' : 'Previous month'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={goToToday}
+              className="px-3 py-1.5 text-sm font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg touch-target"
+              aria-label="Go to today"
+            >
+              Today
+            </button>
+          </div>
           <h2 className="text-lg font-semibold text-center">
             {viewMode === 'day' ? (
               currentDay.toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })

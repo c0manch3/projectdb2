@@ -115,6 +115,7 @@ export default function ProjectDetailPage() {
   // Document upload state
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docType, setDocType] = useState('project_documentation');
   const [selectedConstructionId, setSelectedConstructionId] = useState<string>('');
@@ -138,6 +139,7 @@ export default function ProjectDetailPage() {
     expectedDate: '',
     description: '',
   });
+  const [paymentFormErrors, setPaymentFormErrors] = useState<Record<string, string>>({});
   const canManagePayments = user?.role === 'Admin' || user?.role === 'Manager';
 
   useEffect(() => {
@@ -309,6 +311,7 @@ export default function ProjectDetailPage() {
     if (!selectedFile || !id) return;
 
     setUploadingDoc(true);
+    setUploadProgress(0);
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
@@ -321,6 +324,12 @@ export default function ProjectDetailPage() {
       await api.post('/document/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = progressEvent.total
+            ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            : 0;
+          setUploadProgress(percentCompleted);
         },
       });
 
@@ -412,9 +421,30 @@ export default function ProjectDetailPage() {
   };
 
   const handleAddPayment = async () => {
-    if (!id || !paymentForm.name || !paymentForm.amount || !paymentForm.expectedDate) return;
+    const errors: Record<string, string> = {};
+
+    if (!paymentForm.name.trim()) {
+      errors.name = 'Payment name is required';
+    }
+    if (!paymentForm.amount) {
+      errors.amount = 'Amount is required';
+    } else if (parseFloat(paymentForm.amount) <= 0) {
+      errors.amount = 'Amount must be a positive number';
+    }
+    if (!paymentForm.expectedDate) {
+      errors.expectedDate = 'Expected date is required';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setPaymentFormErrors(errors);
+      toast.error('Please fix the form errors');
+      return;
+    }
+
+    if (!id) return;
 
     setSavingPayment(true);
+    setPaymentFormErrors({});
     try {
       await api.post('/payment-schedule/create', {
         projectId: id,
@@ -795,6 +825,20 @@ export default function ProjectDetailPage() {
                 <p className="text-sm text-gray-500 mt-1">Optionally link this document to a specific construction</p>
               </div>
             </div>
+            {uploadingDoc && (
+              <div className="px-4 pb-2">
+                <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
+                  <span>Uploading...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowUploadModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
                 Cancel
@@ -804,7 +848,7 @@ export default function ProjectDetailPage() {
                 disabled={uploadingDoc || !selectedFile}
                 className="btn-primary disabled:opacity-50"
               >
-                {uploadingDoc ? 'Uploading...' : 'Upload'}
+                {uploadingDoc ? `Uploading ${uploadProgress}%` : 'Upload'}
               </button>
             </div>
           </div>
@@ -1118,12 +1162,20 @@ export default function ProjectDetailPage() {
                   <input
                     type="number"
                     value={paymentForm.amount}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                    onChange={(e) => {
+                      setPaymentForm({ ...paymentForm, amount: e.target.value });
+                      if (paymentFormErrors.amount) {
+                        setPaymentFormErrors({ ...paymentFormErrors, amount: '' });
+                      }
+                    }}
                     placeholder="10000"
                     min="0"
                     step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${paymentFormErrors.amount ? 'border-red-500' : 'border-gray-300'}`}
                   />
+                  {paymentFormErrors.amount && (
+                    <p className="text-red-500 text-sm mt-1">{paymentFormErrors.amount}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Percentage (%)</label>
