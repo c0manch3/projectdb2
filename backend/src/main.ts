@@ -27,6 +27,11 @@ async function bootstrap() {
         return callback(null, true);
       }
 
+      // Allow production domain
+      if (origin === 'https://lencondb.ru' || origin === 'https://www.lencondb.ru') {
+        return callback(null, true);
+      }
+
       callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
