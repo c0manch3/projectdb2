@@ -272,8 +272,45 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    await this.prisma.user.delete({
-      where: { id },
+    // Delete all related records in a transaction
+    await this.prisma.$transaction(async (tx) => {
+      // Delete refresh tokens
+      await tx.refreshToken.deleteMany({ where: { userId: id } });
+
+      // Delete workload actuals and their distributions
+      const workloadActuals = await tx.workloadActual.findMany({
+        where: { userId: id },
+        select: { id: true },
+      });
+      const workloadActualIds = workloadActuals.map((wa) => wa.id);
+
+      if (workloadActualIds.length > 0) {
+        await tx.projectWorkloadDistribution.deleteMany({
+          where: { workloadActualId: { in: workloadActualIds } },
+        });
+        await tx.workloadActual.deleteMany({ where: { userId: id } });
+      }
+
+      // Delete workload plans (where user is the employee)
+      await tx.workloadPlan.deleteMany({ where: { userId: id } });
+
+      // Update workload plans where user is the manager (set to null or another admin)
+      await tx.workloadPlan.deleteMany({ where: { managerId: id } });
+
+      // Update documents uploaded by this user (set uploadedById to null is not possible, delete them)
+      await tx.document.deleteMany({ where: { uploadedById: id } });
+
+      // Remove user from project assignments
+      await tx.projectUser.deleteMany({ where: { userId: id } });
+
+      // Update projects where user is manager (set managerId to null)
+      await tx.project.updateMany({
+        where: { managerId: id },
+        data: { managerId: null },
+      });
+
+      // Delete the user
+      await tx.user.delete({ where: { id } });
     });
 
     return { message: 'User deleted successfully' };
