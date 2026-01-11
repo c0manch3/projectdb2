@@ -55,9 +55,9 @@ jobs:
           }
           EOF"
 
-      - name: Enable site and reload nginx
+      - name: Enable site and start nginx
         run: |
-          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "ln -sf /etc/nginx/sites-available/${{ inputs.domain }} /etc/nginx/sites-enabled/ && rm -f /etc/nginx/sites-enabled/default && nginx -t && systemctl reload nginx"
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "ln -sf /etc/nginx/sites-available/${{ inputs.domain }} /etc/nginx/sites-enabled/ && rm -f /etc/nginx/sites-enabled/default && nginx -t && systemctl enable nginx && systemctl restart nginx"
 
       - name: Obtain SSL certificate
         run: |
@@ -139,7 +139,7 @@ jobs:
 
       - name: Reload nginx with SSL config
         run: |
-          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "nginx -t && systemctl reload nginx"
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "nginx -t && systemctl restart nginx"
 
       - name: Enable certificate auto-renewal
         run: |
