@@ -60,7 +60,7 @@ jobs:
           UPLOAD_DEST=/app/uploads
 
           # Frontend
-          VITE_API_URL=https://lencondb.ru/api
+          VITE_API_URL=https://lencondb.ru
           VITE_WS_URL=wss://lencondb.ru
           EOF"
 

@@ -35,7 +35,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=${VITE_API_URL:-https://lencondb.ru/api}
+        - VITE_API_URL=${VITE_API_URL:-https://lencondb.ru}
         - VITE_WS_URL=${VITE_WS_URL:-wss://lencondb.ru}
     container_name: projectdb-frontend
     restart: unless-stopped
