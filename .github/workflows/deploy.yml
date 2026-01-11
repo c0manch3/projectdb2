@@ -60,8 +60,8 @@ jobs:
           UPLOAD_DEST=/app/uploads
 
           # Frontend
-          VITE_API_URL=http://${{ env.SERVER_HOST }}:3000
-          VITE_WS_URL=ws://${{ env.SERVER_HOST }}:3000
+          VITE_API_URL=https://lencondb.ru/api
+          VITE_WS_URL=wss://lencondb.ru
           EOF"
 
       - name: Build and deploy with Docker Compose
@@ -81,5 +81,6 @@ jobs:
           echo "Waiting for services to start..."
           sleep 30
           ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "curl -f http://localhost:3000/api || echo 'Backend health check failed'"
-          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "curl -f http://localhost:80 || echo 'Frontend health check failed'"
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "curl -f http://localhost:8080 || echo 'Frontend health check failed'"
           echo "Deployment completed!"
+          echo "Site available at: https://lencondb.ru"
