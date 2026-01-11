@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { api } from '@/services/auth.service';
 import { logout } from '@/store/slices/authSlice';
@@ -6,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -22,12 +24,12 @@ export default function ProfilePage() {
     setError(null);
 
     if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters');
+      setError(t('profile.passwordMinLength'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
+      setError(t('profile.passwordMismatch'));
       return;
     }
 
@@ -37,7 +39,7 @@ export default function ProfilePage() {
         currentPassword,
         newPassword,
       });
-      toast.success('Password changed successfully. Please log in again.');
+      toast.success(t('profile.passwordChanged'));
       // Clear form
       setCurrentPassword('');
       setNewPassword('');
@@ -49,7 +51,7 @@ export default function ProfilePage() {
         navigate('/login');
       }, 1500);
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to change password';
+      const message = err.response?.data?.message || t('profile.passwordChangeFailed');
       setError(message);
       toast.error(message);
     } finally {
@@ -59,39 +61,39 @@ export default function ProfilePage() {
 
   return (
     <div className="p-4 md:p-6">
-      <h1 className="page-title mb-6">Profile</h1>
+      <h1 className="page-title mb-6">{t('profile.title')}</h1>
 
       <div className="card p-6 mb-6">
         {user ? (
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-gray-500">Name</label>
+              <label className="text-sm text-gray-500">{t('profile.name')}</label>
               <p className="text-lg font-medium">
                 {user.firstName} {user.lastName}
               </p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Email</label>
+              <label className="text-sm text-gray-500">{t('profile.email')}</label>
               <p className="text-lg">{user.email}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Phone</label>
-              <p className="text-lg">{user.phone || 'Not set'}</p>
+              <label className="text-sm text-gray-500">{t('profile.phone')}</label>
+              <p className="text-lg">{user.phone || t('common.notSet')}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Role</label>
+              <label className="text-sm text-gray-500">{t('profile.role')}</label>
               <p className="text-lg">{user.role}</p>
             </div>
           </div>
         ) : (
-          <p className="text-gray-500">Loading profile...</p>
+          <p className="text-gray-500">{t('common.loading')}</p>
         )}
       </div>
 
       {/* Change Password Section */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Security</h2>
+          <h2 className="text-lg font-semibold">{t('profile.security')}</h2>
         </div>
 
         {!showChangePassword ? (
@@ -99,7 +101,7 @@ export default function ProfilePage() {
             onClick={() => setShowChangePassword(true)}
             className="btn-secondary"
           >
-            Change Password
+            {t('profile.changePassword')}
           </button>
         ) : (
           <form onSubmit={handleChangePassword} className="space-y-4">
@@ -111,28 +113,28 @@ export default function ProfilePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Current Password
+                {t('profile.currentPassword')}
               </label>
               <input
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className="input-field w-full"
-                placeholder="Enter current password"
+                placeholder={t('profile.enterCurrentPassword')}
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Password
+                {t('profile.newPassword')}
               </label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="input-field w-full"
-                placeholder="Enter new password (min 8 characters)"
+                placeholder={t('profile.enterNewPassword')}
                 required
                 minLength={8}
               />
@@ -140,14 +142,14 @@ export default function ProfilePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm New Password
+                {t('profile.confirmPassword')}
               </label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="input-field w-full"
-                placeholder="Confirm new password"
+                placeholder={t('profile.confirmNewPassword')}
                 required
               />
             </div>
@@ -158,7 +160,7 @@ export default function ProfilePage() {
                 className="btn-primary"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Changing...' : 'Update Password'}
+                {isSubmitting ? t('common.loading') : t('profile.updatePassword')}
               </button>
               <button
                 type="button"
@@ -171,7 +173,7 @@ export default function ProfilePage() {
                 }}
                 className="btn-secondary"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </form>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '@/store';
 import { api } from '@/services/auth.service';
 import toast from 'react-hot-toast';
@@ -21,6 +22,7 @@ interface ChatLog {
 }
 
 export default function ChatLogsPage() {
+  const { t } = useTranslation();
   const { user } = useAppSelector((state) => state.auth);
   const [logs, setLogs] = useState<ChatLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ export default function ChatLogsPage() {
       setLogs(filteredLogs);
     } catch (error) {
       console.error('Failed to fetch chat logs:', error);
-      toast.error('Failed to load chat logs');
+      toast.error(t('chatLogs.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -91,7 +93,7 @@ export default function ChatLogsPage() {
     return (
       <div className="p-4 md:p-6">
         <div className="card p-6 text-center">
-          <p className="text-red-600">Access denied. Admin role required.</p>
+          <p className="text-red-600">{t('chatLogs.accessDenied')}</p>
         </div>
       </div>
     );
@@ -100,7 +102,7 @@ export default function ChatLogsPage() {
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="page-title">Chat Logs</h1>
+        <h1 className="page-title">{t('chatLogs.title')}</h1>
       </div>
 
       {/* Filters */}
@@ -108,14 +110,14 @@ export default function ChatLogsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filter by User
+              {t('chatLogs.filterByUser')}
             </label>
             <select
               value={filterUserId}
               onChange={(e) => setFilterUserId(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
-              <option value="">All Users</option>
+              <option value="">{t('chatLogs.allUsers')}</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.firstName} {u.lastName} ({u.email})
@@ -125,16 +127,16 @@ export default function ChatLogsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filter by Request Type
+              {t('chatLogs.filterByRequestType')}
             </label>
             <select
               value={filterRequestType}
               onChange={(e) => setFilterRequestType(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
-              <option value="">All Types</option>
-              <option value="Report">Report</option>
-              <option value="Proposal">Proposal</option>
+              <option value="">{t('chatLogs.allTypes')}</option>
+              <option value="Report">{t('chatLogs.report')}</option>
+              <option value="Proposal">{t('chatLogs.proposal')}</option>
             </select>
           </div>
         </div>
@@ -143,10 +145,10 @@ export default function ChatLogsPage() {
       {/* Logs List */}
       <div className="card">
         {loading ? (
-          <div className="p-6 text-center text-gray-500">Loading...</div>
+          <div className="p-6 text-center text-gray-500">{t('common.loading')}</div>
         ) : logs.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
-            No chat logs found
+            {t('chatLogs.noLogs')}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -154,22 +156,22 @@ export default function ChatLogsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
+                    {t('chatLogs.date')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
+                    {t('chatLogs.user')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
+                    {t('chatLogs.role')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
+                    {t('chatLogs.type')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Content Preview
+                    {t('chatLogs.contentPreview')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t('chatLogs.actions')}
                   </th>
                 </tr>
               </thead>
@@ -200,7 +202,7 @@ export default function ChatLogsPage() {
                         onClick={() => setSelectedLog(log)}
                         className="text-primary-600 hover:text-primary-800 font-medium"
                       >
-                        View Details
+                        {t('chatLogs.viewDetails')}
                       </button>
                     </td>
                   </tr>
@@ -216,7 +218,7 @@ export default function ChatLogsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Chat Log Details</h2>
+              <h2 className="text-lg font-semibold">{t('chatLogs.logDetails')}</h2>
               <button
                 onClick={() => setSelectedLog(null)}
                 className="text-gray-400 hover:text-gray-600"
@@ -229,18 +231,18 @@ export default function ChatLogsPage() {
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Date</label>
+                  <label className="text-sm font-medium text-gray-500">{t('chatLogs.date')}</label>
                   <p className="text-gray-900">{formatDate(selectedLog.createdAt)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">User</label>
+                  <label className="text-sm font-medium text-gray-500">{t('chatLogs.user')}</label>
                   <p className="text-gray-900">
                     {selectedLog.user.firstName} {selectedLog.user.lastName} ({selectedLog.user.email})
                   </p>
                 </div>
                 <div className="flex gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Role</label>
+                    <label className="text-sm font-medium text-gray-500">{t('chatLogs.role')}</label>
                     <p>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(selectedLog.role)}`}>
                         {selectedLog.role}
@@ -248,7 +250,7 @@ export default function ChatLogsPage() {
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Request Type</label>
+                    <label className="text-sm font-medium text-gray-500">{t('chatLogs.requestType')}</label>
                     <p>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRequestTypeBadgeColor(selectedLog.requestType)}`}>
                         {selectedLog.requestType}
@@ -257,7 +259,7 @@ export default function ChatLogsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Content</label>
+                  <label className="text-sm font-medium text-gray-500">{t('chatLogs.content')}</label>
                   <div className="mt-2 p-4 bg-gray-50 rounded-lg whitespace-pre-wrap text-gray-900">
                     {selectedLog.content}
                   </div>
@@ -269,7 +271,7 @@ export default function ChatLogsPage() {
                 onClick={() => setSelectedLog(null)}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>

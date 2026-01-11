@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '@/store';
 import { api } from '@/services/auth.service';
 import toast from 'react-hot-toast';
@@ -22,6 +23,7 @@ interface Project {
 }
 
 export default function ConstructionsPage() {
+  const { t } = useTranslation();
   const { user } = useAppSelector((state) => state.auth);
   const canEdit = user?.role === 'Admin' || user?.role === 'Manager';
   const [constructions, setConstructions] = useState<Construction[]>([]);
@@ -45,7 +47,7 @@ export default function ConstructionsPage() {
       const response = await api.get<Construction[]>('/construction');
       setConstructions(response.data);
     } catch (error) {
-      toast.error('Failed to load constructions');
+      toast.error(t('constructions.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -70,11 +72,11 @@ export default function ConstructionsPage() {
     setSaving(true);
     try {
       await api.patch(`/construction/${selectedConstruction.id}`, { name: editName });
-      toast.success('Construction updated successfully');
+      toast.success(t('constructions.constructionUpdated'));
       handleCloseEditModal();
       fetchConstructions();
     } catch (error) {
-      toast.error('Failed to update construction');
+      toast.error(t('constructions.updateFailed'));
     } finally {
       setSaving(false);
     }
@@ -82,14 +84,14 @@ export default function ConstructionsPage() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this construction?')) return;
+    if (!confirm(t('constructions.confirmDelete'))) return;
 
     try {
       await api.delete(`/construction/${id}`);
-      toast.success('Construction deleted successfully');
+      toast.success(t('constructions.constructionDeleted'));
       fetchConstructions();
     } catch (error) {
-      toast.error('Failed to delete construction');
+      toast.error(t('constructions.deleteFailed'));
     }
   };
 
@@ -101,7 +103,7 @@ export default function ConstructionsPage() {
       setSelectedProjectId('');
       setShowAddModal(true);
     } catch (error) {
-      toast.error('Failed to load projects');
+      toast.error(t('constructions.loadProjectsFailed'));
     }
   };
 
@@ -113,11 +115,11 @@ export default function ConstructionsPage() {
 
   const handleCreateConstruction = async () => {
     if (!newConstructionName.trim()) {
-      toast.error('Construction name is required');
+      toast.error(t('constructions.nameRequired'));
       return;
     }
     if (!selectedProjectId) {
-      toast.error('Please select a project');
+      toast.error(t('constructions.projectRequired'));
       return;
     }
     setIsSubmitting(true);
@@ -126,11 +128,11 @@ export default function ConstructionsPage() {
         name: newConstructionName,
         projectId: selectedProjectId,
       });
-      toast.success('Construction created successfully');
+      toast.success(t('constructions.constructionCreated'));
       fetchConstructions();
       handleCloseAddModal();
     } catch (error) {
-      toast.error('Failed to create construction');
+      toast.error(t('constructions.createFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -139,8 +141,8 @@ export default function ConstructionsPage() {
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="page-title">Constructions</h1>
-        {canEdit && <button className="btn-primary" onClick={handleOpenAddModal}>Add Construction</button>}
+        <h1 className="page-title">{t('constructions.title')}</h1>
+        {canEdit && <button className="btn-primary" onClick={handleOpenAddModal}>{t('constructions.addConstruction')}</button>}
       </div>
 
       <div className="card">
@@ -149,16 +151,16 @@ export default function ConstructionsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           </div>
         ) : constructions.length === 0 ? (
-          <p className="text-gray-500 text-center py-12">No constructions found</p>
+          <p className="text-gray-500 text-center py-12">{t('constructions.noConstructions')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
-                  {canEdit && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.name')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.project')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.documents')}</th>
+                  {canEdit && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -170,7 +172,7 @@ export default function ConstructionsPage() {
                     <td className="px-4 py-4 whitespace-nowrap text-gray-600">{construction.project.name}</td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                        {construction._count.documents} docs
+                        {construction._count.documents} {t('common.docs')}
                       </span>
                     </td>
                     {canEdit && (
@@ -179,13 +181,13 @@ export default function ConstructionsPage() {
                           onClick={(e) => handleEdit(e, construction)}
                           className="text-primary-600 hover:text-primary-800 text-sm font-medium"
                         >
-                          Edit
+                          {t('common.edit')}
                         </button>
                         <button
                           onClick={(e) => handleDelete(e, construction.id)}
                           className="text-red-600 hover:text-red-800 text-sm font-medium"
                         >
-                          Delete
+                          {t('common.delete')}
                         </button>
                       </td>
                     )}
@@ -202,7 +204,7 @@ export default function ConstructionsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Edit Construction</h2>
+              <h2 className="text-lg font-semibold">{t('constructions.editConstruction')}</h2>
               <button onClick={handleCloseEditModal} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -211,21 +213,21 @@ export default function ConstructionsPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Construction Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('constructions.constructionName')}</label>
                 <input
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="Enter construction name"
+                  placeholder={t('constructions.constructionNamePlaceholder')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.project')}</label>
                 <p className="text-gray-900">{selectedConstruction.project.name}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Construction ID</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('constructions.constructionId')}</label>
                 <p className="text-gray-500 text-sm font-mono">{selectedConstruction.id}</p>
               </div>
             </div>
@@ -234,14 +236,14 @@ export default function ConstructionsPage() {
                 onClick={handleCloseEditModal}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving || !editName.trim()}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? t('common.saving') : t('constructions.saveChanges')}
               </button>
             </div>
           </div>
@@ -253,7 +255,7 @@ export default function ConstructionsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Add New Construction</h2>
+              <h2 className="text-lg font-semibold">{t('constructions.addConstruction')}</h2>
               <button onClick={handleCloseAddModal} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -262,23 +264,23 @@ export default function ConstructionsPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Construction Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('constructions.constructionName')} *</label>
                 <input
                   type="text"
                   value={newConstructionName}
                   onChange={(e) => setNewConstructionName(e.target.value)}
-                  placeholder="Enter construction name"
+                  placeholder={t('constructions.constructionNamePlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Project *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.project')} *</label>
                 <select
                   value={selectedProjectId}
                   onChange={(e) => setSelectedProjectId(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="">Select a project</option>
+                  <option value="">{t('common.selectProject')}</option>
                   {projects.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
@@ -289,14 +291,14 @@ export default function ConstructionsPage() {
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={handleCloseAddModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleCreateConstruction}
                 disabled={isSubmitting}
                 className="btn-primary"
               >
-                {isSubmitting ? 'Creating...' : 'Create Construction'}
+                {isSubmitting ? t('common.creating') : t('constructions.addConstruction')}
               </button>
             </div>
           </div>

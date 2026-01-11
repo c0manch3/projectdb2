@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/services/auth.service';
 import { useAppSelector } from '@/store';
 import toast from 'react-hot-toast';
@@ -69,6 +70,7 @@ interface ActualCalendarData {
 }
 
 export default function WorkloadPage() {
+  const { t } = useTranslation();
   const { user } = useAppSelector((state) => state.auth);
   const isManager = user?.role === 'Admin' || user?.role === 'Manager';
   const isEmployee = user?.role === 'Employee';
@@ -316,7 +318,7 @@ export default function WorkloadPage() {
   const handleOpenAddModal = (date: string) => {
     // Workload plan can only be added for future dates (not today, not past)
     if (!isFutureDateString(date)) {
-      toast.error('Workload plan can only be added for future dates');
+      toast.error(t('workload.futureDatesOnly'));
       return;
     }
     setSelectedDate(date);
@@ -327,7 +329,7 @@ export default function WorkloadPage() {
 
   const handleCreateWorkloadPlan = async () => {
     if (!newPlanEmployee || !newPlanProject || !selectedDate) {
-      toast.error('Please select employee and project');
+      toast.error(t('workload.selectEmployeeAndProject'));
       return;
     }
 
@@ -338,11 +340,11 @@ export default function WorkloadPage() {
         projectId: newPlanProject,
         date: selectedDate,
       });
-      toast.success('Workload plan created');
+      toast.success(t('workload.workloadSaved'));
       setShowAddModal(false);
       fetchCalendarData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create workload plan');
+      toast.error(error.response?.data?.message || t('workload.createFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -351,22 +353,22 @@ export default function WorkloadPage() {
   const handleDeleteWorkloadPlan = async (planId: string, dateKey: string) => {
     // Workload plan can only be deleted for future dates
     if (!isFutureDateString(dateKey)) {
-      toast.error('Cannot delete workload plan for past or current date');
+      toast.error(t('workload.cannotDeletePastOrCurrent'));
       return;
     }
     try {
       await api.delete(`/workload-plan/${planId}`);
-      toast.success('Workload plan deleted');
+      toast.success(t('workload.workloadDeleted'));
       fetchCalendarData();
     } catch (error) {
-      toast.error('Failed to delete workload plan');
+      toast.error(t('workload.deleteFailed'));
     }
   };
 
   const handleOpenEditModal = (plan: WorkloadPlanEntry, dateKey: string) => {
     // Workload plan can only be edited for future dates
     if (!isFutureDateString(dateKey)) {
-      toast.error('Cannot edit workload plan for past or current date');
+      toast.error(t('workload.cannotEditPastOrCurrent'));
       return;
     }
     setEditingPlan(plan);
@@ -377,7 +379,7 @@ export default function WorkloadPage() {
 
   const handleUpdateWorkloadPlan = async () => {
     if (!editingPlan || !editPlanProject) {
-      toast.error('Please select a project');
+      toast.error(t('workload.selectProjectRequired'));
       return;
     }
 
@@ -386,12 +388,12 @@ export default function WorkloadPage() {
       await api.patch(`/workload-plan/${editingPlan.id}`, {
         projectId: editPlanProject,
       });
-      toast.success('Workload plan updated');
+      toast.success(t('workload.workloadSaved'));
       setShowEditModal(false);
       setEditingPlan(null);
       fetchCalendarData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update workload plan');
+      toast.error(error.response?.data?.message || t('workload.updateFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -415,7 +417,7 @@ export default function WorkloadPage() {
   const handleOpenAddActualModal = (date: string) => {
     // Prevent adding hours for future dates
     if (isFutureDateString(date)) {
-      toast.error('Cannot log hours for future dates');
+      toast.error(t('workload.cannotLogFutureHours'));
       return;
     }
     setActualDate(date);
@@ -451,7 +453,7 @@ export default function WorkloadPage() {
 
   const handleCreateActualHours = async () => {
     if (!actualDate || !actualHours) {
-      toast.error('Please enter hours worked');
+      toast.error(t('workload.enterHoursRequired'));
       return;
     }
 
@@ -459,17 +461,17 @@ export default function WorkloadPage() {
     const totalHours = parseFloat(actualHours);
 
     if (totalHours <= 0) {
-      toast.error('Hours must be a positive number');
+      toast.error(t('workload.hoursPositiveRequired'));
       return;
     }
 
     if (totalHours > 24) {
-      toast.error('Hours cannot exceed 24 per day');
+      toast.error(t('workload.hoursExceed24'));
       return;
     }
 
     if (totalDistHours > totalHours) {
-      toast.error('Distribution hours exceed total hours worked');
+      toast.error(t('workload.distributionExceedsTotal'));
       return;
     }
 
@@ -490,11 +492,11 @@ export default function WorkloadPage() {
         distributions: distributions.length > 0 ? distributions : undefined,
       });
 
-      toast.success('Hours logged successfully');
+      toast.success(t('workload.hoursLoggedSuccess'));
       setShowAddActualModal(false);
       fetchActualCalendarData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to log hours');
+      toast.error(error.response?.data?.message || t('workload.logHoursFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -605,14 +607,14 @@ export default function WorkloadPage() {
     link.click();
     document.body.removeChild(link);
 
-    toast.success('Workload data exported successfully');
+    toast.success(t('workload.exportSuccess'));
   };
 
   if (loading) {
     return (
       <div className="p-4 md:p-6">
         <div className="flex items-center justify-center min-h-64">
-          <div className="text-gray-500">Loading...</div>
+          <div className="text-gray-500">{t('common.loading')}</div>
         </div>
       </div>
     );
@@ -621,7 +623,7 @@ export default function WorkloadPage() {
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="page-title">Workload</h1>
+        <h1 className="page-title">{t('workload.title')}</h1>
         {isManager && activeTab === 'plan' && (
           <button
             onClick={handleExportWorkload}
@@ -630,7 +632,7 @@ export default function WorkloadPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Export
+            {t('common.export')}
           </button>
         )}
       </div>
@@ -645,7 +647,7 @@ export default function WorkloadPage() {
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           }`}
         >
-          Plan
+          {t('workload.planned')}
         </button>
         <button
           onClick={() => setActiveTab('actual')}
@@ -655,7 +657,7 @@ export default function WorkloadPage() {
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           }`}
         >
-          My Hours
+          {t('workload.myHours')}
         </button>
       </div>
 
@@ -665,15 +667,15 @@ export default function WorkloadPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Project
+              {t('workload.project')}
             </label>
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              aria-label="Select project"
+              aria-label={t('workload.selectProject')}
             >
-              <option value="">All Projects</option>
+              <option value="">{t('workload.allProjects')}</option>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
@@ -684,15 +686,15 @@ export default function WorkloadPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Employee
+              {t('workload.employee')}
             </label>
             <select
               value={selectedEmployee}
               onChange={(e) => setSelectedEmployee(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              aria-label="Select employee"
+              aria-label={t('workload.selectEmployee')}
             >
-              <option value="">All Employees</option>
+              <option value="">{t('workload.allEmployees')}</option>
               {employees.map((employee) => (
                 <option key={employee.id} value={employee.id}>
                   {employee.firstName} {employee.lastName}
@@ -718,7 +720,7 @@ export default function WorkloadPage() {
             <button
               onClick={viewMode === 'day' ? handlePrevDay : viewMode === 'week' ? handlePrevWeek : handlePrevMonth}
               className="p-2 hover:bg-gray-100 rounded-lg touch-target"
-              aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'week' ? 'Previous week' : 'Previous month'}
+              aria-label={viewMode === 'day' ? t('workload.previousDay') : viewMode === 'week' ? t('workload.previousWeek') : t('workload.previousMonth')}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -727,16 +729,16 @@ export default function WorkloadPage() {
             <button
               onClick={goToToday}
               className="px-3 py-1.5 text-sm font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg touch-target"
-              aria-label="Go to today"
+              aria-label={t('workload.goToToday')}
             >
-              Today
+              {t('workload.today')}
             </button>
             <button
               onClick={goToThisWeek}
               className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg touch-target"
-              aria-label="Go to this week"
+              aria-label={t('workload.goToThisWeek')}
             >
-              Week
+              {t('workload.thisWeek')}
             </button>
           </div>
           {/* View mode toggle */}
@@ -744,23 +746,23 @@ export default function WorkloadPage() {
             <button
               onClick={setViewDay}
               className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'day' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
-              aria-label="Day view"
+              aria-label={t('workload.dayView')}
             >
-              Day
+              {t('workload.day')}
             </button>
             <button
               onClick={setViewWeek}
               className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'week' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
-              aria-label="Week view"
+              aria-label={t('workload.weekView')}
             >
-              Week
+              {t('workload.week')}
             </button>
             <button
               onClick={setViewMonth}
               className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'month' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
-              aria-label="Month view"
+              aria-label={t('workload.monthView')}
             >
-              Month
+              {t('workload.month')}
             </button>
           </div>
           <h2 className="text-lg font-semibold text-center">
@@ -775,7 +777,7 @@ export default function WorkloadPage() {
           <button
             onClick={viewMode === 'day' ? handleNextDay : viewMode === 'week' ? handleNextWeek : handleNextMonth}
             className="p-2 hover:bg-gray-100 rounded-lg touch-target"
-            aria-label={viewMode === 'day' ? 'Next day' : viewMode === 'week' ? 'Next week' : 'Next month'}
+            aria-label={viewMode === 'day' ? t('workload.nextDay') : viewMode === 'week' ? t('workload.nextWeek') : t('workload.nextMonth')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -786,12 +788,12 @@ export default function WorkloadPage() {
         {/* View mode indicator for mobile */}
         {viewMode === 'day' && (
           <div className="text-center text-xs text-gray-500 py-1 bg-gray-50 border-b">
-            Swipe or tap arrows to navigate days
+            {t('workload.swipeToNavigateDays')}
           </div>
         )}
         {viewMode === 'week' && (
           <div className="text-center text-xs text-gray-500 py-1 bg-gray-50 border-b">
-            Week view
+            {t('workload.weekView')}
           </div>
         )}
 
@@ -818,21 +820,21 @@ export default function WorkloadPage() {
                         <button
                           onClick={() => handleOpenAddModal(dateKey)}
                           className="btn-primary text-sm"
-                          aria-label={`Add workload for ${dateKey}`}
+                          aria-label={t('workload.addWorkloadFor', { date: dateKey })}
                         >
-                          + Add Plan
+                          + {t('workload.addPlanned')}
                         </button>
                       )}
                     </div>
                     {dayPlans.length === 0 ? (
-                      <div className="text-gray-500 text-center py-8">No workload plans for this day</div>
+                      <div className="text-gray-500 text-center py-8">{t('workload.noWorkload')}</div>
                     ) : (
                       <div className="space-y-3">
                         {dayPlans.map((plan) => (
                           <div
                             key={plan.id}
                             className={`bg-primary-100 text-primary-800 p-4 rounded-lg group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={isManager && !isAllEmployeesMode ? 'Click to edit' : undefined}
+                            title={isManager && !isAllEmployeesMode ? t('common.clickToEdit') : undefined}
                             onClick={() => {
                               if (isManager && !isAllEmployeesMode) {
                                 handleOpenEditModal(plan, dateKey);
@@ -850,7 +852,7 @@ export default function WorkloadPage() {
                                   handleDeleteWorkloadPlan(plan.id, dateKey);
                                 }}
                                 className="absolute right-2 top-2 text-red-600 hover:text-red-800 p-2"
-                                aria-label="Delete"
+                                aria-label={t('common.delete')}
                               >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -866,7 +868,7 @@ export default function WorkloadPage() {
                         onClick={() => handleOpenDateEmployeesModal(dateKey)}
                         className="mt-4 w-full text-center text-primary-600 hover:text-primary-800 text-sm font-medium py-2 border border-primary-200 rounded-lg hover:bg-primary-50"
                       >
-                        View all {dayPlans.length} employee(s) assigned
+                        {t('workload.viewAllEmployeesAssigned', { count: dayPlans.length })}
                       </button>
                     )}
                   </div>
@@ -879,7 +881,7 @@ export default function WorkloadPage() {
           {viewMode === 'week' && (
             <>
               <div className="grid grid-cols-7 gap-1 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                {[t('workload.sun'), t('workload.mon'), t('workload.tue'), t('workload.wed'), t('workload.thu'), t('workload.fri'), t('workload.sat')].map((day) => (
                   <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
                     {day}
                   </div>
@@ -925,7 +927,7 @@ export default function WorkloadPage() {
                               handleOpenAddModal(dateKey);
                             }}
                             className="text-primary-600 hover:text-primary-800 p-1"
-                            aria-label={`Add workload for ${dateKey}`}
+                            aria-label={t('workload.addWorkloadFor', { date: dateKey })}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -946,7 +948,7 @@ export default function WorkloadPage() {
                           <div
                             key={plan.id}
                             className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode ? ' (Click to edit)' : ''}`}
+                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode ? ` (${t('common.clickToEdit')})` : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isManager && !isAllEmployeesMode) {
@@ -972,7 +974,7 @@ export default function WorkloadPage() {
           {viewMode === 'month' && (
             <>
               <div className="grid grid-cols-7 gap-1 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                {[t('workload.sun'), t('workload.mon'), t('workload.tue'), t('workload.wed'), t('workload.thu'), t('workload.fri'), t('workload.sat')].map((day) => (
                   <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
                     {day}
                   </div>
@@ -1025,7 +1027,7 @@ export default function WorkloadPage() {
                               handleOpenAddModal(dateKey);
                             }}
                             className="text-primary-600 hover:text-primary-800 p-1"
-                            aria-label={`Add workload for ${dateKey}`}
+                            aria-label={t('workload.addWorkloadFor', { date: dateKey })}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1047,7 +1049,7 @@ export default function WorkloadPage() {
                           <div
                             key={plan.id}
                             className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode ? ' (Click to edit)' : ''}`}
+                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode ? ` (${t('common.clickToEdit')})` : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isManager && !isAllEmployeesMode) {
@@ -1066,7 +1068,7 @@ export default function WorkloadPage() {
                                   handleDeleteWorkloadPlan(plan.id, dateKey);
                                 }}
                                 className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:block text-red-600 hover:text-red-800"
-                                aria-label="Delete"
+                                aria-label={t('common.delete')}
                               >
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1100,7 +1102,7 @@ export default function WorkloadPage() {
             <button
               onClick={viewMode === 'day' ? handlePrevDay : viewMode === 'week' ? handlePrevWeek : handlePrevMonth}
               className="p-2 hover:bg-gray-100 rounded-lg touch-target"
-              aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'week' ? 'Previous week' : 'Previous month'}
+              aria-label={viewMode === 'day' ? t('workload.previousDay') : viewMode === 'week' ? t('workload.previousWeek') : t('workload.previousMonth')}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1109,16 +1111,16 @@ export default function WorkloadPage() {
             <button
               onClick={goToToday}
               className="px-3 py-1.5 text-sm font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg touch-target"
-              aria-label="Go to today"
+              aria-label={t('workload.goToToday')}
             >
-              Today
+              {t('workload.today')}
             </button>
             <button
               onClick={goToThisWeek}
               className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg touch-target"
-              aria-label="Go to this week"
+              aria-label={t('workload.goToThisWeek')}
             >
-              Week
+              {t('workload.thisWeek')}
             </button>
           </div>
           {/* View mode toggle */}
@@ -1126,23 +1128,23 @@ export default function WorkloadPage() {
             <button
               onClick={setViewDay}
               className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'day' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
-              aria-label="Day view"
+              aria-label={t('workload.dayView')}
             >
-              Day
+              {t('workload.day')}
             </button>
             <button
               onClick={setViewWeek}
               className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'week' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
-              aria-label="Week view"
+              aria-label={t('workload.weekView')}
             >
-              Week
+              {t('workload.week')}
             </button>
             <button
               onClick={setViewMonth}
               className={`px-2 py-1 text-xs font-medium rounded ${viewMode === 'month' ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
-              aria-label="Month view"
+              aria-label={t('workload.monthView')}
             >
-              Month
+              {t('workload.month')}
             </button>
           </div>
           <h2 className="text-lg font-semibold text-center">
@@ -1157,7 +1159,7 @@ export default function WorkloadPage() {
           <button
             onClick={viewMode === 'day' ? handleNextDay : viewMode === 'week' ? handleNextWeek : handleNextMonth}
             className="p-2 hover:bg-gray-100 rounded-lg touch-target"
-            aria-label={viewMode === 'day' ? 'Next day' : viewMode === 'week' ? 'Next week' : 'Next month'}
+            aria-label={viewMode === 'day' ? t('workload.nextDay') : viewMode === 'week' ? t('workload.nextWeek') : t('workload.nextMonth')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1168,12 +1170,12 @@ export default function WorkloadPage() {
         {/* View mode indicator */}
         {viewMode === 'day' && (
           <div className="text-center text-xs text-gray-500 py-1 bg-gray-50 border-b">
-            Swipe or tap arrows to navigate days
+            {t('workload.swipeToNavigateDays')}
           </div>
         )}
         {viewMode === 'week' && (
           <div className="text-center text-xs text-gray-500 py-1 bg-gray-50 border-b">
-            Week view
+            {t('workload.weekView')}
           </div>
         )}
 
@@ -1199,28 +1201,28 @@ export default function WorkloadPage() {
                         <button
                           onClick={() => handleOpenAddActualModal(dateKey)}
                           className="btn-primary text-sm"
-                          aria-label={`Log hours for ${dateKey}`}
+                          aria-label={t('workload.logHoursFor', { date: dateKey })}
                         >
-                          + Log Hours
+                          + {t('workload.logHours')}
                         </button>
                       )}
                       {dayIsFuture && !dayActual && (
-                        <span className="text-sm text-gray-400">Future date</span>
+                        <span className="text-sm text-gray-400">{t('workload.futureDate')}</span>
                       )}
                     </div>
                     {dayActual ? (
                       <div
                         className="bg-green-100 text-green-800 p-4 rounded-lg cursor-pointer hover:bg-green-200 transition-colors"
                         onClick={() => handleViewActualEntry(dayActual)}
-                        title="Click to view details"
+                        title={t('common.clickToViewDetails')}
                       >
-                        <div className="font-medium text-lg">{dayActual.hoursWorked}h worked</div>
+                        <div className="font-medium text-lg">{dayActual.hoursWorked}{t('workload.hoursWorked')}</div>
                         {dayActual.userText && <div className="text-green-600 mt-2">{dayActual.userText}</div>}
                         {dayActual.distributions && dayActual.distributions.length > 0 && (
                           <div className="text-green-600 mt-2 space-y-1">
                             {dayActual.distributions.map((d, i) => (
                               <div key={i}>
-                                {d.hours}h - {d.project.name}
+                                {d.hours}{t('workload.hours')} - {d.project.name}
                                 {d.description && <span className="text-green-500 block text-sm">{d.description}</span>}
                               </div>
                             ))}
@@ -1229,7 +1231,7 @@ export default function WorkloadPage() {
                       </div>
                     ) : (
                       <div className="text-gray-500 text-center py-8">
-                        {dayIsFuture ? 'Cannot log hours for future dates' : 'No hours logged for this day'}
+                        {dayIsFuture ? t('workload.cannotLogFutureHours') : t('workload.noHoursLogged')}
                       </div>
                     )}
                   </div>
@@ -1242,7 +1244,7 @@ export default function WorkloadPage() {
           {viewMode === 'week' && (
             <>
               <div className="grid grid-cols-7 gap-1 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                {[t('workload.sun'), t('workload.mon'), t('workload.tue'), t('workload.wed'), t('workload.thu'), t('workload.fri'), t('workload.sat')].map((day) => (
                   <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
                     {day}
                   </div>
@@ -1269,7 +1271,7 @@ export default function WorkloadPage() {
                           <button
                             onClick={() => handleOpenAddActualModal(dateKey)}
                             className="text-primary-600 hover:text-primary-800 p-1"
-                            aria-label={`Add hours for ${dateKey}`}
+                            aria-label={t('workload.addHoursFor', { date: dateKey })}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1281,9 +1283,9 @@ export default function WorkloadPage() {
                         <div
                           className="text-xs bg-green-100 text-green-800 p-1 rounded cursor-pointer hover:bg-green-200 transition-colors"
                           onClick={() => handleViewActualEntry(dayActual)}
-                          title="Click to view details"
+                          title={t('common.clickToViewDetails')}
                         >
-                          <div className="font-medium">{dayActual.hoursWorked}h</div>
+                          <div className="font-medium">{dayActual.hoursWorked}{t('workload.hours')}</div>
                         </div>
                       )}
                     </div>
@@ -1297,7 +1299,7 @@ export default function WorkloadPage() {
           {viewMode === 'month' && (
             <>
               <div className="grid grid-cols-7 gap-1 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                {[t('workload.sun'), t('workload.mon'), t('workload.tue'), t('workload.wed'), t('workload.thu'), t('workload.fri'), t('workload.sat')].map((day) => (
                   <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
                     {day}
                   </div>
@@ -1330,7 +1332,7 @@ export default function WorkloadPage() {
                           <button
                             onClick={() => handleOpenAddActualModal(dateKey)}
                             className="text-primary-600 hover:text-primary-800 p-1"
-                            aria-label={`Add hours for ${dateKey}`}
+                            aria-label={t('workload.addHoursFor', { date: dateKey })}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1342,14 +1344,14 @@ export default function WorkloadPage() {
                         <div
                           className="text-xs bg-green-100 text-green-800 p-1 rounded cursor-pointer hover:bg-green-200 transition-colors"
                           onClick={() => handleViewActualEntry(dayActual)}
-                          title="Click to view details"
+                          title={t('common.clickToViewDetails')}
                         >
-                          <div className="font-medium">{dayActual.hoursWorked}h worked</div>
+                          <div className="font-medium">{dayActual.hoursWorked}{t('workload.hoursWorked')}</div>
                           {dayActual.distributions && dayActual.distributions.length > 0 && (
                             <div className="text-green-600 mt-1">
                               {dayActual.distributions.map((d, i) => (
                                 <div key={i} className="truncate">
-                                  {d.hours}h - {d.project.name}
+                                  {d.hours}{t('workload.hours')} - {d.project.name}
                                 </div>
                               ))}
                             </div>
@@ -1371,7 +1373,7 @@ export default function WorkloadPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Add Workload Plan</h2>
+              <h2 className="text-lg font-semibold">{t('workload.addPlanned')}</h2>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -1384,7 +1386,7 @@ export default function WorkloadPage() {
             <div className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date
+                  {t('workload.date')}
                 </label>
                 <input
                   type="text"
@@ -1395,14 +1397,14 @@ export default function WorkloadPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Employee *
+                  {t('workload.employee')} *
                 </label>
                 <select
                   value={newPlanEmployee}
                   onChange={(e) => setNewPlanEmployee(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="">Select Employee</option>
+                  <option value="">{t('workload.selectEmployee')}</option>
                   {getAvailableEmployeesForDate(selectedDate).map((employee) => (
                     <option key={employee.id} value={employee.id}>
                       {employee.firstName} {employee.lastName}
@@ -1411,20 +1413,20 @@ export default function WorkloadPage() {
                 </select>
                 {getAvailableEmployeesForDate(selectedDate).length === 0 && (
                   <p className="text-sm text-amber-600 mt-1">
-                    All employees are already assigned work for this date
+                    {t('workload.allEmployeesAssigned')}
                   </p>
                 )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Project *
+                  {t('workload.project')} *
                 </label>
                 <select
                   value={newPlanProject}
                   onChange={(e) => setNewPlanProject(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="">Select Project</option>
+                  <option value="">{t('workload.selectProject')}</option>
                   {projects.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
@@ -1438,14 +1440,14 @@ export default function WorkloadPage() {
                 onClick={() => setShowAddModal(false)}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleCreateWorkloadPlan}
                 disabled={isSubmitting}
                 className="btn-primary"
               >
-                {isSubmitting ? 'Creating...' : 'Create'}
+                {isSubmitting ? t('common.creating') : t('common.create')}
               </button>
             </div>
           </div>
@@ -1457,7 +1459,7 @@ export default function WorkloadPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Edit Workload Plan</h2>
+              <h2 className="text-lg font-semibold">{t('workload.editPlanned')}</h2>
               <button
                 onClick={() => setShowEditModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -1470,7 +1472,7 @@ export default function WorkloadPage() {
             <div className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date
+                  {t('workload.date')}
                 </label>
                 <input
                   type="text"
@@ -1481,7 +1483,7 @@ export default function WorkloadPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Employee
+                  {t('workload.employee')}
                 </label>
                 <input
                   type="text"
@@ -1492,14 +1494,14 @@ export default function WorkloadPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Project *
+                  {t('workload.project')} *
                 </label>
                 <select
                   value={editPlanProject}
                   onChange={(e) => setEditPlanProject(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="">Select Project</option>
+                  <option value="">{t('workload.selectProject')}</option>
                   {projects.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
@@ -1513,14 +1515,14 @@ export default function WorkloadPage() {
                 onClick={() => setShowEditModal(false)}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleUpdateWorkloadPlan}
                 disabled={isSubmitting}
                 className="btn-primary"
               >
-                {isSubmitting ? 'Saving...' : 'Save'}
+                {isSubmitting ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>
@@ -1532,7 +1534,7 @@ export default function WorkloadPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Log Hours</h2>
+              <h2 className="text-lg font-semibold">{t('workload.logHours')}</h2>
               <button
                 onClick={() => setShowAddActualModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -1545,7 +1547,7 @@ export default function WorkloadPage() {
             <div className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date
+                  {t('workload.date')}
                 </label>
                 <input
                   type="text"
@@ -1556,7 +1558,7 @@ export default function WorkloadPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Total Hours Worked *
+                  {t('workload.totalHours')} *
                 </label>
                 <input
                   type="number"
@@ -1570,14 +1572,14 @@ export default function WorkloadPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (Optional)
+                  {t('workload.notes')} ({t('common.optional')})
                 </label>
                 <textarea
                   value={actualNotes}
                   onChange={(e) => setActualNotes(e.target.value)}
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="What did you work on today?"
+                  placeholder={t('workload.notesPlaceholder')}
                 />
               </div>
 
@@ -1585,28 +1587,28 @@ export default function WorkloadPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Distribute to Projects
+                    {t('workload.distributeToProjects')}
                   </label>
                   <button
                     type="button"
                     onClick={handleAddDistribution}
                     className="text-primary-600 hover:text-primary-800 text-sm font-medium"
                   >
-                    + Add Project
+                    + {t('workload.addProject')}
                   </button>
                 </div>
                 <div className="space-y-3">
                   {actualDistributions.map((dist, index) => (
                     <div key={index} className="border border-gray-200 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-600">Project {index + 1}</span>
+                        <span className="text-sm font-medium text-gray-600">{t('workload.project')} {index + 1}</span>
                         {actualDistributions.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveDistribution(index)}
                             className="text-red-600 hover:text-red-800 text-xs"
                           >
-                            Remove
+                            {t('common.remove')}
                           </button>
                         )}
                       </div>
@@ -1616,7 +1618,7 @@ export default function WorkloadPage() {
                           onChange={(e) => handleDistributionChange(index, 'projectId', e.target.value)}
                           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         >
-                          <option value="">Select Project</option>
+                          <option value="">{t('workload.selectProject')}</option>
                           {projects.map((project) => (
                             <option key={project.id} value={project.id}>
                               {project.name}
@@ -1627,7 +1629,7 @@ export default function WorkloadPage() {
                           type="number"
                           min="0"
                           step="0.5"
-                          placeholder="Hours"
+                          placeholder={t('workload.hours')}
                           value={dist.hours}
                           onChange={(e) => handleDistributionChange(index, 'hours', e.target.value)}
                           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -1635,7 +1637,7 @@ export default function WorkloadPage() {
                       </div>
                       <input
                         type="text"
-                        placeholder="Description (optional)"
+                        placeholder={t('workload.descriptionOptional')}
                         value={dist.description}
                         onChange={(e) => handleDistributionChange(index, 'description', e.target.value)}
                         className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -1650,14 +1652,14 @@ export default function WorkloadPage() {
                 onClick={() => setShowAddActualModal(false)}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleCreateActualHours}
                 disabled={isSubmitting}
                 className="btn-primary"
               >
-                {isSubmitting ? 'Saving...' : 'Log Hours'}
+                {isSubmitting ? t('common.saving') : t('workload.logHours')}
               </button>
             </div>
           </div>
@@ -1670,7 +1672,7 @@ export default function WorkloadPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold">
-                Work Assignments for {new Date(dateEmployeesModalDate).toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                {t('workload.workAssignmentsFor', { date: new Date(dateEmployeesModalDate).toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) })}
               </h2>
               <button
                 onClick={() => setShowDateEmployeesModal(false)}
@@ -1684,7 +1686,7 @@ export default function WorkloadPage() {
             <div className="p-4">
               {getEmployeesForDate(dateEmployeesModalDate).length === 0 ? (
                 <div className="text-gray-500 text-center py-8">
-                  No employees assigned for this date
+                  {t('workload.noEmployeesAssigned')}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1710,7 +1712,7 @@ export default function WorkloadPage() {
                                 handleOpenEditModal(plan, dateEmployeesModalDate);
                               }}
                               className="text-primary-600 hover:text-primary-800 p-2"
-                              title="Edit"
+                              title={t('common.edit')}
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1722,7 +1724,7 @@ export default function WorkloadPage() {
                                 setShowDateEmployeesModal(false);
                               }}
                               className="text-red-600 hover:text-red-800 p-2"
-                              title="Delete"
+                              title={t('common.delete')}
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1738,13 +1740,13 @@ export default function WorkloadPage() {
             </div>
             <div className="flex justify-between items-center p-4 border-t">
               <div className="text-sm text-gray-500">
-                {getEmployeesForDate(dateEmployeesModalDate).length} employee(s) assigned
+                {t('workload.employeesAssignedCount', { count: getEmployeesForDate(dateEmployeesModalDate).length })}
               </div>
               <button
                 onClick={() => setShowDateEmployeesModal(false)}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -1757,7 +1759,7 @@ export default function WorkloadPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold">
-                Work Report - {new Date(viewingActualEntry.date).toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                {t('workload.workReport')} - {new Date(viewingActualEntry.date).toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </h2>
               <button
                 onClick={() => setShowViewActualModal(false)}
@@ -1771,14 +1773,14 @@ export default function WorkloadPage() {
             <div className="p-4">
               {/* Total Hours */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <div className="text-sm text-green-600 mb-1">Total Hours Worked</div>
-                <div className="text-3xl font-bold text-green-800">{viewingActualEntry.hoursWorked}h</div>
+                <div className="text-sm text-green-600 mb-1">{t('workload.totalHoursWorked')}</div>
+                <div className="text-3xl font-bold text-green-800">{viewingActualEntry.hoursWorked}{t('workload.hours')}</div>
               </div>
 
               {/* Notes */}
               {viewingActualEntry.userText && (
                 <div className="mb-4">
-                  <div className="text-sm font-medium text-gray-700 mb-2">Notes</div>
+                  <div className="text-sm font-medium text-gray-700 mb-2">{t('workload.notes')}</div>
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-600">
                     {viewingActualEntry.userText}
                   </div>
@@ -1788,7 +1790,7 @@ export default function WorkloadPage() {
               {/* Project Distributions */}
               {viewingActualEntry.distributions && viewingActualEntry.distributions.length > 0 && (
                 <div>
-                  <div className="text-sm font-medium text-gray-700 mb-2">Project Distribution</div>
+                  <div className="text-sm font-medium text-gray-700 mb-2">{t('workload.projectDistribution')}</div>
                   <div className="space-y-2">
                     {viewingActualEntry.distributions.map((dist, index) => (
                       <div
@@ -1797,7 +1799,7 @@ export default function WorkloadPage() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-medium text-gray-900">{dist.project.name}</div>
-                          <div className="text-primary-700 font-semibold">{dist.hours}h</div>
+                          <div className="text-primary-700 font-semibold">{dist.hours}{t('workload.hours')}</div>
                         </div>
                         {dist.description && (
                           <div className="text-sm text-gray-500 mt-1">{dist.description}</div>
@@ -1811,7 +1813,7 @@ export default function WorkloadPage() {
               {/* No distributions message */}
               {(!viewingActualEntry.distributions || viewingActualEntry.distributions.length === 0) && !viewingActualEntry.userText && (
                 <div className="text-gray-500 text-center py-4">
-                  No additional details for this report
+                  {t('workload.noAdditionalDetails')}
                 </div>
               )}
             </div>
@@ -1820,7 +1822,7 @@ export default function WorkloadPage() {
                 onClick={() => setShowViewActualModal(false)}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>

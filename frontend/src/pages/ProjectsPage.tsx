@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '@/store';
 import { api } from '@/services/auth.service';
 import toast from 'react-hot-toast';
@@ -72,6 +73,7 @@ const DEFAULT_PROJECT_FORM: NewProjectForm = {
 };
 
 export default function ProjectsPage() {
+  const { t } = useTranslation();
   const { user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -222,7 +224,7 @@ export default function ProjectsPage() {
       const response = await api.get<Project[]>('/project');
       setProjects(response.data);
     } catch (error) {
-      toast.error('Failed to load projects');
+      toast.error(t('projects.loadError'));
     } finally {
       setLoading(false);
     }
@@ -379,11 +381,11 @@ export default function ProjectsPage() {
         contractDate: editForm.contractDate,
         expirationDate: editForm.expirationDate,
       });
-      toast.success('Project updated successfully');
+      toast.success(t('projects.updateSuccess'));
       fetchProjects();
       handleCloseModal();
     } catch (error) {
-      toast.error('Failed to update project');
+      toast.error(t('projects.updateError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -484,7 +486,7 @@ export default function ProjectsPage() {
 
   const handleCreateProject = async () => {
     if (!validateForm()) {
-      toast.error('Please fill in all required fields');
+      toast.error(t('projects.fillRequiredFields'));
       return;
     }
 
@@ -499,11 +501,11 @@ export default function ProjectsPage() {
         type: newProject.type,
         ...(newProject.type === 'additional' && newProject.mainProjectId && { mainProjectId: newProject.mainProjectId }),
       });
-      toast.success('Project created successfully');
+      toast.success(t('projects.createSuccess'));
       fetchProjects();
       handleCloseAddModal();
     } catch (error) {
-      toast.error('Failed to create project');
+      toast.error(t('projects.createError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -514,11 +516,11 @@ export default function ProjectsPage() {
     setIsDeleting(true);
     try {
       await api.delete(`/project/${deletingProject.id}`);
-      toast.success('Project deleted successfully');
+      toast.success(t('projects.deleteSuccess'));
       fetchProjects();
       handleCloseDeleteModal();
     } catch (error) {
-      toast.error('Failed to delete project');
+      toast.error(t('projects.deleteError'));
     } finally {
       setIsDeleting(false);
     }
@@ -527,8 +529,8 @@ export default function ProjectsPage() {
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="page-title">Projects</h1>
-        {canEdit && <button onClick={handleOpenAddModal} className="btn-primary">Add Project</button>}
+        <h1 className="page-title">{t('projects.title')}</h1>
+        {canEdit && <button onClick={handleOpenAddModal} className="btn-primary">{t('projects.addProject')}</button>}
       </div>
 
       {/* Filters */}
@@ -536,11 +538,11 @@ export default function ProjectsPage() {
         <div className="relative">
           <input
             type="text"
-            placeholder="Search projects..."
+            placeholder={t('projects.searchProjects')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-64 px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-            aria-label="Search projects"
+            aria-label={t('projects.searchProjects')}
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -549,7 +551,7 @@ export default function ProjectsPage() {
             <button
               onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              aria-label="Clear search"
+              aria-label={t('projects.clearSearch')}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -557,20 +559,20 @@ export default function ProjectsPage() {
             </button>
           )}
         </div>
-        <label className="text-sm font-medium text-gray-700">Status:</label>
+        <label className="text-sm font-medium text-gray-700">{t('common.status')}:</label>
         <select
           value={statusFilter}
           onChange={(e) => handleFilterChange(e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-          aria-label="Filter by status"
+          aria-label={t('projects.filterByStatus')}
         >
-          <option value="All">All</option>
-          <option value="Active">Active</option>
-          <option value="Completed">Completed</option>
+          <option value="All">{t('common.all')}</option>
+          <option value="Active">{t('projects.active')}</option>
+          <option value="Completed">{t('projects.completed')}</option>
         </select>
         {(statusFilter !== 'All' || searchQuery) && (
           <span className="text-sm text-gray-500">
-            Showing {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''}
+            {t('projects.showingProjects', { count: filteredProjects.length })}
           </span>
         )}
       </div>
@@ -584,17 +586,17 @@ export default function ProjectsPage() {
           <div className="text-center py-12">
             <p className="text-gray-500">
               {searchQuery
-                ? `No projects found matching "${searchQuery}"`
+                ? t('projects.noProjectsMatchingSearch', { query: searchQuery })
                 : statusFilter !== 'All'
-                  ? `No ${statusFilter.toLowerCase()} projects found`
-                  : 'No projects found'}
+                  ? t('projects.noProjectsWithStatus', { status: statusFilter === 'Active' ? t('projects.active').toLowerCase() : t('projects.completed').toLowerCase() })
+                  : t('projects.noProjects')}
             </p>
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
                 className="mt-4 text-primary-600 hover:text-primary-800 text-sm font-medium"
               >
-                Clear search
+                {t('projects.clearSearch')}
               </button>
             )}
           </div>
@@ -607,33 +609,33 @@ export default function ProjectsPage() {
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('name')}
                   >
-                    <span className="flex items-center">Name{getSortIcon('name')}</span>
+                    <span className="flex items-center">{t('projects.projectName')}{getSortIcon('name')}</span>
                   </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('customer')}
                   >
-                    <span className="flex items-center">Customer{getSortIcon('customer')}</span>
+                    <span className="flex items-center">{t('projects.customer')}{getSortIcon('customer')}</span>
                   </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('manager')}
                   >
-                    <span className="flex items-center">Manager{getSortIcon('manager')}</span>
+                    <span className="flex items-center">{t('projects.manager')}{getSortIcon('manager')}</span>
                   </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('contractDate')}
                   >
-                    <span className="flex items-center">Contract Date{getSortIcon('contractDate')}</span>
+                    <span className="flex items-center">{t('projects.contractDate')}{getSortIcon('contractDate')}</span>
                   </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('status')}
                   >
-                    <span className="flex items-center">Status{getSortIcon('status')}</span>
+                    <span className="flex items-center">{t('common.status')}{getSortIcon('status')}</span>
                   </th>
-                  {canEdit && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
+                  {canEdit && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -645,18 +647,18 @@ export default function ProjectsPage() {
                   >
                     <td className="px-4 py-4 whitespace-nowrap max-w-xs">
                       <div className="font-medium text-gray-900 truncate">{project.name}</div>
-                      <div className="text-sm text-gray-500">{project._count.constructions} constructions</div>
+                      <div className="text-sm text-gray-500">{t('projects.constructionsCount', { count: project._count.constructions })}</div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-gray-600">{project.customer?.name || 'N/A'}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-600">{project.customer?.name || t('common.na')}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-gray-600">
-                      {project.manager ? `${project.manager.firstName} ${project.manager.lastName}` : 'N/A'}
+                      {project.manager ? `${project.manager.firstName} ${project.manager.lastName}` : t('common.na')}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-gray-600">{formatDate(project.contractDate)}</td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         project.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {project.status}
+                        {project.status === 'Active' ? t('projects.active') : t('projects.completed')}
                       </span>
                     </td>
                     {canEdit && (
@@ -665,14 +667,14 @@ export default function ProjectsPage() {
                           onClick={(e) => handleEdit(e, project)}
                           className="text-primary-600 hover:text-primary-800 text-sm font-medium"
                         >
-                          Edit
+                          {t('common.edit')}
                         </button>
                         {isAdmin && (
                           <button
                             onClick={(e) => handleDelete(e, project)}
                             className="text-red-600 hover:text-red-800 text-sm font-medium"
                           >
-                            Delete
+                            {t('common.delete')}
                           </button>
                         )}
                       </td>
@@ -688,7 +690,7 @@ export default function ProjectsPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
             <div className="text-sm text-gray-500">
-              Page {currentPage} of {totalPages}
+              {t('projects.pageOf', { current: currentPage, total: totalPages })}
             </div>
             <div className="flex gap-2">
               <button
@@ -696,7 +698,7 @@ export default function ProjectsPage() {
                 disabled={currentPage === 1}
                 className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('common.previous')}
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
@@ -716,7 +718,7 @@ export default function ProjectsPage() {
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
           </div>
@@ -728,7 +730,7 @@ export default function ProjectsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Edit Project</h2>
+              <h2 className="text-lg font-semibold">{t('projects.editProject')}</h2>
               <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -737,7 +739,7 @@ export default function ProjectsPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.projectName')}</label>
                 <input
                   type="text"
                   value={editForm.name}
@@ -746,18 +748,18 @@ export default function ProjectsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.status')}</label>
                 <select
                   value={editForm.status}
                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
-                  <option value="Active">Active</option>
-                  <option value="Completed">Completed</option>
+                  <option value="Active">{t('projects.active')}</option>
+                  <option value="Completed">{t('projects.completed')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contract Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.contractDate')}</label>
                 <input
                   type="date"
                   value={editForm.contractDate}
@@ -766,7 +768,7 @@ export default function ProjectsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.expirationDate')}</label>
                 <input
                   type="date"
                   value={editForm.expirationDate}
@@ -777,14 +779,14 @@ export default function ProjectsPage() {
             </div>
             <div className="flex justify-end gap-3 p-4 border-t">
               <button onClick={handleCloseModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={isSubmitting}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
-                {isSubmitting ? 'Saving...' : 'Save Changes'}
+                {isSubmitting ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>
@@ -796,7 +798,7 @@ export default function ProjectsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold text-red-600">Delete Project</h2>
+              <h2 className="text-lg font-semibold text-red-600">{t('projects.deleteProject')}</h2>
               <button onClick={handleCloseDeleteModal} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -805,10 +807,10 @@ export default function ProjectsPage() {
             </div>
             <div className="p-4">
               <p className="text-gray-700">
-                Are you sure you want to delete the project <strong>{deletingProject.name}</strong>?
+                {t('projects.deleteConfirmMessage', { name: deletingProject.name })}
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                This action cannot be undone. All constructions and documents associated with this project will be permanently deleted.
+                {t('projects.deleteConfirmWarning')}
               </p>
             </div>
             <div className="flex justify-end gap-3 p-4 border-t">
@@ -817,14 +819,14 @@ export default function ProjectsPage() {
                 disabled={isDeleting}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={isDeleting}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
               >
-                {isDeleting ? 'Deleting...' : 'Delete Project'}
+                {isDeleting ? t('common.deleting') : t('projects.deleteProject')}
               </button>
             </div>
           </div>
@@ -836,7 +838,7 @@ export default function ProjectsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Add New Project</h2>
+              <h2 className="text-lg font-semibold">{t('projects.newProject')}</h2>
               <button onClick={handleCloseAddModalAttempt} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -845,10 +847,10 @@ export default function ProjectsPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Project Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.projectName')} *</label>
                 <input
                   type="text"
-                  placeholder="Enter project name"
+                  placeholder={t('projects.enterProjectName')}
                   value={newProject.name}
                   onChange={(e) => handleNewProjectChange('name', e.target.value)}
                   maxLength={200}
@@ -857,13 +859,13 @@ export default function ProjectsPage() {
                 {formErrors.name && <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.customer')} *</label>
                 <select
                   value={newProject.customerId}
                   onChange={(e) => handleNewProjectChange('customerId', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${formErrors.customerId ? 'border-red-500' : 'border-gray-300'}`}
                 >
-                  <option value="">Select a customer</option>
+                  <option value="">{t('projects.selectCustomer')}</option>
                   {companies.filter(c => c.type === 'Customer').map(company => (
                     <option key={company.id} value={company.id}>{company.name}</option>
                   ))}
@@ -871,13 +873,13 @@ export default function ProjectsPage() {
                 {formErrors.customerId && <p className="text-red-500 text-sm mt-1">{formErrors.customerId}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Manager *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.manager')} *</label>
                 <select
                   value={newProject.managerId}
                   onChange={(e) => handleNewProjectChange('managerId', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${formErrors.managerId ? 'border-red-500' : 'border-gray-300'}`}
                 >
-                  <option value="">Select a manager</option>
+                  <option value="">{t('projects.selectManager')}</option>
                   {users.map(user => (
                     <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>
                   ))}
@@ -885,7 +887,7 @@ export default function ProjectsPage() {
                 {formErrors.managerId && <p className="text-red-500 text-sm mt-1">{formErrors.managerId}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Project Type</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.projectType')}</label>
                 <select
                   value={newProject.type}
                   onChange={(e) => {
@@ -897,28 +899,28 @@ export default function ProjectsPage() {
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
-                  <option value="main">Main Project</option>
-                  <option value="additional">Additional (Supplementary)</option>
+                  <option value="main">{t('projects.mainProjectType')}</option>
+                  <option value="additional">{t('projects.additionalProjectType')}</option>
                 </select>
               </div>
               {newProject.type === 'additional' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Main Project (Link to)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.mainProjectLinkTo')}</label>
                   <select
                     value={newProject.mainProjectId}
                     onChange={(e) => handleNewProjectChange('mainProjectId', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    <option value="">Select a main project (optional)</option>
+                    <option value="">{t('projects.selectMainProjectOptional')}</option>
                     {projects.filter(p => p.type === 'main').map(project => (
                       <option key={project.id} value={project.id}>{project.name}</option>
                     ))}
                   </select>
-                  <p className="text-sm text-gray-500 mt-1">Link this additional project to a main project</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('projects.linkAdditionalToMain')}</p>
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contract Date *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.contractDate')} *</label>
                 <input
                   type="date"
                   value={newProject.contractDate}
@@ -928,7 +930,7 @@ export default function ProjectsPage() {
                 {formErrors.contractDate && <p className="text-red-500 text-sm mt-1">{formErrors.contractDate}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expiration Date *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.expirationDate')} *</label>
                 <input
                   type="date"
                   value={newProject.expirationDate}
@@ -944,18 +946,18 @@ export default function ProjectsPage() {
                 onClick={handleResetForm}
                 className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300"
               >
-                Reset
+                {t('common.reset')}
               </button>
               <div className="flex gap-3">
                 <button onClick={handleCloseAddModalAttempt} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleCreateProject}
                   disabled={isSubmitting}
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Creating...' : 'Create Project'}
+                  {isSubmitting ? t('common.creating') : t('projects.createProject')}
                 </button>
               </div>
             </div>
@@ -971,8 +973,8 @@ export default function ProjectsPage() {
           confirmNavigation();
         }}
         onCancel={cancelNavigation}
-        title="Unsaved Changes"
-        message="You have unsaved changes in the project form. Are you sure you want to leave? Your changes will be lost."
+        title={t('projects.unsavedChanges')}
+        message={t('projects.unsavedChangesLeaveMessage')}
       />
 
       {/* Close Confirmation Dialog - for modal close/cancel */}
@@ -980,8 +982,8 @@ export default function ProjectsPage() {
         isOpen={showCloseConfirmModal}
         onConfirm={handleCloseAddModal}
         onCancel={() => setShowCloseConfirmModal(false)}
-        title="Unsaved Changes"
-        message="You have unsaved changes in the project form. Are you sure you want to close? Your changes will be lost."
+        title={t('projects.unsavedChanges')}
+        message={t('projects.unsavedChangesCloseMessage')}
       />
     </div>
   );

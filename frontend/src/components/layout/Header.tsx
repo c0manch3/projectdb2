@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '@/store';
 
 interface HeaderProps {
@@ -5,6 +6,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
+  const { t } = useTranslation();
   const { user } = useAppSelector((state) => state.auth);
 
   return (
@@ -14,7 +16,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <button
           onClick={onMenuClick}
           className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100"
-          aria-label="Open menu"
+          aria-label={t('navigation.menu')}
         >
           <svg
             className="w-6 h-6"
@@ -36,7 +38,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <div className="relative w-full">
             <input
               type="search"
-              placeholder="Search..."
+              placeholder={t('common.search') + '...'}
               className="input pl-10"
             />
             <svg
@@ -60,7 +62,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {/* Notifications */}
           <button
             className="p-2 rounded-lg hover:bg-gray-100"
-            aria-label="Notifications"
+            aria-label={t('common.notifications')}
           >
             <svg
               className="w-6 h-6 text-gray-600"

@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { logout } from '@/store/slices/authSlice';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChangesWarning';
@@ -8,15 +9,16 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const navigation = [
-  { name: 'Projects', href: '/projects', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
-  { name: 'Employees', href: '/employees', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', roles: ['Admin', 'Manager'] },
-  { name: 'Companies', href: '/companies', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', roles: ['Admin', 'Manager'] },
-  { name: 'Workload', href: '/workload', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-  { name: 'Analytics', href: '/analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', roles: ['Admin', 'Manager', 'Trial'] },
+const navigationItems = [
+  { key: 'projects', href: '/projects', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
+  { key: 'employees', href: '/employees', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', roles: ['Admin', 'Manager'] },
+  { key: 'companies', href: '/companies', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', roles: ['Admin', 'Manager'] },
+  { key: 'workload', href: '/workload', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+  { key: 'analytics', href: '/analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', roles: ['Admin', 'Manager', 'Trial'] },
 ];
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { t } = useTranslation();
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -35,7 +37,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
   };
 
-  const filteredNavigation = navigation.filter(
+  const filteredNavigation = navigationItems.filter(
     (item) => !item.roles || (user && item.roles.includes(user.role))
   );
 
@@ -65,7 +67,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
             {filteredNavigation.map((item) => (
               <NavLink
-                key={item.name}
+                key={item.key}
                 to={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
                 className={({ isActive }) =>
@@ -89,7 +91,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     d={item.icon}
                   />
                 </svg>
-                {item.name}
+                {t(`navigation.${item.key}`)}
               </NavLink>
             ))}
           </nav>
@@ -133,7 +135,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                 />
               </svg>
-              Logout
+              {t('auth.logout')}
             </button>
           </div>
         </div>

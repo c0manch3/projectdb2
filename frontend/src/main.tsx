@@ -8,6 +8,7 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { store } from './store';
 import { UnsavedChangesProvider } from './hooks/useUnsavedChangesWarning';
+import './i18n/config'; // Initialize i18n
 import './styles/index.css';
 
 const queryClient = new QueryClient({

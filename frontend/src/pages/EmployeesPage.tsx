@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '@/store';
 import { api } from '@/services/auth.service';
 import toast from 'react-hot-toast';
@@ -36,6 +37,7 @@ interface EditEmployeeForm {
 }
 
 export default function EmployeesPage() {
+  const { t } = useTranslation();
   const { user } = useAppSelector((state) => state.auth);
   const isAdmin = user?.role === 'Admin';
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -75,7 +77,7 @@ export default function EmployeesPage() {
       const response = await api.get<Employee[]>('/auth');
       setEmployees(response.data);
     } catch (error) {
-      toast.error('Failed to load employees');
+      toast.error(t('errors.somethingWentWrong'));
     } finally {
       setLoading(false);
     }
@@ -93,14 +95,14 @@ export default function EmployeesPage() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this employee?')) return;
+    if (!confirm(t('employees.confirmDelete') + '?')) return;
 
     try {
       await api.delete(`/auth/${id}`);
-      toast.success('Employee deleted successfully');
+      toast.success(t('employees.employeeDeleted'));
       fetchEmployees();
     } catch (error) {
-      toast.error('Failed to delete employee');
+      toast.error(t('errors.somethingWentWrong'));
     }
   };
 
@@ -151,26 +153,26 @@ export default function EmployeesPage() {
     setPhoneError('');
 
     if (!newEmployee.firstName.trim() || !newEmployee.lastName.trim()) {
-      toast.error('First name and last name are required');
+      toast.error(t('validation.required'));
       return;
     }
     if (!newEmployee.email.trim()) {
-      setEmailError('Email is required');
-      toast.error('Email is required');
+      setEmailError(t('validation.required'));
+      toast.error(t('validation.required'));
       return;
     }
     if (!isValidEmail(newEmployee.email)) {
-      setEmailError('Invalid email format');
-      toast.error('Invalid email format');
+      setEmailError(t('validation.email'));
+      toast.error(t('validation.email'));
       return;
     }
     if (!newEmployee.password.trim() || newEmployee.password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      toast.error(t('auth.passwordMinLength'));
       return;
     }
     if (newEmployee.phone && !isValidPhone(newEmployee.phone)) {
-      setPhoneError('Invalid phone format. Use numbers only with optional + prefix');
-      toast.error('Invalid phone format');
+      setPhoneError(t('validation.phone'));
+      toast.error(t('validation.phone'));
       return;
     }
     setIsSubmitting(true);
@@ -184,11 +186,11 @@ export default function EmployeesPage() {
         role: newEmployee.role,
         salary: newEmployee.salary ? parseFloat(newEmployee.salary) : undefined,
       });
-      toast.success('Employee created successfully');
+      toast.success(t('employees.employeeCreated'));
       fetchEmployees();
       handleCloseAddModal();
     } catch (error: any) {
-      let errorMessage = error.response?.data?.message || 'Failed to create employee';
+      let errorMessage = error.response?.data?.message || t('errors.somethingWentWrong');
       // Handle array of messages from backend validation
       if (Array.isArray(errorMessage)) {
         errorMessage = errorMessage.join(', ');
@@ -198,15 +200,15 @@ export default function EmployeesPage() {
       const lowerMessage = errorMessage.toLowerCase();
       if (lowerMessage.includes('already exists') || lowerMessage.includes('email must be an email')) {
         if (lowerMessage.includes('email')) {
-          setEmailError(lowerMessage.includes('already') ? 'This email is already registered' : 'Invalid email format');
+          setEmailError(t('validation.email'));
         }
         if (lowerMessage.includes('phone')) {
-          setPhoneError('This phone number is already registered');
+          setPhoneError(t('validation.phone'));
         }
         // If message says "email or phone", highlight both
         if (lowerMessage.includes('email or phone')) {
-          setEmailError('This email may already be registered');
-          setPhoneError('This phone number may already be registered');
+          setEmailError(t('validation.email'));
+          setPhoneError(t('validation.phone'));
         }
       }
     } finally {
@@ -248,7 +250,7 @@ export default function EmployeesPage() {
   const handleUpdateEmployee = async () => {
     if (!selectedEmployee) return;
     if (!editEmployee.firstName.trim() || !editEmployee.lastName.trim()) {
-      toast.error('First name and last name are required');
+      toast.error(t('validation.required'));
       return;
     }
     setIsSubmitting(true);
@@ -262,22 +264,37 @@ export default function EmployeesPage() {
         telegramId: editEmployee.telegramId || undefined,
         dateBirth: editEmployee.dateBirth ? new Date(editEmployee.dateBirth) : undefined,
       });
-      toast.success('Employee updated successfully');
+      toast.success(t('employees.employeeUpdated'));
       fetchEmployees();
       handleCloseEditModal();
       setSelectedEmployee(null);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update employee');
+      toast.error(error.response?.data?.message || t('errors.somethingWentWrong'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'Admin':
+        return t('employees.roleAdmin');
+      case 'Manager':
+        return t('employees.roleManager');
+      case 'Employee':
+        return t('employees.roleEmployee');
+      case 'Trial':
+        return t('employees.roleTrial');
+      default:
+        return role;
     }
   };
 
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="page-title">Employees</h1>
-        {isAdmin && <button className="btn-primary" onClick={handleOpenAddModal}>Add Employee</button>}
+        <h1 className="page-title">{t('employees.title')}</h1>
+        {isAdmin && <button className="btn-primary" onClick={handleOpenAddModal}>{t('employees.addEmployee')}</button>}
       </div>
 
       <div className="card">
@@ -286,17 +303,17 @@ export default function EmployeesPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           </div>
         ) : employees.length === 0 ? (
-          <p className="text-gray-500 text-center py-12">No employees found</p>
+          <p className="text-gray-500 text-center py-12">{t('employees.noEmployees')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  {isAdmin && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.name')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('employees.email')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('employees.phone')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('employees.role')}</th>
+                  {isAdmin && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -325,7 +342,7 @@ export default function EmployeesPage() {
                         employee.role === 'Employee' ? 'bg-green-100 text-green-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {employee.role}
+                        {getRoleLabel(employee.role)}
                       </span>
                     </td>
                     {isAdmin && (
@@ -335,7 +352,7 @@ export default function EmployeesPage() {
                           className="text-red-600 hover:text-red-800 text-sm font-medium"
                           disabled={employee.id === user?.id}
                         >
-                          Delete
+                          {t('common.delete')}
                         </button>
                       </td>
                     )}
@@ -352,7 +369,7 @@ export default function EmployeesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Employee Details</h2>
+              <h2 className="text-lg font-semibold">{t('common.view')}</h2>
               <button onClick={handleCloseDetailModal} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -376,38 +393,38 @@ export default function EmployeesPage() {
                     selectedEmployee.role === 'Employee' ? 'bg-green-100 text-green-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
-                    {selectedEmployee.role}
+                    {getRoleLabel(selectedEmployee.role)}
                   </span>
                 </div>
               </div>
               <dl className="space-y-3 pt-4 border-t">
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Email</dt>
+                  <dt className="text-gray-500">{t('employees.email')}</dt>
                   <dd className="text-gray-900">{selectedEmployee.email}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Phone</dt>
+                  <dt className="text-gray-500">{t('employees.phone')}</dt>
                   <dd className="text-gray-900">{selectedEmployee.phone}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Role</dt>
-                  <dd className="text-gray-900">{selectedEmployee.role}</dd>
+                  <dt className="text-gray-500">{t('employees.role')}</dt>
+                  <dd className="text-gray-900">{getRoleLabel(selectedEmployee.role)}</dd>
                 </div>
                 {selectedEmployee.salary !== undefined && selectedEmployee.salary !== null && (
                   <div className="flex justify-between">
-                    <dt className="text-gray-500">Salary</dt>
+                    <dt className="text-gray-500">{t('employees.salary')}</dt>
                     <dd className="text-gray-900">{selectedEmployee.salary.toFixed(2)}</dd>
                   </div>
                 )}
                 {selectedEmployee.telegramId && (
                   <div className="flex justify-between">
-                    <dt className="text-gray-500">Telegram ID</dt>
+                    <dt className="text-gray-500">{t('employees.telegramId')}</dt>
                     <dd className="text-gray-900">{selectedEmployee.telegramId}</dd>
                   </div>
                 )}
                 {selectedEmployee.dateBirth && (
                   <div className="flex justify-between">
-                    <dt className="text-gray-500">Birth Date</dt>
+                    <dt className="text-gray-500">{t('employees.birthDate')}</dt>
                     <dd className="text-gray-900">{new Date(selectedEmployee.dateBirth).toLocaleDateString()}</dd>
                   </div>
                 )}
@@ -416,11 +433,11 @@ export default function EmployeesPage() {
             <div className="flex justify-end gap-2 p-4 border-t">
               {isAdmin && (
                 <button onClick={handleOpenEditModal} className="btn-primary">
-                  Edit
+                  {t('common.edit')}
                 </button>
               )}
               <button onClick={handleCloseDetailModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -432,7 +449,7 @@ export default function EmployeesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Add New Employee</h2>
+              <h2 className="text-lg font-semibold">{t('employees.addEmployee')}</h2>
               <button onClick={handleCloseAddModal} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -442,28 +459,28 @@ export default function EmployeesPage() {
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.firstName')} *</label>
                   <input
                     type="text"
                     value={newEmployee.firstName}
                     onChange={(e) => setNewEmployee({ ...newEmployee, firstName: e.target.value })}
-                    placeholder="First name"
+                    placeholder={t('employees.firstNamePlaceholder')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.lastName')} *</label>
                   <input
                     type="text"
                     value={newEmployee.lastName}
                     onChange={(e) => setNewEmployee({ ...newEmployee, lastName: e.target.value })}
-                    placeholder="Last name"
+                    placeholder={t('employees.lastNamePlaceholder')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.email')} *</label>
                 <input
                   type="email"
                   value={newEmployee.email}
@@ -471,7 +488,7 @@ export default function EmployeesPage() {
                     setNewEmployee({ ...newEmployee, email: e.target.value });
                     if (emailError) setEmailError('');
                   }}
-                  placeholder="email@example.com"
+                  placeholder={t('employees.emailPlaceholder')}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                     emailError ? 'border-red-500 bg-red-50' : 'border-gray-300'
                   }`}
@@ -481,17 +498,17 @@ export default function EmployeesPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.password')} *</label>
                 <input
                   type="password"
                   value={newEmployee.password}
                   onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
-                  placeholder="Min 6 characters"
+                  placeholder={t('employees.passwordPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.phone')}</label>
                 <input
                   type="text"
                   value={newEmployee.phone}
@@ -499,7 +516,7 @@ export default function EmployeesPage() {
                     setNewEmployee({ ...newEmployee, phone: e.target.value });
                     if (phoneError) setPhoneError('');
                   }}
-                  placeholder="+1234567890"
+                  placeholder={t('employees.phonePlaceholder')}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                     phoneError ? 'border-red-500 bg-red-50' : 'border-gray-300'
                   }`}
@@ -509,40 +526,40 @@ export default function EmployeesPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.role')} *</label>
                 <select
                   value={newEmployee.role}
                   onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value as NewEmployeeForm['role'] })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="Employee">Employee</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Trial">Trial</option>
+                  <option value="Employee">{t('employees.roleEmployee')}</option>
+                  <option value="Manager">{t('employees.roleManager')}</option>
+                  <option value="Admin">{t('employees.roleAdmin')}</option>
+                  <option value="Trial">{t('employees.roleTrial')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Salary</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.salary')}</label>
                 <input
                   type="number"
                   step="0.01"
                   value={newEmployee.salary}
                   onChange={(e) => setNewEmployee({ ...newEmployee, salary: e.target.value })}
-                  placeholder="Enter salary"
+                  placeholder={t('employees.salaryPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={handleCloseAddModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleCreateEmployee}
                 disabled={isSubmitting}
                 className="btn-primary"
               >
-                {isSubmitting ? 'Creating...' : 'Create Employee'}
+                {isSubmitting ? t('common.loading') : t('common.create')}
               </button>
             </div>
           </div>
@@ -554,7 +571,7 @@ export default function EmployeesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Edit Employee</h2>
+              <h2 className="text-lg font-semibold">{t('employees.editEmployee')}</h2>
               <button onClick={handleCloseEditModal} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -564,72 +581,72 @@ export default function EmployeesPage() {
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.firstName')} *</label>
                   <input
                     type="text"
                     value={editEmployee.firstName}
                     onChange={(e) => setEditEmployee({ ...editEmployee, firstName: e.target.value })}
-                    placeholder="First name"
+                    placeholder={t('employees.firstNamePlaceholder')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.lastName')} *</label>
                   <input
                     type="text"
                     value={editEmployee.lastName}
                     onChange={(e) => setEditEmployee({ ...editEmployee, lastName: e.target.value })}
-                    placeholder="Last name"
+                    placeholder={t('employees.lastNamePlaceholder')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.phone')}</label>
                 <input
                   type="text"
                   value={editEmployee.phone}
                   onChange={(e) => setEditEmployee({ ...editEmployee, phone: e.target.value })}
-                  placeholder="+1234567890"
+                  placeholder={t('employees.phonePlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.role')} *</label>
                 <select
                   value={editEmployee.role}
                   onChange={(e) => setEditEmployee({ ...editEmployee, role: e.target.value as EditEmployeeForm['role'] })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="Employee">Employee</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Trial">Trial</option>
+                  <option value="Employee">{t('employees.roleEmployee')}</option>
+                  <option value="Manager">{t('employees.roleManager')}</option>
+                  <option value="Admin">{t('employees.roleAdmin')}</option>
+                  <option value="Trial">{t('employees.roleTrial')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Salary</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.salary')}</label>
                 <input
                   type="number"
                   step="0.01"
                   value={editEmployee.salary}
                   onChange={(e) => setEditEmployee({ ...editEmployee, salary: e.target.value })}
-                  placeholder="Enter salary"
+                  placeholder={t('employees.salaryPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telegram ID</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.telegramId')}</label>
                 <input
                   type="text"
                   value={editEmployee.telegramId}
                   onChange={(e) => setEditEmployee({ ...editEmployee, telegramId: e.target.value })}
-                  placeholder="@username or ID"
+                  placeholder="@username"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('employees.birthDate')}</label>
                 <input
                   type="date"
                   value={editEmployee.dateBirth}
@@ -640,14 +657,14 @@ export default function EmployeesPage() {
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={handleCloseEditModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleUpdateEmployee}
                 disabled={isSubmitting}
                 className="btn-primary"
               >
-                {isSubmitting ? 'Saving...' : 'Save Changes'}
+                {isSubmitting ? t('common.loading') : t('common.save')}
               </button>
             </div>
           </div>

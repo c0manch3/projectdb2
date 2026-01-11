@@ -56,8 +56,13 @@ export class AnalyticsService {
         0
       );
 
-      // Count unique employees assigned
-      const employeeCount = project.projectUsers.length;
+      // Count unique employees who have submitted workload reports for this project
+      const uniqueEmployeeIds = new Set(
+        project.workloadDistributions
+          .filter((dist) => dist.workloadActual?.userId)
+          .map((dist) => dist.workloadActual.userId)
+      );
+      const employeeCount = uniqueEmployeeIds.size;
 
       // Calculate progress (assuming 8 hours per planned day)
       const expectedHours = totalPlannedDays * 8;

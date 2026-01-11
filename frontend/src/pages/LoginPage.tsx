@@ -4,18 +4,21 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch } from '@/store';
 import { setCredentials } from '@/store/slices/authSlice';
 import { authService } from '@/services/auth.service';
 
-const loginSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
+const loginSchema = (t: (key: string) => string) =>
+  z.object({
+    email: z.string().email(t('auth.invalidEmail')),
+    password: z.string().min(8, t('auth.passwordMinLength')),
+  });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type LoginFormData = z.infer<ReturnType<typeof loginSchema>>;
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
@@ -26,7 +29,7 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(loginSchema(t)),
   });
 
   const onSubmit = async (data: LoginFormData) => {
@@ -40,12 +43,12 @@ export default function LoginPage() {
         })
       );
       localStorage.setItem('refreshToken', response.refreshToken);
-      toast.success('Login successful');
+      toast.success(t('auth.loginSuccess'));
       // Navigate to redirect URL or default to /projects
       const redirectUrl = searchParams.get('redirect');
       navigate(redirectUrl ? decodeURIComponent(redirectUrl) : '/projects');
     } catch (error) {
-      toast.error('Invalid email or password');
+      toast.error(t('auth.invalidCredentials'));
     } finally {
       setIsLoading(false);
     }
@@ -57,13 +60,13 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">ProjectDB</h1>
-            <p className="text-gray-600 mt-2">Sign in to your account</p>
+            <p className="text-gray-600 mt-2">{t('auth.loginSubtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <label htmlFor="email" className="label">
-                Email
+                {t('auth.email')}
               </label>
               <input
                 id="email"
@@ -80,14 +83,14 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="label">
-                Password
+                {t('auth.password')}
               </label>
               <input
                 id="password"
                 type="password"
                 autoComplete="current-password"
                 className={`input ${errors.password ? 'input-error' : ''}`}
-                placeholder="Enter your password"
+                placeholder={t('auth.passwordPlaceholder')}
                 {...register('password')}
               />
               {errors.password && (
@@ -122,10 +125,10 @@ export default function LoginPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Signing in...
+                  {t('auth.signingIn')}
                 </span>
               ) : (
-                'Sign In'
+                t('auth.loginButton')
               )}
             </button>
           </form>

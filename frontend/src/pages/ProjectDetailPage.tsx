@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/services/auth.service';
 import toast from 'react-hot-toast';
 import { useAppSelector } from '@/store';
@@ -124,6 +125,7 @@ interface Project {
 type TabType = 'overview' | 'constructions' | 'documents' | 'payments' | 'workload';
 
 export default function ProjectDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -205,7 +207,7 @@ export default function ProjectDetailPage() {
         const response = await api.get<Project>(`/project/${id}`);
         setProject(response.data);
       } catch (error) {
-        toast.error('Failed to load project');
+        toast.error(t('projects.loadError'));
       } finally {
         setLoading(false);
       }
@@ -239,14 +241,14 @@ export default function ProjectDetailPage() {
           const response = await api.get<PaymentSchedule[]>(`/payment-schedule?projectId=${id}`);
           setPayments(response.data);
         } catch (error) {
-          toast.error('Failed to load payments');
+          toast.error(t('payments.loadError'));
         } finally {
           setLoadingPayments(false);
         }
       }
     };
     fetchPayments();
-  }, [activeTab, id]);
+  }, [activeTab, id, t]);
 
   // Fetch workload when workload tab is active
   useEffect(() => {
@@ -257,14 +259,14 @@ export default function ProjectDetailPage() {
           const response = await api.get<ProjectWorkload>(`/project/${id}/workload/employees`);
           setProjectWorkload(response.data);
         } catch (error) {
-          toast.error('Failed to load workload data');
+          toast.error(t('workload.loadError'));
         } finally {
           setLoadingWorkload(false);
         }
       }
     };
     fetchWorkload();
-  }, [activeTab, id, canViewWorkload]);
+  }, [activeTab, id, canViewWorkload, t]);
 
   const openEmployeeReportsModal = (employee: EmployeeWorkload) => {
     setSelectedEmployeeWorkload(employee);
@@ -277,7 +279,7 @@ export default function ProjectDetailPage() {
     setAddingUser(true);
     try {
       await api.post(`/project/${id}/users/${selectedUserId}`);
-      toast.success('Team member added successfully');
+      toast.success(t('projects.teamMemberAdded'));
 
       // Refresh team data
       const [teamResponse, availableResponse] = await Promise.all([
@@ -288,7 +290,7 @@ export default function ProjectDetailPage() {
       setAvailableUsers(availableResponse.data);
       setSelectedUserId('');
     } catch (error) {
-      toast.error('Failed to add team member');
+      toast.error(t('projects.teamMemberAddError'));
     } finally {
       setAddingUser(false);
     }
@@ -299,7 +301,7 @@ export default function ProjectDetailPage() {
 
     try {
       await api.delete(`/project/${id}/users/${userId}`);
-      toast.success('Team member removed');
+      toast.success(t('projects.teamMemberRemoved'));
 
       // Refresh team data
       const [teamResponse, availableResponse] = await Promise.all([
@@ -309,7 +311,7 @@ export default function ProjectDetailPage() {
       setTeamMembers(teamResponse.data);
       setAvailableUsers(availableResponse.data);
     } catch (error) {
-      toast.error('Failed to remove team member');
+      toast.error(t('projects.teamMemberRemoveError'));
     }
   };
 
@@ -331,13 +333,13 @@ export default function ProjectDetailPage() {
 
     // Check if it's a blocked extension
     if (BLOCKED_EXTENSIONS.includes(extension)) {
-      toast.error(`File type "${extension}" is not allowed for security reasons.`);
+      toast.error(t('documents.fileTypeBlocked', { extension }));
       return false;
     }
 
     // Check if it's an allowed extension
     if (!ALLOWED_EXTENSIONS.includes(extension)) {
-      toast.error(`File type "${extension}" is not supported. Allowed types: PDF, Word, Excel, PowerPoint, images, and archives.`);
+      toast.error(t('documents.fileTypeNotSupported', { extension }));
       return false;
     }
 
@@ -356,7 +358,7 @@ export default function ProjectDetailPage() {
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        toast.error('File is too large. Maximum size is 50MB.');
+        toast.error(t('documents.fileTooLarge'));
         e.target.value = ''; // Reset the file input
         setSelectedFile(null);
         return;
@@ -391,7 +393,7 @@ export default function ProjectDetailPage() {
         },
       });
 
-      toast.success('Document uploaded successfully');
+      toast.success(t('documents.uploadSuccess'));
       setShowUploadModal(false);
       setSelectedFile(null);
       setDocType('project_documentation');
@@ -401,24 +403,24 @@ export default function ProjectDetailPage() {
       const response = await api.get<Project>(`/project/${id}`);
       setProject(response.data);
     } catch (error) {
-      toast.error('Failed to upload document');
+      toast.error(t('documents.uploadError'));
     } finally {
       setUploadingDoc(false);
     }
   };
 
   const handleDeleteDocument = async (docId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
+    if (!confirm(t('documents.deleteConfirm'))) return;
 
     try {
       await api.delete(`/document/${docId}`);
-      toast.success('Document deleted');
+      toast.success(t('documents.deleteSuccess'));
 
       // Refresh project to get updated documents
       const response = await api.get<Project>(`/project/${id}`);
       setProject(response.data);
     } catch (error) {
-      toast.error('Failed to delete document');
+      toast.error(t('documents.deleteError'));
     }
   };
 
@@ -434,7 +436,7 @@ export default function ProjectDetailPage() {
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        toast.error('File is too large. Maximum size is 50MB.');
+        toast.error(t('documents.fileTooLarge'));
         e.target.value = ''; // Reset the file input
         setReplaceFile(null);
         return;
@@ -463,7 +465,7 @@ export default function ProjectDetailPage() {
         },
       });
 
-      toast.success('Document replaced successfully. Version incremented.');
+      toast.success(t('documents.replaceSuccess'));
       setShowReplaceModal(false);
       setReplaceFile(null);
       setDocumentToReplace(null);
@@ -472,7 +474,7 @@ export default function ProjectDetailPage() {
       const response = await api.get<Project>(`/project/${id}`);
       setProject(response.data);
     } catch (error) {
-      toast.error('Failed to replace document');
+      toast.error(t('documents.replaceError'));
     } finally {
       setReplacingDoc(false);
     }
@@ -482,20 +484,20 @@ export default function ProjectDetailPage() {
     const errors: Record<string, string> = {};
 
     if (!paymentForm.name.trim()) {
-      errors.name = 'Payment name is required';
+      errors.name = t('payments.nameRequired');
     }
     if (!paymentForm.amount) {
-      errors.amount = 'Amount is required';
+      errors.amount = t('payments.amountRequired');
     } else if (parseFloat(paymentForm.amount) <= 0) {
-      errors.amount = 'Amount must be a positive number';
+      errors.amount = t('payments.amountPositive');
     }
     if (!paymentForm.expectedDate) {
-      errors.expectedDate = 'Expected date is required';
+      errors.expectedDate = t('payments.expectedDateRequired');
     }
 
     if (Object.keys(errors).length > 0) {
       setPaymentFormErrors(errors);
-      toast.error('Please fix the form errors');
+      toast.error(t('common.fixFormErrors'));
       return;
     }
 
@@ -514,7 +516,7 @@ export default function ProjectDetailPage() {
         description: paymentForm.description || undefined,
       });
 
-      toast.success('Payment added successfully');
+      toast.success(t('payments.addSuccess'));
       setShowAddPaymentModal(false);
       setPaymentForm({
         type: 'Advance',
@@ -529,33 +531,33 @@ export default function ProjectDetailPage() {
       const response = await api.get<PaymentSchedule[]>(`/payment-schedule?projectId=${id}`);
       setPayments(response.data);
     } catch (error) {
-      toast.error('Failed to add payment');
+      toast.error(t('payments.addError'));
     } finally {
       setSavingPayment(false);
     }
   };
 
   const handleDeletePayment = async (paymentId: string) => {
-    if (!confirm('Are you sure you want to delete this payment?')) return;
+    if (!confirm(t('payments.deleteConfirm'))) return;
 
     try {
       await api.delete(`/payment-schedule/${paymentId}`);
-      toast.success('Payment deleted');
+      toast.success(t('payments.deleteSuccess'));
       setPayments(payments.filter((p) => p.id !== paymentId));
     } catch (error) {
-      toast.error('Failed to delete payment');
+      toast.error(t('payments.deleteError'));
     }
   };
 
   const handleMarkPaid = async (paymentId: string) => {
     try {
       await api.patch(`/payment-schedule/${paymentId}/mark-paid`, {});
-      toast.success('Payment marked as paid');
+      toast.success(t('payments.markPaidSuccess'));
       // Refresh payments
       const response = await api.get<PaymentSchedule[]>(`/payment-schedule?projectId=${id}`);
       setPayments(response.data);
     } catch (error) {
-      toast.error('Failed to mark payment as paid');
+      toast.error(t('payments.markPaidError'));
     }
   };
 
@@ -581,7 +583,7 @@ export default function ProjectDetailPage() {
         name: newConstructionName,
         projectId: id,
       });
-      toast.success('Construction created successfully');
+      toast.success(t('constructions.createSuccess'));
       setShowAddConstructionModal(false);
       setNewConstructionName('');
 
@@ -589,7 +591,7 @@ export default function ProjectDetailPage() {
       const response = await api.get<Project>(`/project/${id}`);
       setProject(response.data);
     } catch (error) {
-      toast.error('Failed to create construction');
+      toast.error(t('constructions.createError'));
     } finally {
       setSavingConstruction(false);
     }
@@ -609,7 +611,7 @@ export default function ProjectDetailPage() {
       await api.patch(`/construction/${editingConstruction.id}`, {
         name: editConstructionName,
       });
-      toast.success('Construction updated successfully');
+      toast.success(t('constructions.updateSuccess'));
       setShowEditConstructionModal(false);
       setEditingConstruction(null);
       setEditConstructionName('');
@@ -618,24 +620,24 @@ export default function ProjectDetailPage() {
       const response = await api.get<Project>(`/project/${id}`);
       setProject(response.data);
     } catch (error) {
-      toast.error('Failed to update construction');
+      toast.error(t('constructions.updateError'));
     } finally {
       setSavingConstruction(false);
     }
   };
 
   const handleDeleteConstruction = async (constructionId: string) => {
-    if (!confirm('Are you sure you want to delete this construction? This will also delete all associated documents.')) return;
+    if (!confirm(t('constructions.deleteConfirm'))) return;
 
     try {
       await api.delete(`/construction/${constructionId}`);
-      toast.success('Construction deleted successfully');
+      toast.success(t('constructions.deleteSuccess'));
 
       // Refresh project to get updated constructions
       const response = await api.get<Project>(`/project/${id}`);
       setProject(response.data);
     } catch (error) {
-      toast.error('Failed to delete construction');
+      toast.error(t('constructions.deleteError'));
     }
   };
 
@@ -650,21 +652,21 @@ export default function ProjectDetailPage() {
   if (!project) {
     return (
       <div className="p-4 md:p-6">
-        <h1 className="page-title mb-6">Project Not Found</h1>
-        <p className="text-gray-500">The requested project could not be found.</p>
+        <h1 className="page-title mb-6">{t('projects.notFound')}</h1>
+        <p className="text-gray-500">{t('projects.notFoundDescription')}</p>
         <Link to="/projects" className="text-primary-600 hover:underline mt-4 inline-block">
-          Back to Projects
+          {t('projects.backToProjects')}
         </Link>
       </div>
     );
   }
 
   const tabs: { id: TabType; label: string }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'constructions', label: `Constructions (${project.constructions?.length || 0})` },
-    { id: 'documents', label: `Documents (${project.documents?.length || 0})` },
-    { id: 'payments', label: `Payments (${payments.length})` },
-    { id: 'workload', label: 'Workload' },
+    { id: 'overview', label: t('projects.overview') },
+    { id: 'constructions', label: `${t('constructions.title')} (${project.constructions?.length || 0})` },
+    { id: 'documents', label: `${t('documents.title')} (${project.documents?.length || 0})` },
+    { id: 'payments', label: `${t('payments.title')} (${payments.length})` },
+    { id: 'workload', label: t('workload.title') },
   ];
 
   return (
@@ -677,7 +679,7 @@ export default function ProjectDetailPage() {
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
               </svg>
-              Home
+              {t('common.home')}
             </Link>
           </li>
           <li>
@@ -686,7 +688,7 @@ export default function ProjectDetailPage() {
                 <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
               </svg>
               <Link to="/projects" className="ml-1 text-gray-500 hover:text-primary-600 md:ml-2">
-                Projects
+                {t('navigation.projects')}
               </Link>
             </div>
           </li>
@@ -729,28 +731,28 @@ export default function ProjectDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Project Info */}
           <div className="card p-6">
-            <h2 className="text-lg font-semibold mb-4">Project Information</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('projects.information')}</h2>
             <dl className="space-y-3">
               <div className="flex justify-between">
-                <dt className="text-gray-500">Status</dt>
+                <dt className="text-gray-500">{t('projects.status')}</dt>
                 <dd>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     project.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {project.status}
+                    {t(`projects.${project.status.toLowerCase()}`)}
                   </span>
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Type</dt>
+                <dt className="text-gray-500">{t('projects.type')}</dt>
                 <dd className="text-gray-900">{project.type}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Contract Date</dt>
+                <dt className="text-gray-500">{t('projects.contractDate')}</dt>
                 <dd className="text-gray-900">{formatDate(project.contractDate)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Expiration Date</dt>
+                <dt className="text-gray-500">{t('projects.expirationDate')}</dt>
                 <dd className="text-gray-900">{formatDate(project.expirationDate)}</dd>
               </div>
             </dl>
@@ -758,23 +760,23 @@ export default function ProjectDetailPage() {
 
           {/* Customer & Manager Info */}
           <div className="card p-6">
-            <h2 className="text-lg font-semibold mb-4">Customer & Manager</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('projects.customerAndManager')}</h2>
             <dl className="space-y-3">
               <div className="flex justify-between">
-                <dt className="text-gray-500">Customer</dt>
-                <dd className="text-gray-900">{project.customer?.name || 'N/A'}</dd>
+                <dt className="text-gray-500">{t('projects.customer')}</dt>
+                <dd className="text-gray-900">{project.customer?.name || t('common.na')}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Customer Type</dt>
-                <dd className="text-gray-900">{project.customer?.type || 'N/A'}</dd>
+                <dt className="text-gray-500">{t('projects.customerType')}</dt>
+                <dd className="text-gray-900">{project.customer?.type || t('common.na')}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Manager</dt>
-                <dd className="text-gray-900">{project.manager ? `${project.manager.firstName} ${project.manager.lastName}` : 'N/A'}</dd>
+                <dt className="text-gray-500">{t('projects.manager')}</dt>
+                <dd className="text-gray-900">{project.manager ? `${project.manager.firstName} ${project.manager.lastName}` : t('common.na')}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Manager Email</dt>
-                <dd className="text-gray-900">{project.manager?.email || 'N/A'}</dd>
+                <dt className="text-gray-500">{t('projects.managerEmail')}</dt>
+                <dd className="text-gray-900">{project.manager?.email || t('common.na')}</dd>
               </div>
             </dl>
           </div>
@@ -782,14 +784,14 @@ export default function ProjectDetailPage() {
           {/* Main Project Reference (for additional projects) */}
           {project.mainProject && (
             <div className="card p-6">
-              <h2 className="text-lg font-semibold mb-4">Main Project</h2>
-              <p className="text-gray-600 text-sm mb-3">This is an additional project linked to:</p>
+              <h2 className="text-lg font-semibold mb-4">{t('projects.mainProject')}</h2>
+              <p className="text-gray-600 text-sm mb-3">{t('projects.additionalProjectLinkedTo')}</p>
               <Link
                 to={`/projects/${project.mainProject.id}`}
                 className="block p-4 bg-primary-50 rounded-lg border border-primary-200 hover:bg-primary-100 transition-colors"
               >
                 <div className="font-medium text-primary-700">{project.mainProject.name}</div>
-                <div className="text-sm text-primary-600 mt-1">Click to view main project →</div>
+                <div className="text-sm text-primary-600 mt-1">{t('projects.clickToViewMainProject')}</div>
               </Link>
             </div>
           )}
@@ -797,8 +799,8 @@ export default function ProjectDetailPage() {
           {/* Additional Projects Section (for main projects) */}
           {project.additionalProjects && project.additionalProjects.length > 0 && (
             <div className="card p-6">
-              <h2 className="text-lg font-semibold mb-4">Additional Projects</h2>
-              <p className="text-gray-600 text-sm mb-3">Supplementary projects linked to this main project:</p>
+              <h2 className="text-lg font-semibold mb-4">{t('projects.additionalProjects')}</h2>
+              <p className="text-gray-600 text-sm mb-3">{t('projects.supplementaryProjectsLinked')}</p>
               <div className="space-y-2">
                 {project.additionalProjects.map((additionalProject) => (
                   <Link
@@ -811,7 +813,7 @@ export default function ProjectDetailPage() {
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         additionalProject.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {additionalProject.status}
+                        {t(`projects.${additionalProject.status.toLowerCase()}`)}
                       </span>
                     </div>
                   </Link>
@@ -825,13 +827,13 @@ export default function ProjectDetailPage() {
       {activeTab === 'constructions' && (
         <div className="card p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Constructions</h2>
+            <h2 className="text-lg font-semibold">{t('constructions.title')}</h2>
             {canManageConstructions && (
               <button
                 onClick={() => setShowAddConstructionModal(true)}
                 className="btn-primary"
               >
-                Add Construction
+                {t('constructions.add')}
               </button>
             )}
           </div>
@@ -840,10 +842,10 @@ export default function ProjectDetailPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('constructions.name')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('constructions.status')}</th>
                     {canManageConstructions && (
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.actions')}</th>
                     )}
                   </tr>
                 </thead>
@@ -855,7 +857,7 @@ export default function ProjectDetailPage() {
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                           construction.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {construction.status}
+                          {t(`constructions.${construction.status.toLowerCase()}`)}
                         </span>
                       </td>
                       {canManageConstructions && (
@@ -864,13 +866,13 @@ export default function ProjectDetailPage() {
                             onClick={() => openEditConstructionModal(construction)}
                             className="text-primary-600 hover:text-primary-800 text-sm font-medium"
                           >
-                            Edit
+                            {t('common.edit')}
                           </button>
                           <button
                             onClick={() => handleDeleteConstruction(construction.id)}
                             className="text-red-600 hover:text-red-800 text-sm font-medium"
                           >
-                            Delete
+                            {t('common.delete')}
                           </button>
                         </td>
                       )}
@@ -881,13 +883,13 @@ export default function ProjectDetailPage() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">No constructions associated with this project.</p>
+              <p className="text-gray-500 mb-4">{t('constructions.noConstructions')}</p>
               {canManageConstructions && (
                 <button
                   onClick={() => setShowAddConstructionModal(true)}
                   className="btn-primary"
                 >
-                  Add First Construction
+                  {t('constructions.addFirst')}
                 </button>
               )}
             </div>
@@ -898,22 +900,22 @@ export default function ProjectDetailPage() {
       {activeTab === 'documents' && (
         <div className="card p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Documents</h2>
+            <h2 className="text-lg font-semibold">{t('documents.title')}</h2>
             <div className="flex items-center gap-3">
               {project.documents && project.documents.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600">Filter by type:</label>
+                  <label className="text-sm text-gray-600">{t('documents.filterByType')}:</label>
                   <select
                     value={documentTypeFilter}
                     onChange={(e) => setDocumentTypeFilter(e.target.value)}
                     className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    aria-label="Filter documents by type"
+                    aria-label={t('documents.filterByType')}
                   >
-                    <option value="all">All Types</option>
-                    <option value="contract">Contract</option>
-                    <option value="tz">Technical Specification (TZ)</option>
-                    <option value="project_documentation">Project Documentation</option>
-                    <option value="working_documentation">Working Documentation</option>
+                    <option value="all">{t('documents.allTypes')}</option>
+                    <option value="contract">{t('documents.types.contract')}</option>
+                    <option value="tz">{t('documents.types.tz')}</option>
+                    <option value="project_documentation">{t('documents.types.projectDocumentation')}</option>
+                    <option value="working_documentation">{t('documents.types.workingDocumentation')}</option>
                   </select>
                 </div>
               )}
@@ -922,7 +924,7 @@ export default function ProjectDetailPage() {
                   onClick={() => setShowUploadModal(true)}
                   className="btn-primary"
                 >
-                  Upload Document
+                  {t('documents.upload')}
                 </button>
               )}
             </div>
@@ -937,12 +939,12 @@ export default function ProjectDetailPage() {
                 if (filteredDocs.length === 0) {
                   return (
                     <p className="text-gray-500 text-center py-4">
-                      No documents match the selected filter.
+                      {t('documents.noMatchingFilter')}
                       <button
                         onClick={() => setDocumentTypeFilter('all')}
                         className="ml-2 text-primary-600 hover:text-primary-800"
                       >
-                        Clear filter
+                        {t('documents.clearFilter')}
                       </button>
                     </p>
                   );
@@ -952,12 +954,12 @@ export default function ProjectDetailPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Uploaded By</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Upload Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('documents.name')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('documents.type')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('documents.version')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('documents.uploadedBy')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('documents.uploadDate')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -988,7 +990,7 @@ export default function ProjectDetailPage() {
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
-                          Download
+                          {t('documents.download')}
                         </a>
                         {canUploadDocs && (
                           <>
@@ -996,13 +998,13 @@ export default function ProjectDetailPage() {
                               onClick={() => openReplaceModal(doc)}
                               className="text-amber-600 hover:text-amber-800 text-sm font-medium"
                             >
-                              Replace
+                              {t('documents.replace')}
                             </button>
                             <button
                               onClick={() => handleDeleteDocument(doc.id)}
                               className="text-red-600 hover:text-red-800 text-sm font-medium"
                             >
-                              Delete
+                              {t('common.delete')}
                             </button>
                           </>
                         )}
@@ -1015,7 +1017,7 @@ export default function ProjectDetailPage() {
               })()}
             </div>
           ) : (
-            <p className="text-gray-500">No documents associated with this project.</p>
+            <p className="text-gray-500">{t('documents.noDocuments')}</p>
           )}
         </div>
       )}
@@ -1025,7 +1027,7 @@ export default function ProjectDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Upload Document</h2>
+              <h2 className="text-lg font-semibold">{t('documents.uploadDocument')}</h2>
               <button onClick={() => setShowUploadModal(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1034,48 +1036,48 @@ export default function ProjectDetailPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">File *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('documents.file')} *</label>
                 <input
                   type="file"
                   onChange={handleFileChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
                 {selectedFile && (
-                  <p className="text-sm text-gray-500 mt-1">Selected: {selectedFile.name}</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('documents.selected')}: {selectedFile.name}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Document Type *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('documents.documentType')} *</label>
                 <select
                   value={docType}
                   onChange={(e) => setDocType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="contract">Contract</option>
-                  <option value="tz">Technical Specification (TZ)</option>
-                  <option value="project_documentation">Project Documentation</option>
-                  <option value="working_documentation">Working Documentation</option>
+                  <option value="contract">{t('documents.types.contract')}</option>
+                  <option value="tz">{t('documents.types.tz')}</option>
+                  <option value="project_documentation">{t('documents.types.projectDocumentation')}</option>
+                  <option value="working_documentation">{t('documents.types.workingDocumentation')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Construction (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('documents.construction')} ({t('common.optional')})</label>
                 <select
                   value={selectedConstructionId}
                   onChange={(e) => setSelectedConstructionId(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="">None (Project level)</option>
+                  <option value="">{t('documents.noneProjectLevel')}</option>
                   {project?.constructions?.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
-                <p className="text-sm text-gray-500 mt-1">Optionally link this document to a specific construction</p>
+                <p className="text-sm text-gray-500 mt-1">{t('documents.optionallyLinkConstruction')}</p>
               </div>
             </div>
             {uploadingDoc && (
               <div className="px-4 pb-2">
                 <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-                  <span>Uploading...</span>
+                  <span>{t('documents.uploading')}...</span>
                   <span>{uploadProgress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -1088,14 +1090,14 @@ export default function ProjectDetailPage() {
             )}
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowUploadModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleUploadDocument}
                 disabled={uploadingDoc || !selectedFile}
                 className="btn-primary disabled:opacity-50"
               >
-                {uploadingDoc ? `Uploading ${uploadProgress}%` : 'Upload'}
+                {uploadingDoc ? `${t('documents.uploading')} ${uploadProgress}%` : t('documents.upload')}
               </button>
             </div>
           </div>
@@ -1107,7 +1109,7 @@ export default function ProjectDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Replace Document</h2>
+              <h2 className="text-lg font-semibold">{t('documents.replaceDocument')}</h2>
               <button onClick={() => setShowReplaceModal(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1117,37 +1119,37 @@ export default function ProjectDetailPage() {
             <div className="p-4 space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <p className="text-sm text-amber-800">
-                  <strong>Replacing:</strong> {documentToReplace.originalName}
+                  <strong>{t('documents.replacing')}:</strong> {documentToReplace.originalName}
                 </p>
                 <p className="text-sm text-amber-700 mt-1">
-                  Current version: <strong>v{documentToReplace.version}</strong> → New version: <strong>v{documentToReplace.version + 1}</strong>
+                  {t('documents.currentVersion')}: <strong>v{documentToReplace.version}</strong> → {t('documents.newVersion')}: <strong>v{documentToReplace.version + 1}</strong>
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">New File *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('documents.newFile')} *</label>
                 <input
                   type="file"
                   onChange={handleReplaceFileChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
                 {replaceFile && (
-                  <p className="text-sm text-gray-500 mt-1">Selected: {replaceFile.name}</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('documents.selected')}: {replaceFile.name}</p>
                 )}
               </div>
               <p className="text-sm text-gray-500">
-                The document type will remain as <strong>{documentToReplace.type}</strong>.
+                {t('documents.typeWillRemain')} <strong>{documentToReplace.type}</strong>.
               </p>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowReplaceModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleReplaceDocument}
                 disabled={replacingDoc || !replaceFile}
                 className="btn-primary disabled:opacity-50"
               >
-                {replacingDoc ? 'Replacing...' : 'Replace'}
+                {replacingDoc ? `${t('documents.replacing')}...` : t('documents.replace')}
               </button>
             </div>
           </div>
@@ -1157,13 +1159,13 @@ export default function ProjectDetailPage() {
       {activeTab === 'payments' && (
         <div className="card p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold">Payment Schedule</h2>
+            <h2 className="text-lg font-semibold">{t('payments.schedule')}</h2>
             {canManagePayments && (
               <button
                 onClick={() => setShowAddPaymentModal(true)}
                 className="btn-primary"
               >
-                Add Payment
+                {t('payments.add')}
               </button>
             )}
           </div>
@@ -1177,13 +1179,13 @@ export default function ProjectDetailPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expected Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('payments.name')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('payments.type')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('payments.amount')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('payments.expectedDate')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('payments.status')}</th>
                     {canManagePayments && (
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.actions')}</th>
                     )}
                   </tr>
                 </thead>
@@ -1205,7 +1207,7 @@ export default function ProjectDetailPage() {
                           payment.type === 'FinalPayment' ? 'bg-green-100 text-green-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {payment.type}
+                          {t(`payments.types.${payment.type.toLowerCase()}`)}
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
@@ -1219,21 +1221,21 @@ export default function ProjectDetailPage() {
                           {formatDate(payment.expectedDate)}
                         </div>
                         {payment.actualDate && (
-                          <div className="text-gray-500 text-sm">Paid: {formatDate(payment.actualDate)}</div>
+                          <div className="text-gray-500 text-sm">{t('payments.paid')}: {formatDate(payment.actualDate)}</div>
                         )}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         {payment.isPaid ? (
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                            Paid
+                            {t('payments.paid')}
                           </span>
                         ) : isOverdue(payment.expectedDate, payment.isPaid) ? (
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
-                            Overdue
+                            {t('payments.overdue')}
                           </span>
                         ) : (
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-                            Pending
+                            {t('payments.pending')}
                           </span>
                         )}
                       </td>
@@ -1244,14 +1246,14 @@ export default function ProjectDetailPage() {
                               onClick={() => handleMarkPaid(payment.id)}
                               className="text-green-600 hover:text-green-800 text-sm font-medium"
                             >
-                              Mark Paid
+                              {t('payments.markPaid')}
                             </button>
                           )}
                           <button
                             onClick={() => handleDeletePayment(payment.id)}
                             className="text-red-600 hover:text-red-800 text-sm font-medium"
                           >
-                            Delete
+                            {t('common.delete')}
                           </button>
                         </td>
                       )}
@@ -1263,13 +1265,13 @@ export default function ProjectDetailPage() {
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <div className="flex justify-end gap-8">
                   <div className="text-right">
-                    <div className="text-sm text-gray-500">Total Amount</div>
+                    <div className="text-sm text-gray-500">{t('payments.totalAmount')}</div>
                     <div className="text-lg font-semibold text-gray-900">
                       {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-gray-500">Total Percentage</div>
+                    <div className="text-sm text-gray-500">{t('payments.totalPercentage')}</div>
                     <div className="text-lg font-semibold text-gray-900">
                       {payments.reduce((sum, p) => sum + (p.percentage || 0), 0).toFixed(0)}%
                     </div>
@@ -1278,7 +1280,7 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No payments scheduled for this project yet.</p>
+            <p className="text-gray-500 text-center py-8">{t('payments.noPayments')}</p>
           )}
         </div>
       )}
@@ -1287,10 +1289,10 @@ export default function ProjectDetailPage() {
       {activeTab === 'workload' && canViewWorkload && (
         <div className="card p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold">Project Workload</h2>
+            <h2 className="text-lg font-semibold">{t('workload.projectWorkload')}</h2>
             {projectWorkload && (
               <div className="text-right">
-                <div className="text-sm text-gray-500">Total Project Hours</div>
+                <div className="text-sm text-gray-500">{t('workload.totalProjectHours')}</div>
                 <div className="text-2xl font-bold text-primary-600">
                   {projectWorkload.totalProjectHours.toFixed(1)}h
                 </div>
@@ -1307,11 +1309,11 @@ export default function ProjectDetailPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Hours</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reports Count</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('workload.employee')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('employees.email')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('workload.totalHours')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('workload.reportsCount')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -1334,14 +1336,14 @@ export default function ProjectDetailPage() {
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-gray-600">
-                        {employee.reports.length} report{employee.reports.length !== 1 ? 's' : ''}
+                        {employee.reports.length} {t('workload.reports', { count: employee.reports.length })}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <button
                           onClick={() => openEmployeeReportsModal(employee)}
                           className="text-primary-600 hover:text-primary-800 text-sm font-medium"
                         >
-                          View Reports
+                          {t('workload.viewReports')}
                         </button>
                       </td>
                     </tr>
@@ -1352,13 +1354,13 @@ export default function ProjectDetailPage() {
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <div className="flex justify-end gap-8">
                   <div className="text-right">
-                    <div className="text-sm text-gray-500">Employees</div>
+                    <div className="text-sm text-gray-500">{t('workload.employees')}</div>
                     <div className="text-lg font-semibold text-gray-900">
                       {projectWorkload.employeeCount}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-gray-500">Total Hours</div>
+                    <div className="text-sm text-gray-500">{t('workload.totalHours')}</div>
                     <div className="text-lg font-semibold text-primary-600">
                       {projectWorkload.totalProjectHours.toFixed(1)}h
                     </div>
@@ -1371,8 +1373,8 @@ export default function ProjectDetailPage() {
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-gray-500 mt-4">No workload reports have been submitted for this project yet.</p>
-              <p className="text-gray-400 text-sm mt-1">Employees can log their hours on the Workload page.</p>
+              <p className="text-gray-500 mt-4">{t('workload.noReportsYet')}</p>
+              <p className="text-gray-400 text-sm mt-1">{t('workload.employeesCanLog')}</p>
             </div>
           )}
         </div>
@@ -1384,7 +1386,7 @@ export default function ProjectDetailPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold">
-                Reports by {selectedEmployeeWorkload.user.firstName} {selectedEmployeeWorkload.user.lastName}
+                {t('workload.reportsByEmployee', { name: `${selectedEmployeeWorkload.user.firstName} ${selectedEmployeeWorkload.user.lastName}` })}
               </h2>
               <button onClick={() => setShowEmployeeReportsModal(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1397,13 +1399,13 @@ export default function ProjectDetailPage() {
               <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="text-sm text-primary-600">Total hours on this project</div>
+                    <div className="text-sm text-primary-600">{t('workload.totalHoursOnProject')}</div>
                     <div className="text-2xl font-bold text-primary-700">
-                      {selectedEmployeeWorkload.totalHours.toFixed(1)} hours
+                      {selectedEmployeeWorkload.totalHours.toFixed(1)} {t('workload.hours')}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-primary-600">Report entries</div>
+                    <div className="text-sm text-primary-600">{t('workload.reportEntries')}</div>
                     <div className="text-xl font-semibold text-primary-700">
                       {selectedEmployeeWorkload.reports.length}
                     </div>
@@ -1433,11 +1435,11 @@ export default function ProjectDetailPage() {
                     )}
                     {report.userText && (
                       <p className="text-gray-500 text-sm mt-2 italic">
-                        Day notes: {report.userText}
+                        {t('workload.dayNotes')}: {report.userText}
                       </p>
                     )}
                     <div className="text-xs text-gray-400 mt-2">
-                      Total day hours: {report.totalDayHours.toFixed(1)}h
+                      {t('workload.totalDayHours')}: {report.totalDayHours.toFixed(1)}h
                     </div>
                   </div>
                 ))}
@@ -1445,7 +1447,7 @@ export default function ProjectDetailPage() {
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowEmployeeReportsModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -1457,7 +1459,7 @@ export default function ProjectDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Add Payment</h2>
+              <h2 className="text-lg font-semibold">{t('payments.addPayment')}</h2>
               <button onClick={() => setShowAddPaymentModal(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1466,31 +1468,31 @@ export default function ProjectDetailPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Type *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.paymentType')} *</label>
                 <select
                   value={paymentForm.type}
                   onChange={(e) => setPaymentForm({ ...paymentForm, type: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="Advance">Advance</option>
-                  <option value="MainPayment">Main Payment</option>
-                  <option value="FinalPayment">Final Payment</option>
-                  <option value="Other">Other</option>
+                  <option value="Advance">{t('payments.types.advance')}</option>
+                  <option value="MainPayment">{t('payments.types.mainpayment')}</option>
+                  <option value="FinalPayment">{t('payments.types.finalpayment')}</option>
+                  <option value="Other">{t('payments.types.other')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.paymentName')} *</label>
                 <input
                   type="text"
                   value={paymentForm.name}
                   onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
-                  placeholder="e.g., First Milestone Payment"
+                  placeholder={t('payments.paymentNamePlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.amount')} ($) *</label>
                   <input
                     type="number"
                     value={paymentForm.amount}
@@ -1510,7 +1512,7 @@ export default function ProjectDetailPage() {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Percentage (%)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.percentage')} (%)</label>
                   <input
                     type="number"
                     value={paymentForm.percentage}
@@ -1524,7 +1526,7 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Date *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.expectedDate')} *</label>
                 <input
                   type="date"
                   value={paymentForm.expectedDate}
@@ -1533,11 +1535,11 @@ export default function ProjectDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.description')}</label>
                 <textarea
                   value={paymentForm.description}
                   onChange={(e) => setPaymentForm({ ...paymentForm, description: e.target.value })}
-                  placeholder="Optional description..."
+                  placeholder={t('payments.descriptionPlaceholder')}
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
@@ -1545,14 +1547,14 @@ export default function ProjectDetailPage() {
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowAddPaymentModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleAddPayment}
                 disabled={savingPayment || !paymentForm.name || !paymentForm.amount || !paymentForm.expectedDate}
                 className="btn-primary disabled:opacity-50"
               >
-                {savingPayment ? 'Saving...' : 'Add Payment'}
+                {savingPayment ? `${t('common.saving')}...` : t('payments.addPayment')}
               </button>
             </div>
           </div>
@@ -1564,7 +1566,7 @@ export default function ProjectDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Add Construction</h2>
+              <h2 className="text-lg font-semibold">{t('constructions.addConstruction')}</h2>
               <button onClick={() => setShowAddConstructionModal(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1573,30 +1575,30 @@ export default function ProjectDetailPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Construction Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('constructions.constructionName')} *</label>
                 <input
                   type="text"
                   value={newConstructionName}
                   onChange={(e) => setNewConstructionName(e.target.value)}
-                  placeholder="Enter construction name"
+                  placeholder={t('constructions.enterConstructionName')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('constructions.project')}</label>
                 <p className="text-gray-900">{project.name}</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowAddConstructionModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleAddConstruction}
                 disabled={savingConstruction || !newConstructionName.trim()}
                 className="btn-primary disabled:opacity-50"
               >
-                {savingConstruction ? 'Creating...' : 'Create Construction'}
+                {savingConstruction ? `${t('common.creating')}...` : t('constructions.createConstruction')}
               </button>
             </div>
           </div>
@@ -1608,7 +1610,7 @@ export default function ProjectDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Edit Construction</h2>
+              <h2 className="text-lg font-semibold">{t('constructions.editConstruction')}</h2>
               <button onClick={() => setShowEditConstructionModal(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1617,30 +1619,30 @@ export default function ProjectDetailPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Construction Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('constructions.constructionName')} *</label>
                 <input
                   type="text"
                   value={editConstructionName}
                   onChange={(e) => setEditConstructionName(e.target.value)}
-                  placeholder="Enter construction name"
+                  placeholder={t('constructions.enterConstructionName')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('constructions.project')}</label>
                 <p className="text-gray-900">{project.name}</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowEditConstructionModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleEditConstruction}
                 disabled={savingConstruction || !editConstructionName.trim()}
                 className="btn-primary disabled:opacity-50"
               >
-                {savingConstruction ? 'Saving...' : 'Save Changes'}
+                {savingConstruction ? `${t('common.saving')}...` : t('common.saveChanges')}
               </button>
             </div>
           </div>
