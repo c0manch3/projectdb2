@@ -76,7 +76,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "Enter password",
     "invalidEmail": "Invalid email format",
-    "passwordMinLength": "Password must be at least 8 characters"
+    "passwordMinLength": "Password must be at least 6 characters"
   },
   "navigation": {
     "projects": "Projects",
@@ -181,7 +181,7 @@
     "birthDate": "Birth Date",
     "telegramId": "Telegram ID",
     "password": "Password",
-    "passwordPlaceholder": "Minimum 8 characters",
+    "passwordPlaceholder": "Minimum 6 characters",
     "searchEmployees": "Search employees...",
     "noEmployees": "No employees found",
     "employeeCreated": "Employee created",
@@ -351,7 +351,7 @@
     "currentPassword": "Current Password",
     "currentPasswordPlaceholder": "Enter current password",
     "newPassword": "New Password",
-    "newPasswordPlaceholder": "Enter new password (min. 8 characters)",
+    "newPasswordPlaceholder": "Enter new password (min. 6 characters)",
     "confirmPassword": "Confirm Password",
     "confirmPasswordPlaceholder": "Confirm new password",
     "updatePassword": "Update Password",

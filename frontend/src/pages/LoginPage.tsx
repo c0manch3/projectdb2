@@ -12,7 +12,7 @@ import { authService } from '@/services/auth.service';
 const loginSchema = (t: (key: string) => string) =>
   z.object({
     email: z.string().email(t('auth.invalidEmail')),
-    password: z.string().min(8, t('auth.passwordMinLength')),
+    password: z.string().min(6, t('auth.passwordMinLength')),
   });
 
 type LoginFormData = z.infer<ReturnType<typeof loginSchema>>;

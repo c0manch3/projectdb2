@@ -6,7 +6,7 @@ export class LoginDto {
   email: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(6)
   password: string;
 }
 
@@ -24,7 +24,7 @@ export class RegisterDto {
   phone: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(6)
   password: string;
 
   @IsEnum(UserRole)
@@ -45,7 +45,7 @@ export class ChangePasswordDto {
   currentPassword: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(6)
   newPassword: string;
 }
 

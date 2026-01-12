@@ -1492,7 +1492,7 @@ export default function ProjectDetailPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.amount')} ($) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.amount')} (₽) *</label>
                   <input
                     type="number"
                     value={paymentForm.amount}

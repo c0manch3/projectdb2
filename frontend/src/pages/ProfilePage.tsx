@@ -136,7 +136,7 @@ export default function ProfilePage() {
                 className="input-field w-full"
                 placeholder={t('profile.enterNewPassword')}
                 required
-                minLength={8}
+                minLength={6}
               />
             </div>
 

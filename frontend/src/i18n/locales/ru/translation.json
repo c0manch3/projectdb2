@@ -79,7 +79,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "Введите пароль",
     "invalidEmail": "Неверный формат email",
-    "passwordMinLength": "Пароль должен быть не менее 8 символов"
+    "passwordMinLength": "Пароль должен быть не менее 6 символов"
   },
   "navigation": {
     "projects": "Проекты",
@@ -195,7 +195,7 @@
     "birthDate": "Дата рождения",
     "telegramId": "Telegram ID",
     "password": "Пароль",
-    "passwordPlaceholder": "Минимум 8 символов",
+    "passwordPlaceholder": "Минимум 6 символов",
     "searchEmployees": "Поиск сотрудников...",
     "noEmployees": "Сотрудники не найдены",
     "employeeCreated": "Сотрудник создан",
@@ -392,7 +392,7 @@
     "email": "Email",
     "phone": "Телефон",
     "salary": "Зарплата",
-    "passwordMinLength": "Пароль должен быть не менее 8 символов",
+    "passwordMinLength": "Пароль должен быть не менее 6 символов",
     "passwordChangeFailed": "Не удалось сменить пароль"
   },
   "documents": {

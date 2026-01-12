@@ -166,7 +166,7 @@ export default function EmployeesPage() {
       toast.error(t('validation.email'));
       return;
     }
-    if (!newEmployee.password.trim() || newEmployee.password.length < 8) {
+    if (!newEmployee.password.trim() || newEmployee.password.length < 6) {
       toast.error(t('auth.passwordMinLength'));
       return;
     }
