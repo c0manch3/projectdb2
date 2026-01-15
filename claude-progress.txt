@@ -2155,3 +2155,47 @@ Completed regression testing on 2 passing features. Both passed successfully wit
 
 ---
 
+
+
+---
+
+## Session 40: 2026-01-15 - Feature #317: Workload Tab Enhancements - COMPLETED
+
+### Summary
+Successfully completed Feature #317: Enhanced workload tab for All Projects/All Employees mode with project filtering and role-based access control.
+
+### Regression Testing: 2/2 PASSED
+1. Feature #22: Sidebar Employees link navigates correctly
+2. Feature #221: Tables scroll horizontally on mobile
+
+### Feature #317: Workload Tab Enhancements - COMPLETED
+
+Requirements:
+1. In All Projects/All Employees mode: clicking + opens modal to add employee to plan
+2. Employee dropdown: only show employees who are FREE on that day
+3. Project dropdown: only show projects where CURRENT USER is a manager
+4. Hide + button for Admin users (only show for Managers)
+
+Implementation:
+- Added isOnlyManager flag to distinguish Manager from Admin role
+- Added managedProjects state to store user's managed projects
+- Updated fetchProjects to filter projects by managerId
+- Modal now uses managedProjects instead of all projects
+- Changed all + button conditions from isManager to isOnlyManager
+- Updated Day, Week, and Month calendar views
+
+Translation keys added (Russian & English):
+- allEmployeesAssigned, noManagedProjects, selectEmployeeAndProject
+- cannotDeletePastOrCurrent, cannotEditPastOrCurrent, selectProjectRequired
+- createFailed, updateFailed, deleteFailed
+
+Testing Results - ALL PASSED:
+- Manager with no managed projects: Shows warning message
+- Manager with 21 projects: Shows only managed projects in dropdown
+- Admin user: NO + buttons visible on any dates
+- Employee filtering: Already existed and works correctly
+
+Status: 316/320 features passing (98.8%)
+
+Git Commit: 239f8e3
+
