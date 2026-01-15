@@ -110,6 +110,7 @@ export class ProjectService {
         customerId: dto.customerId,
         managerId: dto.managerId,
         mainProjectId: dto.mainProjectId,
+        cost: dto.cost, // Feature #332: Save project cost
       },
       include: {
         customer: {
@@ -144,6 +145,7 @@ export class ProjectService {
         customerId: dto.customerId,
         managerId: dto.managerId,
         mainProjectId: dto.mainProjectId,
+        cost: dto.cost, // Feature #332: Update project cost
       },
       include: {
         customer: {
