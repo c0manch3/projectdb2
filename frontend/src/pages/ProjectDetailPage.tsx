@@ -767,6 +767,20 @@ export default function ProjectDetailPage() {
                 <dt className="text-gray-500">{t('projects.expirationDate')}</dt>
                 <dd className="text-gray-900">{formatDate(project.expirationDate)}</dd>
               </div>
+              {/* Feature #332: Display project cost */}
+              {project.cost !== null && project.cost !== undefined && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Стоимость проекта</dt>
+                  <dd className="text-gray-900 font-semibold">
+                    {new Intl.NumberFormat('ru-RU', {
+                      style: 'currency',
+                      currency: 'RUB',
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0
+                    }).format(project.cost)}
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
 
