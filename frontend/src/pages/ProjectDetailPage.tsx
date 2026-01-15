@@ -98,6 +98,7 @@ interface Project {
   customerId: string;
   managerId: string;
   mainProjectId?: string;
+  cost?: number; // Feature #331: Project cost for automatic percentage calculation
   customer: {
     id: string;
     name: string;
@@ -178,7 +179,6 @@ export default function ProjectDetailPage() {
     type: 'Advance',
     name: '',
     amount: '',
-    percentage: '',
     expectedDate: '',
     description: '',
   });
@@ -506,12 +506,25 @@ export default function ProjectDetailPage() {
     setSavingPayment(true);
     setPaymentFormErrors({});
     try {
+      // Feature #331: Calculate percentage automatically from project cost or total payments
+      const amount = parseFloat(paymentForm.amount);
+      let percentage: number | undefined = undefined;
+
+      // If project has a cost, calculate percentage from it
+      if (project?.cost && project.cost > 0) {
+        percentage = (amount / project.cost) * 100;
+      } else {
+        // If no project cost, calculate percentage based on sum of all payments + current payment
+        const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0) + amount;
+        percentage = totalPayments > 0 ? (amount / totalPayments) * 100 : undefined;
+      }
+
       await api.post('/payment-schedule/create', {
         projectId: id,
         type: paymentForm.type,
         name: paymentForm.name,
-        amount: parseFloat(paymentForm.amount),
-        percentage: paymentForm.percentage ? parseFloat(paymentForm.percentage) : undefined,
+        amount: amount,
+        percentage: percentage,
         expectedDate: paymentForm.expectedDate,
         description: paymentForm.description || undefined,
       });
@@ -522,7 +535,6 @@ export default function ProjectDetailPage() {
         type: 'Advance',
         name: '',
         amount: '',
-        percentage: '',
         expectedDate: '',
         description: '',
       });
@@ -1511,19 +1523,7 @@ export default function ProjectDetailPage() {
                     <p className="text-red-500 text-sm mt-1">{paymentFormErrors.amount}</p>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.percentage')} (%)</label>
-                  <input
-                    type="number"
-                    value={paymentForm.percentage}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, percentage: e.target.value })}
-                    placeholder="25"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  />
-                </div>
+                {/* Feature #331: Percentage field removed - now calculated automatically */}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('payments.expectedDate')} *</label>
