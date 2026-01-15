@@ -1,3 +1,173 @@
+## Session 60: 2026-01-15 - Feature #329 COMPLETED ✅ + Regression Testing
+
+### Summary
+Successfully completed regression testing (2/2 features passed) and implemented Feature #329 (Make customer field optional when creating projects). The customer field is now optional in the project creation form - removed validation requirement, removed asterisk from label, and updated API call to only send customerId when provided. Verified through comprehensive browser testing including creating and deleting a test project without a customer. Project progress: **328/330 features passing (99.4%)** - Only 2 features remaining! 🎉
+
+### Work Completed
+
+#### Regression Testing: 2/2 PASSED ✅
+
+**Feature #222: Navigation collapses on mobile** ✅
+- Resized viewport to 375px x 667px (mobile size)
+- **Verified:** Hamburger menu button visible in top left
+- **Verified:** Sidebar navigation hidden on mobile
+- **Verified:** Bottom navigation bar visible (Проекты, Нагрузка, Профиль)
+- Clicked hamburger menu button
+- **Verified:** Sidebar slides in from left with all navigation items
+- **Verified:** Full navigation menu accessible: Проекты, Сотрудники, Компании, Нагрузка, Аналитика
+- **Screenshots:** regression-222-mobile-view.png, regression-222-menu-opened.png
+- **Status:** PASSING - Mobile responsive navigation working perfectly
+
+**Feature #239: This Week filter works** ✅
+- Navigated to Workload page
+- Viewed calendar in month view showing January 2026
+- **Verified:** "Эта неделя" (This Week) button available
+- **Verified:** Workload entries visible on Jan 12-15
+- Clicked "Эта неделя" button
+- **Verified:** Calendar changed to week view showing "11 янв. - 17 янв. 2026 г."
+- **Verified:** View filtered to show only current week's days (Sunday 11 - Saturday 17)
+- **Verified:** Workload entry visible on Jan 15 (Employee User - Test Project Alpha)
+- **Verified:** "Эта неделя" button highlighted/active
+- **Screenshots:** regression-239-before-week-filter.png, regression-239-after-week-filter.png
+- **Status:** PASSING - Week filter correctly displays current week data
+
+#### Feature #329: Make Customer Field Optional - IMPLEMENTED ✅
+
+**Feature Description (Russian):** "При создании проекта поле заказчик должно быть необязательным"
+**Translation:** "When creating a project, the customer field should be optional"
+
+**Requirements:**
+- Remove validation requirement for customer field in frontend
+- Allow projects to be created without selecting a customer
+- Update UI to indicate field is optional (remove asterisk)
+
+**Implementation Details:**
+
+**Frontend Changes in `frontend/src/pages/ProjectsPage.tsx`:**
+
+1. **Removed Validation (lines 469-471):**
+   - Deleted validation check: `if (!newProject.customerId) { errors.customerId = 'Please select a customer'; }`
+   - Added comment: "Feature #329: customerId is now optional - removed validation"
+
+2. **Updated Label (line 870):**
+   - Changed from: `<label>...{t('projects.customer')} *</label>`
+   - Changed to: `<label>...{t('projects.customer')}</label>`
+   - Removed asterisk (*) to indicate field is optional
+
+3. **Updated API Call (lines 505-506):**
+   - Changed from: `customerId: newProject.customerId,`
+   - Changed to: `...(newProject.customerId && { customerId: newProject.customerId }),`
+   - Only sends customerId if it has a value (similar pattern to mainProjectId)
+
+**Backend Status:**
+- ✅ Backend DTO already supports optional customerId (`@IsOptional()` decorator present)
+- ✅ Database schema already has nullable customerId (`String?`)
+- ✅ No backend changes needed
+
+**Testing Performed:**
+
+**Test 1: UI Verification**
+- Opened "Добавить проект" (Add Project) modal
+- **Verified:** "Заказчик" label has NO asterisk (optional field)
+- **Verified:** "Название проекта *" still has asterisk (required)
+- **Verified:** "Менеджер *" still has asterisk (required)
+- **Verified:** "Дата договора *" still has asterisk (required)
+- **Screenshot:** feature-329-add-modal-opened.png
+
+**Test 2: Create Project Without Customer**
+- Filled form:
+  - Project name: TEST_FEATURE_329_NO_CUSTOMER
+  - Customer: **NOT SELECTED** (left as "Выберите заказчика")
+  - Manager: Manager User
+  - Contract date: 15.01.2026
+  - Expiration date: 31.12.2026
+- Clicked "Создать проект" (Create Project)
+- **Result:** ✅ Success toast: "Проект успешно создан"
+- **Result:** ✅ No validation errors
+- **Result:** ✅ Modal closed successfully
+- **Screenshots:** feature-329-form-filled-no-customer.png, feature-329-project-created.png
+
+**Test 3: Verify Project Saved Correctly**
+- Searched for "TEST_FEATURE_329" in projects list
+- **Verified:** Project found with 1 result
+- **Verified:** Project name: TEST_FEATURE_329_NO_CUSTOMER
+- **Verified:** Customer: **Н/Д** (N/A - not specified)
+- **Verified:** Manager: Manager User
+- **Verified:** Contract date: Jan 15, 2026
+- **Verified:** Status: Активный (Active)
+- **Verified:** 0 конструкций (0 constructions)
+- **Screenshot:** feature-329-project-found.png
+
+**Test 4: Cleanup**
+- Deleted test project successfully
+- **Verified:** Success toast: "Проект успешно удалён"
+- **Verified:** Search shows 0 results
+- **Verified:** Project removed from database
+- **Screenshot:** feature-329-cleanup-complete.png
+
+**Test 5: Console Verification**
+- Checked browser console for errors
+- **Result:** ✅ No JavaScript errors detected
+- Application running cleanly
+
+**Feature Requirements Met:**
+- ✅ Customer field is now optional (no validation error when empty)
+- ✅ UI updated to remove asterisk from customer label
+- ✅ Projects can be successfully created without a customer
+- ✅ API call only sends customerId when provided
+- ✅ Projects without customer display as "Н/Д" (N/A) in table
+- ✅ No console errors
+- ✅ Full end-to-end workflow tested and working
+
+**Feature #329 Status:** PASSING ✅ (marked in feature database)
+
+### Files Modified
+- `frontend/src/pages/ProjectsPage.tsx` - Removed customerId validation, removed asterisk from label, updated API call
+
+### Git Commits
+```
+29627ae - Implement Feature #329: Make customer field optional when creating projects
+```
+
+### Console Errors
+- No JavaScript errors detected
+- Application running cleanly
+
+### Final Status
+- **Features: 328/330 passing (99.4%)** ⬆️ +1 from previous session
+- **Regression tests: 2/2 passed**
+- **New features: 1 implemented (Feature #329)**
+- **Application status: EXCELLENT - Only 2 features remaining!** 🎉
+
+### Notes for Next Session
+1. Feature #329 successfully implemented and verified
+2. Customer field now optional when creating projects
+3. All regression tests passed - no issues detected
+4. Application at 99.4% completion - only 2 features left!
+5. Clean implementation following existing codebase patterns
+6. No regressions introduced
+7. Ready to tackle the final 2 features
+
+### Code Quality
+- Clean implementation following existing patterns
+- Consistent with how mainProjectId is handled (optional field)
+- Proper use of spread operator for conditional properties
+- TypeScript type safety maintained
+- No breaking changes to existing functionality
+- Backend already supported optional customer field
+- Browser tested with real user scenarios
+
+### Time Spent
+- Environment setup & orientation: 5 minutes
+- Regression testing (2 features): 25 minutes
+- Feature #329 analysis and implementation: 15 minutes
+- Browser automation testing and verification: 30 minutes
+- Test project cleanup: 5 minutes
+- Documentation and commit: 10 minutes
+- **Total:** ~1.5 hours
+
+---
+
 ## Session 59: 2026-01-15 - Feature #328 VERIFIED & PASSING ✅
 
 ### Summary
