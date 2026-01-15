@@ -1,0 +1,15 @@
+Test document for regression testing Feature #210 - Upload progress indicator.
+This file is being uploaded to verify that the upload progress indicator displays correctly during file upload operations.
+The upload progress should show a percentage or progress bar as the file is being uploaded to the server.
+Once the upload reaches 100%, the file should appear in the documents list.
+
+This is a test file created for automated regression testing.
+Feature: N7 - Upload progress indicator
+Date: 2026-01-15
+Testing: File upload with progress tracking
+
+Additional content to make the file slightly larger for testing purposes.
+Additional content to make the file slightly larger for testing purposes.
+Additional content to make the file slightly larger for testing purposes.
+Additional content to make the file slightly larger for testing purposes.
+Additional content to make the file slightly larger for testing purposes.
