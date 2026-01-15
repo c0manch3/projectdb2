@@ -69,6 +69,15 @@ interface ActualCalendarData {
   [date: string]: WorkloadActualEntry;
 }
 
+// For "All Employees" mode - actual workload data for all employees grouped by date
+interface AllEmployeesActualData {
+  [date: string]: WorkloadActualEntryWithUser[];
+}
+
+interface WorkloadActualEntryWithUser extends WorkloadActualEntry {
+  user: { id: string; firstName: string; lastName: string };
+}
+
 export default function WorkloadPage() {
   const { t } = useTranslation();
   const { user } = useAppSelector((state) => state.auth);
@@ -100,6 +109,9 @@ export default function WorkloadPage() {
 
   // Actual workload data
   const [actualCalendarData, setActualCalendarData] = useState<ActualCalendarData>({});
+
+  // All employees' actual workload data (for "All Employees" mode)
+  const [allEmployeesActualData, setAllEmployeesActualData] = useState<AllEmployeesActualData>({});
 
   // Add workload modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -134,6 +146,7 @@ export default function WorkloadPage() {
     if (activeTab === 'plan') {
       fetchCalendarData();
       fetchActualCalendarData(); // Also fetch actual data to show green backgrounds
+      fetchAllEmployeesActualData(); // Fetch all employees' actual data for "All Employees" mode
     } else {
       fetchActualCalendarData();
     }
@@ -204,6 +217,35 @@ export default function WorkloadPage() {
       setActualCalendarData(calendarObj);
     } catch (error) {
       console.error('Failed to fetch actual calendar data:', error);
+    }
+  };
+
+  // Fetch ALL employees' actual workload data (for managers in "All Employees" mode)
+  const fetchAllEmployeesActualData = async () => {
+    if (!isManager) return; // Only managers can fetch all employees' data
+
+    try {
+      const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+
+      const response = await api.get(`/workload-actual?${params}`);
+      // Group by date
+      const groupedData: AllEmployeesActualData = {};
+      response.data.forEach((entry: WorkloadActualEntryWithUser) => {
+        const dateKey = new Date(entry.date).toISOString().split('T')[0];
+        if (!groupedData[dateKey]) {
+          groupedData[dateKey] = [];
+        }
+        groupedData[dateKey].push(entry);
+      });
+      setAllEmployeesActualData(groupedData);
+    } catch (error) {
+      console.error('Failed to fetch all employees actual data:', error);
     }
   };
 
@@ -564,8 +606,23 @@ export default function WorkloadPage() {
   };
 
   // Get employees with work assigned for a specific date
+  // In "All Employees" mode (no employee selected), return ACTUAL reports instead of plans
   const getEmployeesForDate = (dateKey: string) => {
+    const isAllEmployeesMode = !selectedEmployee;
+
+    if (isAllEmployeesMode && isManager) {
+      // Return actual workload data for all employees
+      return allEmployeesActualData[dateKey] || [];
+    }
+
+    // Otherwise, return plan data
     return calendarData[dateKey] || [];
+  };
+
+  // Get count of employees who submitted actual reports for a specific date
+  const getActualReportsCountForDate = (dateKey: string) => {
+    const actualReports = allEmployeesActualData[dateKey] || [];
+    return actualReports.length;
   };
 
   // Get employees who are busy on a specific date (have work assigned)
@@ -986,7 +1043,12 @@ export default function WorkloadPage() {
                   const dayPlans = calendarData[dateKey] || [];
                   const dayIsToday = isToday(day.date);
                   const dayIsFuture = isFutureDate(day.date);
+                  const dayIsPastOrToday = !dayIsFuture;
                   const isAllEmployeesMode = !selectedEmployee;
+
+                  // In "All Employees" mode, get actual reports count for past/today dates
+                  const actualReportsCount = isAllEmployeesMode ? getActualReportsCountForDate(dateKey) : 0;
+                  const shouldShowActualCount = isAllEmployeesMode && dayIsPastOrToday && actualReportsCount > 0;
 
                   const hasWorkloadData = dayPlans.length > 0 || actualCalendarData[dateKey] !== undefined;
 
@@ -996,11 +1058,11 @@ export default function WorkloadPage() {
                       className={`min-h-24 p-2 border rounded-lg ${
                         day.isCurrentMonth ? (hasWorkloadData ? 'bg-green-50' : 'bg-white') : 'bg-gray-50'
                       } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
-                        isAllEmployeesMode && dayPlans.length > 0 && day.isCurrentMonth ? 'cursor-pointer hover:bg-gray-50' : ''
+                        isAllEmployeesMode && (dayPlans.length > 0 || actualReportsCount > 0) && day.isCurrentMonth ? 'cursor-pointer hover:bg-gray-50' : ''
                       }`}
                       onClick={(e) => {
                         // Only open modal if clicking on the cell itself (not on + button or plan items) and in All Employees mode
-                        if (isAllEmployeesMode && dayPlans.length > 0 && day.isCurrentMonth && e.target === e.currentTarget) {
+                        if (isAllEmployeesMode && (dayPlans.length > 0 || actualReportsCount > 0) && day.isCurrentMonth && e.target === e.currentTarget) {
                           handleOpenDateEmployeesModal(dateKey);
                         }
                       }}
@@ -1013,7 +1075,7 @@ export default function WorkloadPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             // Clicking on date number also opens modal in All Employees mode
-                            if (isAllEmployeesMode && dayPlans.length > 0 && day.isCurrentMonth) {
+                            if (isAllEmployeesMode && (dayPlans.length > 0 || actualReportsCount > 0) && day.isCurrentMonth) {
                               handleOpenDateEmployeesModal(dateKey);
                             }
                           }}
@@ -1039,13 +1101,23 @@ export default function WorkloadPage() {
                         className="space-y-1"
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Clicking on plans area also opens modal in All Employees mode
-                          if (isAllEmployeesMode && dayPlans.length > 0 && day.isCurrentMonth) {
+                          // Clicking on content area also opens modal in All Employees mode
+                          if (isAllEmployeesMode && (dayPlans.length > 0 || actualReportsCount > 0) && day.isCurrentMonth) {
                             handleOpenDateEmployeesModal(dateKey);
                           }
                         }}
                       >
-                        {dayPlans.map((plan) => (
+                        {/* In "All Employees" mode for past/today dates, show count of actual reports */}
+                        {shouldShowActualCount ? (
+                          <div className="text-center py-2">
+                            <div className="text-2xl font-bold text-primary-600">{actualReportsCount}</div>
+                            <div className="text-xs text-gray-600">
+                              {actualReportsCount === 1 ? t('workload.employeeReport') : t('workload.employeeReports')}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {dayPlans.map((plan) => (
                           <div
                             key={plan.id}
                             className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
@@ -1077,6 +1149,8 @@ export default function WorkloadPage() {
                             )}
                           </div>
                         ))}
+                          </>
+                        )}
                       </div>
                     </div>
                   );
@@ -1684,57 +1758,137 @@ export default function WorkloadPage() {
               </button>
             </div>
             <div className="p-4">
-              {getEmployeesForDate(dateEmployeesModalDate).length === 0 ? (
-                <div className="text-gray-500 text-center py-8">
-                  {t('workload.noEmployeesAssigned')}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {getEmployeesForDate(dateEmployeesModalDate).map((plan) => (
-                    <div
-                      key={plan.id}
-                      className="bg-primary-50 border border-primary-200 rounded-lg p-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {plan.user.firstName} {plan.user.lastName}
+              {(() => {
+                const isAllEmployeesMode = !selectedEmployee;
+                const data = getEmployeesForDate(dateEmployeesModalDate);
+
+                if (data.length === 0) {
+                  return (
+                    <div className="text-gray-500 text-center py-8">
+                      {t('workload.noEmployeesAssigned')}
+                    </div>
+                  );
+                }
+
+                // Check if data contains actual reports (has 'distributions' field) or plans (has 'project' field)
+                const isActualData = data.length > 0 && 'distributions' in data[0];
+
+                return (
+                  <div className="space-y-3">
+                    {isActualData ? (
+                      // Display actual workload reports
+                      data.map((actualEntry: WorkloadActualEntryWithUser) => {
+                        // Get the plan for this user on this date if it exists
+                        const planForUser = calendarData[dateEmployeesModalDate]?.find(
+                          p => p.user.id === actualEntry.user.id
+                        );
+
+                        return (
+                          <div
+                            key={actualEntry.id}
+                            className="bg-green-50 border border-green-200 rounded-lg p-4"
+                          >
+                            <div className="font-medium text-gray-900 mb-2">
+                              {actualEntry.user.firstName} {actualEntry.user.lastName}
+                            </div>
+
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">{t('workload.totalHours')}:</span>
+                                <span className="font-semibold">{actualEntry.hoursWorked}h</span>
+                              </div>
+
+                              {planForUser && (
+                                <div className="text-xs bg-blue-50 border border-blue-200 rounded p-2">
+                                  <span className="text-gray-600">{t('workload.plannedProject')}:</span>
+                                  <span className="text-blue-700 font-medium ml-1">{planForUser.project.name}</span>
+                                </div>
+                              )}
+
+                              {!planForUser && (
+                                <div className="text-xs bg-gray-50 border border-gray-200 rounded p-2 text-gray-500">
+                                  {t('workload.noPlanForThisDate')}
+                                </div>
+                              )}
+
+                              {actualEntry.distributions && actualEntry.distributions.length > 0 && (
+                                <div className="mt-2">
+                                  <div className="text-xs font-medium text-gray-700 mb-1">{t('workload.projectDistribution')}:</div>
+                                  {actualEntry.distributions.map((dist) => (
+                                    <div key={dist.id} className="text-xs bg-primary-50 border border-primary-200 rounded p-2 mb-1">
+                                      <div className="flex justify-between">
+                                        <span className="text-primary-700 font-medium">{dist.project.name}</span>
+                                        <span className="text-primary-600 font-semibold">{dist.hours}h</span>
+                                      </div>
+                                      {dist.description && (
+                                        <div className="text-gray-600 mt-1">{dist.description}</div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {actualEntry.userText && (
+                                <div className="mt-2">
+                                  <div className="text-xs font-medium text-gray-700">{t('workload.notes')}:</div>
+                                  <div className="text-xs text-gray-600 mt-1">{actualEntry.userText}</div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-sm text-primary-600">
-                            {plan.project.name}
+                        );
+                      })
+                    ) : (
+                      // Display workload plans
+                      data.map((plan: WorkloadPlanEntry) => (
+                        <div
+                          key={plan.id}
+                          className="bg-primary-50 border border-primary-200 rounded-lg p-4"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {plan.user.firstName} {plan.user.lastName}
+                              </div>
+                              <div className="text-sm text-primary-600">
+                                {plan.project.name}
+                              </div>
+                            </div>
+                            {isManager && isFutureDateString(dateEmployeesModalDate) && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    setShowDateEmployeesModal(false);
+                                    handleOpenEditModal(plan, dateEmployeesModalDate);
+                                  }}
+                                  className="text-primary-600 hover:text-primary-800 p-2"
+                                  title={t('common.edit')}
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleDeleteWorkloadPlan(plan.id, dateEmployeesModalDate);
+                                    setShowDateEmployeesModal(false);
+                                  }}
+                                  className="text-red-600 hover:text-red-800 p-2"
+                                  title={t('common.delete')}
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        {isManager && isFutureDateString(dateEmployeesModalDate) && (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                setShowDateEmployeesModal(false);
-                                handleOpenEditModal(plan, dateEmployeesModalDate);
-                              }}
-                              className="text-primary-600 hover:text-primary-800 p-2"
-                              title={t('common.edit')}
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDeleteWorkloadPlan(plan.id, dateEmployeesModalDate);
-                                setShowDateEmployeesModal(false);
-                              }}
-                              className="text-red-600 hover:text-red-800 p-2"
-                              title={t('common.delete')}
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      ))
+                    )}
+                  </div>
+                );
+              })()}
                 </div>
               )}
             </div>

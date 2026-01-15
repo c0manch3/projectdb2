@@ -1,3 +1,100 @@
+## Session 38: 2026-01-15 - Feature #316: Workload Calendar Enhancement - IN PROGRESS
+
+### Summary
+Implementing Feature #316: Reworking the WORKLOAD tab to show employee counts and actual reports in "All Projects/All Employees" mode.
+
+### Work Completed
+
+#### Feature #316: Workload Calendar - All Employees Mode ⚠️ IN PROGRESS
+
+**Requirement:**
+When "All Projects/All Employees" filter is selected:
+1. Calendar cells should display count of employees who submitted ACTUAL reports for that day (for past/today dates)
+2. Clicking on a cell opens a modal showing all employees' actual reports for that day
+3. Modal should also show the planned project if it exists, or "No plan" if there wasn't one
+4. The "+" button functionality for adding plans should remain intact
+
+**Implementation:**
+
+1. **Backend Changes:** None required - existing `/workload-actual` endpoint supports querying all employees' data
+
+2. **Frontend Changes (WorkloadPage.tsx):**
+   - Added new interfaces:
+     - `AllEmployeesActualData` - for storing actual workload data grouped by date
+     - `WorkloadActualEntryWithUser` - extends WorkloadActualEntry with user info
+
+   - Added new state variable:
+     - `allEmployeesActualData` - stores all employees' actual workload data
+
+   - Added new function:
+     - `fetchAllEmployeesActualData()` - fetches actual workload for all employees from `/workload-actual` API
+     - `getActualReportsCountForDate()` - returns count of employees who submitted reports for a date
+
+   - Modified `getEmployeesForDate()` - now returns actual reports in "All Employees" mode instead of plans
+
+   - Updated Month View calendar cells:
+     - Calculate `actualReportsCount` for each date in "All Employees" mode
+     - For past/today dates, display large number count instead of individual items
+     - Make cells clickable to open modal
+     - Cells show count like "3 отчётов" (3 reports)
+
+   - Updated Date Employees Modal:
+     - Detects if data is actual reports (has 'distributions' field) or plans (has 'project' field)
+     - For actual reports, displays:
+       - Employee name
+       - Total hours worked
+       - Planned project (if exists) with blue background
+       - "No plan for this date" message if no plan exists
+       - Project distribution breakdown with hours
+       - User notes/comments
+       - Green background to distinguish from plans
+     - For plans (future dates), displays original plan UI with edit/delete buttons
+
+3. **Translation Keys Added:**
+   - Russian (ru/translation.json):
+     - `employeeReport`: "отчёт"
+     - `employeeReports`: "отчётов"
+     - `workAssignmentsFor`: "Распределение работ на {{date}}"
+     - `plannedProject`: "Планируемый проект"
+     - `noPlanForThisDate`: "План на этот день отсутствует"
+     - `notes`: "Заметки"
+     - `noEmployeesAssigned`: "Нет назначенных сотрудников"
+     - `employeesAssignedCount`: "Сотрудников: {{count}}"
+     - `workReport`: "Отчёт о работе"
+
+   - English (en/translation.json): Same keys with English translations
+
+**Status:** ⚠️ CODE COMPLETE - TESTING BLOCKED
+
+**Blocker:** Backend cannot connect to Supabase database (P1001 error - "Can't reach database server"). This is a network/infrastructure issue that prevents the application from running and being tested.
+
+**Next Steps:**
+1. Resolve Supabase connectivity issue
+2. Start backend and frontend servers
+3. Test with browser automation:
+   - Navigate to Workload page
+   - Verify "All Projects/All Employees" filter
+   - Check calendar cells show employee counts for past dates
+   - Click on a cell with reports
+   - Verify modal shows actual reports with all details
+   - Verify planned project info or "No plan" message
+   - Verify "+" button still works for adding plans on future dates
+4. Update Day and Week views with same logic (if needed)
+5. Mark feature #316 as passing
+
+### Current Status
+- **Features:** 314/317 passing (99.1%)
+- **Feature #316:** IN PROGRESS (code complete, testing blocked by database connection)
+- **Feature #317:** GitHub sync (requires authentication setup)
+
+### Technical Notes
+- All code changes made to WorkloadPage.tsx (1833 lines)
+- No database schema changes required
+- Backwards compatible - doesn't affect existing functionality for filtered views
+- Only affects "All Employees" mode in plan tab
+
+---
+
 ## Session 37: 2026-01-11 - Regression Testing - 100% COMPLETE! 🎉
 
 ### Summary

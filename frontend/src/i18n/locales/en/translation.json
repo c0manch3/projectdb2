@@ -281,7 +281,16 @@
     "thu": "Thu",
     "fri": "Fri",
     "sat": "Sat",
-    "addWorkloadFor": "Add workload"
+    "addWorkloadFor": "Add workload",
+    "employeeReport": "report",
+    "employeeReports": "reports",
+    "workAssignmentsFor": "Work Assignments for {{date}}",
+    "plannedProject": "Planned Project",
+    "noPlanForThisDate": "No plan for this date",
+    "notes": "Notes",
+    "noEmployeesAssigned": "No employees assigned",
+    "employeesAssignedCount": "Employees: {{count}}",
+    "workReport": "Work Report"
   },
   "analytics": {
     "title": "Analytics",

@@ -309,7 +309,16 @@
     "thu": "Чт",
     "fri": "Пт",
     "sat": "Сб",
-    "addWorkloadFor": "Добавить нагрузку"
+    "addWorkloadFor": "Добавить нагрузку",
+    "employeeReport": "отчёт",
+    "employeeReports": "отчётов",
+    "workAssignmentsFor": "Распределение работ на {{date}}",
+    "plannedProject": "Планируемый проект",
+    "noPlanForThisDate": "План на этот день отсутствует",
+    "notes": "Заметки",
+    "noEmployeesAssigned": "Нет назначенных сотрудников",
+    "employeesAssignedCount": "Сотрудников: {{count}}",
+    "workReport": "Отчёт о работе"
   },
   "analytics": {
     "title": "Аналитика",
