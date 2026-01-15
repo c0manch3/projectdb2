@@ -1,0 +1,1 @@
+Test document for Feature 165 - Construction deletion test

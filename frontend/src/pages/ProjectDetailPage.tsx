@@ -857,7 +857,7 @@ export default function ProjectDetailPage() {
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                           construction.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {t(`constructions.${construction.status.toLowerCase()}`)}
+                          {construction.status ? t(`constructions.${construction.status.toLowerCase()}`) : '-'}
                         </span>
                       </td>
                       {canManageConstructions && (
