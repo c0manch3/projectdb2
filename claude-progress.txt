@@ -2356,3 +2356,114 @@ Git Commit: 239f8e3
 ## Session 43: 2026-01-15 - Feature 320 Analysis - IN PROGRESS
 
 Completed testing of 2 features - both passed. Analyzed Feature 320 requirements and current code. Implementation pending due to session length.
+
+---
+
+## Session 44: 2026-01-15 - Feature #320: Workload Tab Single Employee Mode - COMPLETED ✅
+
+### Summary
+Successfully completed Feature #320: Enhanced Workload tab to show both plan and actual data when a specific project AND employee are selected. The calendar now displays actual work reports for past dates and allows managers to view detailed reports and add plans for future dates.
+
+### Work Completed
+
+#### Regression Testing: 2/2 PASSED ✅
+- **Feature #49**: C4: Edit project changes persist ✅
+  - Edited "REGRESSION_TEST_146_PROJECT" to "EDITED_NAME_001"
+  - Changes saved successfully with toast notification
+  - Refreshed page - name persisted correctly
+  - Database persistence confirmed
+
+- **Feature #117**: F7: Filter parameters sent to API correctly ✅
+  - Changed status filter from "Active" to "Completed"
+  - URL updated to: `?status=Completed&page=1`
+  - Changed back to "Active"
+  - URL updated to: `?status=Active&page=1`
+  - Query parameters correctly sent in URL
+
+#### Feature #320: Workload Single Employee Mode ✅ COMPLETED
+
+**Requirements:**
+When a specific project AND specific employee are selected:
+1. Calendar cells should show planned work (if exists)
+2. Calendar cells should show actual reports for past/current dates
+3. Clicking on cell opens modal with plan + full employee reports
+4. "+" button allows adding employee to project (if not busy)
+5. If employee busy, show their assigned work instead of "+"
+
+**Implementation:**
+
+**Backend Changes:** None required - existing API endpoints support the functionality
+
+**Frontend Changes (WorkloadPage.tsx):**
+
+1. **Modified `fetchActualCalendarData` function** (lines 212-238):
+   - Added logic to fetch actual data for selected employee when in manager mode
+   - Uses `/workload-actual?userId=<employeeId>` endpoint instead of `/workload-actual/my`
+   - Allows managers to view any employee's actual work data
+
+2. **Added `isSingleEmployeeMode` variable** (line 1093):
+   - Detects when both `selectedProject` and `selectedEmployee` are set
+   - Used throughout calendar rendering logic
+
+3. **Updated calendar cell rendering** (lines 1100-1104, 1106-1112, 1117-1128):
+   - Made cells clickable in single employee mode when actual data exists
+   - Added green background styling for actual report cells
+   - Modified click handlers to open modal for single employee mode
+
+4. **Modified "+" button visibility** (lines 1131-1151):
+   - In single employee mode, only show "+" if employee has no plan for that date
+   - Prevents adding duplicate plans
+
+5. **Updated calendar cell content** (lines 1155-1201):
+   - Show plan entries (if exist)
+   - Show actual report summary for past/today dates with green background
+   - Display: "Фактические часы: Xh" and project names
+   - Make actual report cells clickable to view details
+
+6. **Enhanced `getEmployeesForDate` function** (lines 623-660):
+   - Added support for single employee mode
+   - Returns actual workload data for selected employee
+   - Converts data to proper format for modal display
+
+**Translation Keys Added:**
+- Russian (`ru/translation.json`):
+  - `actualHours`: "Фактические часы"
+  
+- English (`en/translation.json`):
+  - `actualHours`: "Actual Hours"
+
+**Testing Results:**
+✅ Selected "EDITED_NAME_001" project and "Илья Пекарский" employee
+✅ Past dates (Jan 13, 14, 15) displayed actual hours with green background
+✅ Actual hours showed: "Фактические часы: 8h"
+✅ Project name displayed: "ПИК Балашиха (резервуар)"
+✅ Clicked on date cell - modal opened successfully
+✅ Modal showed:
+   - Employee name: "Илья Пекарский"
+   - Total hours: 8h
+   - "План на этот день отсутствует" (No plan for this date)
+   - Project distribution: "ПИК Балашиха (резервуар) - 8h"
+   - Work description: "Проектирование буферной ёмкости. 8 часов."
+✅ Future dates show "+" buttons for adding plans
+✅ No console errors (only expected React Router warnings)
+
+**Screenshots:**
+- feature-320-working.png - Both filters selected
+- feature-320-actual-hours-visible.png - Calendar showing actual hours
+- feature-320-modal-with-actual-data.png - Modal with employee report details
+
+**Git Commit:**
+- 0c2d71d: Implement Feature #320: Workload tab enhancements for single employee mode
+
+### Current Status
+- **Features:** 319/320 passing (99.7%)
+- **Feature #320:** ✅ PASSING
+- **Remaining:** 1 feature pending
+
+### Notes
+- Feature allows managers to track specific employee work on specific projects
+- Green background clearly distinguishes actual reports from plans
+- Modal provides comprehensive view of employee's work for any date
+- All functionality backwards compatible with existing modes
+- API integration working perfectly with no changes required
+
