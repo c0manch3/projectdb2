@@ -1,3 +1,81 @@
+## Session 41: 2026-01-15 - Feature #318: Workload Project Filter by Role - COMPLETED ✅
+
+### Summary
+Successfully completed Feature #318: Filter Workload project dropdowns based on user role. Managers now see only projects they manage, while Administrators continue to see all projects.
+
+### Work Completed
+
+#### Regression Testing: 2/2 PASSED ✅
+- **Feature #22**: Sidebar Employees link navigates correctly ✅
+  - Clicked "Сотрудники" link in sidebar
+  - URL changed to `/employees`
+  - Employee list loaded with 28 employees
+
+- **Feature #99**: 404 for non-existent entity shows message ✅
+  - Navigated to `/projects/non-existent-id-12345`
+  - Shows "Проект не найден" (Project not found) heading
+  - Shows descriptive message
+  - "Return to projects" link works correctly
+  - No crash, navigation still functional
+
+#### Feature #318: Workload Project Filter by Role ✅ COMPLETED
+
+**Requirement:**
+In the Project filter dropdown on Workload page:
+- If user role is **Manager**: Show only projects where the employee is the manager
+- If user role is **Administrator**: Show all projects
+
+**Implementation:**
+
+**Frontend Changes (WorkloadPage.tsx):**
+- Added computed value `projectsForDropdown` after line 140:
+  ```typescript
+  const projectsForDropdown = isOnlyManager ? managedProjects : projects;
+  ```
+- Replaced all 3 occurrences of `projects.map` with `projectsForDropdown.map`:
+  1. Main filter dropdown (line 748)
+  2. Edit workload modal dropdown (line 1596)
+  3. Add actual hours modal dropdown (line 1713)
+- Backend already provided `managedProjects` state (filtered on line 165-166)
+
+**Testing Results:**
+✅ **Admin User (Евгений Абакшин):**
+- Shows all 39 projects in dropdown
+- Correct behavior for Administrator role
+
+✅ **Manager User (Manager User):**
+- Shows only "Все проекты" (All projects) option
+- No individual projects shown (correct - not manager of any projects)
+
+✅ **Manager User (Игорь Чижов):**
+- Shows 22 projects that he manages
+- Main filter dropdown: filtered correctly
+- Add Plan modal dropdown: filtered correctly
+- All 3 dropdowns consistently show only managed projects
+
+✅ **No console errors** (only expected React Router warnings)
+
+**Screenshots:**
+- feature-318-manager-empty-projects.png - Manager with no projects
+- feature-318-manager-with-projects.png - Manager with 22 projects
+- feature-318-add-modal-filtered-projects.png - Modal with filtered projects
+
+**Git Commit:**
+- 143096e: Implement Feature #318: Filter Workload projects by user role
+
+### Current Status
+- **Features:** 317/320 passing (99.1%)
+- **Feature #318:** ✅ PASSING
+- **Remaining:** 3 features pending
+
+### Notes
+- Simple and effective implementation using existing `managedProjects` state
+- No backend changes required
+- Consistent filtering across all project dropdowns in Workload page
+- Feature improves UX by reducing dropdown clutter for managers
+
+---
+
 ## Session 39: 2026-01-15 - Feature #316: Workload Calendar Enhancement - COMPLETED ✅
 
 ### Summary
