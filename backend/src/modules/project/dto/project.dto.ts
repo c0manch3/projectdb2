@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsDateString, Matches } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsDateString, IsNumber, Matches } from 'class-validator';
 import { ProjectType, ProjectStatus } from '@prisma/client';
 
 // UUID regex pattern that accepts any UUID-like format
@@ -28,6 +28,10 @@ export class CreateProjectDto {
   @Matches(UUID_REGEX, { message: 'mainProjectId must be a valid UUID format' })
   @IsOptional()
   mainProjectId?: string;
+
+  @IsNumber()
+  @IsOptional()
+  cost?: number;
 }
 
 export class UpdateProjectDto {
@@ -62,4 +66,8 @@ export class UpdateProjectDto {
   @Matches(UUID_REGEX, { message: 'mainProjectId must be a valid UUID format' })
   @IsOptional()
   mainProjectId?: string;
+
+  @IsNumber()
+  @IsOptional()
+  cost?: number;
 }

@@ -16,6 +16,7 @@ interface Project {
   status: string;
   customerId: string | null;
   managerId: string | null;
+  cost: number | null;
   customer: {
     id: string;
     name: string;
@@ -56,6 +57,7 @@ interface NewProjectForm {
   managerId: string;
   type: string;
   mainProjectId: string;
+  cost: string;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -70,6 +72,7 @@ const DEFAULT_PROJECT_FORM: NewProjectForm = {
   managerId: '',
   type: 'main',
   mainProjectId: '',
+  cost: '',
 };
 
 export default function ProjectsPage() {
@@ -105,6 +108,7 @@ export default function ProjectsPage() {
     status: 'Active',
     contractDate: '',
     expirationDate: '',
+    cost: '',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -369,6 +373,7 @@ export default function ProjectsPage() {
       status: project.status,
       contractDate: project.contractDate.split('T')[0],
       expirationDate: project.expirationDate.split('T')[0],
+      cost: project.cost ? project.cost.toString() : '',
     });
     setShowEditModal(true);
   };
@@ -388,6 +393,8 @@ export default function ProjectsPage() {
         status: editForm.status,
         contractDate: editForm.contractDate,
         expirationDate: editForm.expirationDate,
+        // Feature #330: cost is optional
+        ...(editForm.cost && { cost: parseFloat(editForm.cost) }),
       });
       toast.success(t('projects.updateSuccess'));
       fetchProjects();
@@ -507,6 +514,8 @@ export default function ProjectsPage() {
         managerId: newProject.managerId,
         type: newProject.type,
         ...(newProject.type === 'additional' && newProject.mainProjectId && { mainProjectId: newProject.mainProjectId }),
+        // Feature #330: cost is optional
+        ...(newProject.cost && { cost: parseFloat(newProject.cost) }),
       });
       toast.success(t('projects.createSuccess'));
       fetchProjects();
@@ -785,6 +794,19 @@ export default function ProjectsPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Стоимость проекта (₽)</label>
+                <input
+                  type="number"
+                  placeholder="Введите стоимость в рублях"
+                  value={editForm.cost}
+                  onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <p className="text-sm text-gray-500 mt-1">Необязательное поле</p>
+              </div>
             </div>
             <div className="flex justify-end gap-3 p-4 border-t">
               <button onClick={handleCloseModal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
@@ -947,6 +969,19 @@ export default function ProjectsPage() {
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${formErrors.expirationDate ? 'border-red-500' : 'border-gray-300'}`}
                 />
                 {formErrors.expirationDate && <p className="text-red-500 text-sm mt-1">{formErrors.expirationDate}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Стоимость проекта (₽)</label>
+                <input
+                  type="number"
+                  placeholder="Введите стоимость в рублях"
+                  value={newProject.cost}
+                  onChange={(e) => handleNewProjectChange('cost', e.target.value)}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <p className="text-sm text-gray-500 mt-1">Необязательное поле</p>
               </div>
             </div>
             <div className="flex justify-between p-4 border-t">
