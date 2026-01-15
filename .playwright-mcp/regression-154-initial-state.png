@@ -1,0 +1,210 @@
+### Page state
+- Page URL: http://localhost:5173/projects
+- Page Title: ProjectDB
+- Page Snapshot:
+```yaml
+- generic [ref=e5]:
+  - link "Skip to main content":
+    - /url: "#main-content"
+  - generic [ref=e7]:
+    - heading "ProjectDB" [level=1] [ref=e9]
+    - navigation [ref=e10]:
+      - link "Проекты" [ref=e11] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e12]
+        - text: Проекты
+      - link "Сотрудники" [ref=e14] [cursor=pointer]:
+        - /url: /employees
+        - img [ref=e15]
+        - text: Сотрудники
+      - link "Компании" [ref=e17] [cursor=pointer]:
+        - /url: /companies
+        - img [ref=e18]
+        - text: Компании
+      - link "Нагрузка" [ref=e20] [cursor=pointer]:
+        - /url: /workload
+        - img [ref=e21]
+        - text: Нагрузка
+      - link "Аналитика" [ref=e23] [cursor=pointer]:
+        - /url: /analytics
+        - img [ref=e24]
+        - text: Аналитика
+    - generic [ref=e26]:
+      - link "AU Admin User Admin" [ref=e27] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e29]: AU
+        - generic [ref=e30]:
+          - paragraph [ref=e31]: Admin User
+          - paragraph [ref=e32]: Admin
+      - button "Выход" [ref=e33] [cursor=pointer]:
+        - img [ref=e34]
+        - text: Выход
+  - generic [ref=e36]:
+    - banner [ref=e37]:
+      - generic [ref=e38]:
+        - generic [ref=e40]:
+          - searchbox "Поиск..." [ref=e41]
+          - img [ref=e42]
+        - button "Уведомления" [ref=e45] [cursor=pointer]:
+          - img [ref=e46]
+    - main [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - heading "Проекты" [level=1] [ref=e51]
+          - button "Добавить проект" [ref=e52] [cursor=pointer]
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - textbox "Поиск проектов..." [ref=e55]
+            - img [ref=e56]
+          - generic [ref=e58]: "Статус:"
+          - combobox "Фильтр по статусу" [ref=e59]:
+            - option "Все"
+            - option "Активный" [selected]
+            - option "Завершён"
+          - generic [ref=e60]: Показано 31 проект(ов)
+        - generic [ref=e61]:
+          - table [ref=e63]:
+            - rowgroup [ref=e64]:
+              - row "Название проекта Заказчик Менеджер Дата договора Статус Действия" [ref=e65]:
+                - columnheader "Название проекта" [ref=e66] [cursor=pointer]:
+                  - generic [ref=e67]:
+                    - text: Название проекта
+                    - img [ref=e68]
+                - columnheader "Заказчик" [ref=e70] [cursor=pointer]:
+                  - generic [ref=e71]:
+                    - text: Заказчик
+                    - img [ref=e72]
+                - columnheader "Менеджер" [ref=e74] [cursor=pointer]:
+                  - generic [ref=e75]:
+                    - text: Менеджер
+                    - img [ref=e76]
+                - columnheader "Дата договора" [ref=e78] [cursor=pointer]:
+                  - generic [ref=e79]:
+                    - text: Дата договора
+                    - img [ref=e80]
+                - columnheader "Статус" [ref=e82] [cursor=pointer]:
+                  - generic [ref=e83]:
+                    - text: Статус
+                    - img [ref=e84]
+                - columnheader "Действия" [ref=e86]
+            - rowgroup [ref=e87]:
+              - row "EDITED_NAME_001 0 конструкций Test Customer LLC Manager User Jan 15, 2026 Активный Редактировать Удалить" [ref=e88] [cursor=pointer]:
+                - cell "EDITED_NAME_001 0 конструкций" [ref=e89]:
+                  - generic [ref=e90]: EDITED_NAME_001
+                  - generic [ref=e91]: 0 конструкций
+                - cell "Test Customer LLC" [ref=e92]
+                - cell "Manager User" [ref=e93]
+                - cell "Jan 15, 2026" [ref=e94]
+                - cell "Активный" [ref=e95]
+                - cell "Редактировать Удалить" [ref=e96]:
+                  - button "Редактировать" [ref=e97]
+                  - button "Удалить" [ref=e98]
+              - row "Test 0 конструкций Test Customer LLC Manager2 Manager2 Jan 9, 2026 Активный Редактировать Удалить" [ref=e99] [cursor=pointer]:
+                - cell "Test 0 конструкций" [ref=e100]:
+                  - generic [ref=e101]: Test
+                  - generic [ref=e102]: 0 конструкций
+                - cell "Test Customer LLC" [ref=e103]
+                - cell "Manager2 Manager2" [ref=e104]
+                - cell "Jan 9, 2026" [ref=e105]
+                - cell "Активный" [ref=e106]
+                - cell "Редактировать Удалить" [ref=e107]:
+                  - button "Редактировать" [ref=e108]
+                  - button "Удалить" [ref=e109]
+              - row "ПИК Балашиха (резервуар) 1 конструкций Н/Д Игорь Чижов Dec 31, 2025 Активный Редактировать Удалить" [ref=e110] [cursor=pointer]:
+                - cell "ПИК Балашиха (резервуар) 1 конструкций" [ref=e111]:
+                  - generic [ref=e112]: ПИК Балашиха (резервуар)
+                  - generic [ref=e113]: 1 конструкций
+                - cell "Н/Д" [ref=e114]
+                - cell "Игорь Чижов" [ref=e115]
+                - cell "Dec 31, 2025" [ref=e116]
+                - cell "Активный" [ref=e117]
+                - cell "Редактировать Удалить" [ref=e118]:
+                  - button "Редактировать" [ref=e119]
+                  - button "Удалить" [ref=e120]
+              - row "Соколово 2 ПД + РД (свайное поле, ростверки) 0 конструкций Н/Д Игорь Чижов Dec 31, 2025 Активный Редактировать Удалить" [ref=e121] [cursor=pointer]:
+                - cell "Соколово 2 ПД + РД (свайное поле, ростверки) 0 конструкций" [ref=e122]:
+                  - generic [ref=e123]: Соколово 2 ПД + РД (свайное поле, ростверки)
+                  - generic [ref=e124]: 0 конструкций
+                - cell "Н/Д" [ref=e125]
+                - cell "Игорь Чижов" [ref=e126]
+                - cell "Dec 31, 2025" [ref=e127]
+                - cell "Активный" [ref=e128]
+                - cell "Редактировать Удалить" [ref=e129]:
+                  - button "Редактировать" [ref=e130]
+                  - button "Удалить" [ref=e131]
+              - row "ПИК Унифицированное КПП РД 0 конструкций Н/Д Игорь Чижов Dec 10, 2025 Активный Редактировать Удалить" [ref=e132] [cursor=pointer]:
+                - cell "ПИК Унифицированное КПП РД 0 конструкций" [ref=e133]:
+                  - generic [ref=e134]: ПИК Унифицированное КПП РД
+                  - generic [ref=e135]: 0 конструкций
+                - cell "Н/Д" [ref=e136]
+                - cell "Игорь Чижов" [ref=e137]
+                - cell "Dec 10, 2025" [ref=e138]
+                - cell "Активный" [ref=e139]
+                - cell "Редактировать Удалить" [ref=e140]:
+                  - button "Редактировать" [ref=e141]
+                  - button "Удалить" [ref=e142]
+              - row "ПИК Концепция АБЧ 0 конструкций Н/Д Игорь Чижов Dec 10, 2025 Активный Редактировать Удалить" [ref=e143] [cursor=pointer]:
+                - cell "ПИК Концепция АБЧ 0 конструкций" [ref=e144]:
+                  - generic [ref=e145]: ПИК Концепция АБЧ
+                  - generic [ref=e146]: 0 конструкций
+                - cell "Н/Д" [ref=e147]
+                - cell "Игорь Чижов" [ref=e148]
+                - cell "Dec 10, 2025" [ref=e149]
+                - cell "Активный" [ref=e150]
+                - cell "Редактировать Удалить" [ref=e151]:
+                  - button "Редактировать" [ref=e152]
+                  - button "Удалить" [ref=e153]
+              - row "Перекрытие (Склад в Янино) 0 конструкций Н/Д Андрей Дябкин Nov 7, 2025 Активный Редактировать Удалить" [ref=e154] [cursor=pointer]:
+                - cell "Перекрытие (Склад в Янино) 0 конструкций" [ref=e155]:
+                  - generic [ref=e156]: Перекрытие (Склад в Янино)
+                  - generic [ref=e157]: 0 конструкций
+                - cell "Н/Д" [ref=e158]
+                - cell "Андрей Дябкин" [ref=e159]
+                - cell "Nov 7, 2025" [ref=e160]
+                - cell "Активный" [ref=e161]
+                - cell "Редактировать Удалить" [ref=e162]:
+                  - button "Редактировать" [ref=e163]
+                  - button "Удалить" [ref=e164]
+              - row "ПИК Кувекино (перегородки) 0 конструкций Н/Д Игорь Чижов Nov 4, 2025 Активный Редактировать Удалить" [ref=e165] [cursor=pointer]:
+                - cell "ПИК Кувекино (перегородки) 0 конструкций" [ref=e166]:
+                  - generic [ref=e167]: ПИК Кувекино (перегородки)
+                  - generic [ref=e168]: 0 конструкций
+                - cell "Н/Д" [ref=e169]
+                - cell "Игорь Чижов" [ref=e170]
+                - cell "Nov 4, 2025" [ref=e171]
+                - cell "Активный" [ref=e172]
+                - cell "Редактировать Удалить" [ref=e173]:
+                  - button "Редактировать" [ref=e174]
+                  - button "Удалить" [ref=e175]
+              - row "ПИК Сенькино ПД 0 конструкций Н/Д Игорь Чижов Nov 1, 2025 Активный Редактировать Удалить" [ref=e176] [cursor=pointer]:
+                - cell "ПИК Сенькино ПД 0 конструкций" [ref=e177]:
+                  - generic [ref=e178]: ПИК Сенькино ПД
+                  - generic [ref=e179]: 0 конструкций
+                - cell "Н/Д" [ref=e180]
+                - cell "Игорь Чижов" [ref=e181]
+                - cell "Nov 1, 2025" [ref=e182]
+                - cell "Активный" [ref=e183]
+                - cell "Редактировать Удалить" [ref=e184]:
+                  - button "Редактировать" [ref=e185]
+                  - button "Удалить" [ref=e186]
+              - row "ПИК Балашиха (полы) 0 конструкций Н/Д Игорь Чижов Nov 1, 2025 Активный Редактировать Удалить" [ref=e187] [cursor=pointer]:
+                - cell "ПИК Балашиха (полы) 0 конструкций" [ref=e188]:
+                  - generic [ref=e189]: ПИК Балашиха (полы)
+                  - generic [ref=e190]: 0 конструкций
+                - cell "Н/Д" [ref=e191]
+                - cell "Игорь Чижов" [ref=e192]
+                - cell "Nov 1, 2025" [ref=e193]
+                - cell "Активный" [ref=e194]
+                - cell "Редактировать Удалить" [ref=e195]:
+                  - button "Редактировать" [ref=e196]
+                  - button "Удалить" [ref=e197]
+          - generic [ref=e198]:
+            - generic [ref=e199]: Страница 1 из 4
+            - generic [ref=e200]:
+              - button "Назад" [disabled] [ref=e201]
+              - button "1" [ref=e202] [cursor=pointer]
+              - button "2" [ref=e203] [cursor=pointer]
+              - button "3" [ref=e204] [cursor=pointer]
+              - button "4" [ref=e205] [cursor=pointer]
+              - button "Далее" [ref=e206] [cursor=pointer]
+```
