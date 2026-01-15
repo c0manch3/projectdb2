@@ -1,3 +1,78 @@
+## Session 42: 2026-01-15 - Feature #319: Workload Tab Enhancements - COMPLETED ✅
+
+### Summary
+Successfully completed Feature #319: Enhanced Workload tab to filter calendar data and modals by selected project. When a specific project is selected, calendar cells show employee counts only for that project, and the Add Plan modal pre-selects the project.
+
+### Work Completed
+
+#### Regression Testing: 2/2 PASSED ✅
+- **Feature #286**: Employee available for date check ✅
+  - Created workload plan for Employee User on January 19
+  - Attempted to add another plan for same employee/date
+  - Employee User was NOT available in dropdown (filtered out correctly)
+  - Confirms available employees API filters out busy employees
+  - Deleted test workload successfully
+
+- **Feature #206**: Success toast on delete ✅
+  - Deleted workload plan
+  - Success toast appeared: "Запись удалена" (Record deleted)
+  - Workload entry removed from calendar
+  - Deletion workflow working correctly
+
+#### Feature #319: Workload Tab Enhancements ✅ COMPLETED
+
+**Requirements:**
+When a specific project is selected in the project filter:
+1. Calendar cells should display employee count for THAT project only (for past/current dates)
+2. Clicking on cell opens modal with reports filtered by selected project
+3. Planned work should also be displayed if it exists
+4. "+" button should pre-select the project (no need to choose from dropdown)
+
+**Implementation:**
+
+**Frontend Changes (WorkloadPage.tsx):**
+1. Modified getActualReportsCountForDate function (lines 635-650):
+   - Added filtering by selectedProject
+   - Returns count of employees who worked on selected project only
+   - Falls back to all employees if no project selected
+
+2. Modified getEmployeesForDate function (lines 622-641):
+   - Added filtering by selectedProject
+   - Returns only reports that have distributions for selected project
+   - Filters using report.distributions
+
+3. Modified handleOpenAddModal function (lines 372-383):
+   - Pre-selects project when specific project is filtered
+   - Project is automatically filled when filter is applied
+
+4. Modified Add Plan Modal (lines 1528-1566):
+   - Conditionally renders project dropdown only when NO project is selected
+   - Shows disabled text field with project name when project is pre-selected
+   - User only needs to select employee when project is already chosen
+
+**Testing Results:**
+✅ All Projects Mode: Jan 13: 15 reports, Jan 14: 17 reports, Jan 15: 17 reports
+✅ Specific Project Selected: Counts changed to 2/2/2 reports
+✅ Modal Filtering: Showed only 2 employees for selected project
+✅ Add Plan Modal: Project pre-selected and disabled when filter applied
+✅ Add Plan Modal: Project dropdown shown when no filter applied
+✅ No console errors
+
+**Git Commit:**
+- 744e757: Implement Feature #319: Workload project filter enhancements
+
+### Current Status
+- **Features:** 318/320 passing (99.4%)
+- **Feature #319:** ✅ PASSING
+- **Remaining:** 2 features pending
+
+### Notes
+- Feature significantly improves UX when working with specific projects
+- Filtering logic correctly handles edge cases
+- All functionality backwards compatible with existing mode
+
+---
+
 ## Session 41: 2026-01-15 - Feature #318: Workload Project Filter by Role - COMPLETED ✅
 
 ### Summary
