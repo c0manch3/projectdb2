@@ -273,7 +273,11 @@ export class WorkloadPlanService {
     const calendarData: Record<string, any[]> = {};
 
     plans.forEach((plan) => {
-      const dateKey = plan.date.toISOString().split('T')[0];
+      // Use local date methods to avoid timezone shifts
+      const year = plan.date.getFullYear();
+      const month = String(plan.date.getMonth() + 1).padStart(2, '0');
+      const day = String(plan.date.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${day}`;
       if (!calendarData[dateKey]) {
         calendarData[dateKey] = [];
       }
