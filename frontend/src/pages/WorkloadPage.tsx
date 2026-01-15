@@ -1889,8 +1889,6 @@ export default function WorkloadPage() {
                   </div>
                 );
               })()}
-                </div>
-              )}
             </div>
             <div className="flex justify-between items-center p-4 border-t">
               <div className="text-sm text-gray-500">

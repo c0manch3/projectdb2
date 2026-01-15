@@ -318,7 +318,11 @@
     "notes": "Заметки",
     "noEmployeesAssigned": "Нет назначенных сотрудников",
     "employeesAssignedCount": "Сотрудников: {{count}}",
-    "workReport": "Отчёт о работе"
+    "workReport": "Отчёт о работе",
+    "projectDistribution": "Распределение по проектам",
+    "totalHoursWorked": "Всего отработано часов",
+    "noAdditionalDetails": "Дополнительные детали отсутствуют",
+    "futureDatesOnly": "Планирование доступно только для будущих дат"
   },
   "analytics": {
     "title": "Аналитика",
