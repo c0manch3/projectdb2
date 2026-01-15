@@ -950,9 +950,11 @@ export default function WorkloadPage() {
                 const dayIsFuture = isFutureDate(currentDay);
                 const isAllEmployeesMode = !selectedEmployee;
                 const hasWorkloadData = dayPlans.length > 0 || actualCalendarData[dateKey] !== undefined;
+                // Feature #323: Future dates with plans should be highlighted in green
+                const shouldHighlightGreen = dayIsFuture && dayPlans.length > 0;
 
                 return (
-                  <div className={`p-4 border rounded-lg ${hasWorkloadData ? 'bg-green-50' : 'bg-white'} ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}>
+                  <div className={`p-4 border rounded-lg ${shouldHighlightGreen ? 'bg-green-50' : 'bg-white'} ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}>
                     <div className="flex items-center justify-between mb-4">
                       <span className={`text-xl font-semibold ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
                         {currentDay.getDate()}
@@ -1036,11 +1038,13 @@ export default function WorkloadPage() {
                   const dayIsFuture = isFutureDate(day);
                   const isAllEmployeesMode = !selectedEmployee;
                   const hasWorkloadData = dayPlans.length > 0 || actualCalendarData[dateKey] !== undefined;
+                  // Feature #323: Future dates with plans should be highlighted in green
+                  const shouldHighlightGreen = dayIsFuture && dayPlans.length > 0;
 
                   return (
                     <div
                       key={index}
-                      className={`min-h-32 p-2 border rounded-lg ${hasWorkloadData ? 'bg-green-50' : 'bg-white'} ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
+                      className={`min-h-32 p-2 border rounded-lg ${shouldHighlightGreen ? 'bg-green-50' : 'bg-white'} ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
                         isAllEmployeesMode && dayPlans.length > 0 ? 'cursor-pointer hover:bg-gray-50' : ''
                       }`}
                       onClick={(e) => {
@@ -1138,12 +1142,14 @@ export default function WorkloadPage() {
                   const shouldShowActualCount = isAllEmployeesMode && dayIsPastOrToday && actualReportsCount > 0;
 
                   const hasWorkloadData = dayPlans.length > 0 || actualCalendarData[dateKey] !== undefined;
+                  // Feature #323: Future dates with plans should be highlighted in green
+                  const shouldHighlightGreen = dayIsFuture && dayPlans.length > 0;
 
                   return (
                     <div
                       key={index}
                       className={`min-h-24 p-2 border rounded-lg ${
-                        day.isCurrentMonth ? (hasWorkloadData ? 'bg-green-50' : 'bg-white') : 'bg-gray-50'
+                        day.isCurrentMonth ? (shouldHighlightGreen ? 'bg-green-50' : 'bg-white') : 'bg-gray-50'
                       } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
                         (isAllEmployeesMode || isSingleEmployeeMode || isSingleEmployeeAllProjectsMode) && (dayPlans.length > 0 || actualReportsCount > 0 || dayActual) && day.isCurrentMonth ? 'cursor-pointer hover:bg-gray-50' : ''
                       }`}
