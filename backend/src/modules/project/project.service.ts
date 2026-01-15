@@ -11,6 +11,14 @@ export class ProjectService {
     // Build where clause based on user role
     let where: any = status ? { status } : {};
 
+    // Feature #328: Managers can only see projects where they are the manager
+    if (user?.role === UserRole.Manager) {
+      where = {
+        ...where,
+        managerId: user.sub,
+      };
+    }
+
     // Employees can only see projects they're assigned to
     if (user?.role === UserRole.Employee) {
       where = {
