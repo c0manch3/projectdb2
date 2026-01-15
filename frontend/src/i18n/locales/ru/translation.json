@@ -322,7 +322,16 @@
     "projectDistribution": "Распределение по проектам",
     "totalHoursWorked": "Всего отработано часов",
     "noAdditionalDetails": "Дополнительные детали отсутствуют",
-    "futureDatesOnly": "Планирование доступно только для будущих дат"
+    "futureDatesOnly": "Планирование доступно только для будущих дат",
+    "allEmployeesAssigned": "Все сотрудники уже назначены на эту дату",
+    "noManagedProjects": "У вас нет проектов, которыми вы управляете",
+    "selectEmployeeAndProject": "Выберите сотрудника и проект",
+    "cannotDeletePastOrCurrent": "Нельзя удалить план на прошедшую или текущую дату",
+    "cannotEditPastOrCurrent": "Нельзя редактировать план на прошедшую или текущую дату",
+    "selectProjectRequired": "Выберите проект",
+    "createFailed": "Не удалось создать план",
+    "updateFailed": "Не удалось обновить план",
+    "deleteFailed": "Не удалось удалить план"
   },
   "analytics": {
     "title": "Аналитика",

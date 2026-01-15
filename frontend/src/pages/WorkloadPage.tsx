@@ -83,7 +83,9 @@ export default function WorkloadPage() {
   const { user } = useAppSelector((state) => state.auth);
   const isManager = user?.role === 'Admin' || user?.role === 'Manager';
   const isEmployee = user?.role === 'Employee';
+  const isOnlyManager = user?.role === 'Manager'; // Only Manager, not Admin
   const [projects, setProjects] = useState<Project[]>([]);
+  const [managedProjects, setManagedProjects] = useState<Project[]>([]); // Projects where current user is manager
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
@@ -155,7 +157,14 @@ export default function WorkloadPage() {
   const fetchProjects = async () => {
     try {
       const response = await api.get('/project');
-      setProjects(response.data);
+      const allProjects = response.data;
+      setProjects(allProjects);
+
+      // Filter projects where current user is the manager
+      if (user) {
+        const userManagedProjects = allProjects.filter((p: any) => p.managerId === user.id);
+        setManagedProjects(userManagedProjects);
+      }
     } catch (error) {
       console.error('Failed to fetch projects:', error);
     } finally {
@@ -873,7 +882,7 @@ export default function WorkloadPage() {
                       <span className={`text-xl font-semibold ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
                         {currentDay.getDate()}
                       </span>
-                      {isManager && dayIsFuture && (
+                      {isOnlyManager && dayIsFuture && (
                         <button
                           onClick={() => handleOpenAddModal(dateKey)}
                           className="btn-primary text-sm"
@@ -977,7 +986,7 @@ export default function WorkloadPage() {
                         >
                           {day.getDate()}
                         </span>
-                        {isManager && dayIsFuture && (
+                        {isOnlyManager && dayIsFuture && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1082,7 +1091,7 @@ export default function WorkloadPage() {
                         >
                           {day.date.getDate()}
                         </span>
-                        {isManager && day.isCurrentMonth && dayIsFuture && (
+                        {isOnlyManager && day.isCurrentMonth && dayIsFuture && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1501,12 +1510,17 @@ export default function WorkloadPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">{t('workload.selectProject')}</option>
-                  {projects.map((project) => (
+                  {managedProjects.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
                     </option>
                   ))}
                 </select>
+                {managedProjects.length === 0 && (
+                  <p className="text-sm text-amber-600 mt-1">
+                    {t('workload.noManagedProjects')}
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">

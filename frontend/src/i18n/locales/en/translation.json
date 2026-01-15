@@ -294,7 +294,16 @@
     "projectDistribution": "Project Distribution",
     "totalHoursWorked": "Total Hours Worked",
     "noAdditionalDetails": "No additional details",
-    "futureDatesOnly": "Planning is only available for future dates"
+    "futureDatesOnly": "Planning is only available for future dates",
+    "allEmployeesAssigned": "All employees are already assigned for this date",
+    "noManagedProjects": "You have no projects that you manage",
+    "selectEmployeeAndProject": "Please select an employee and project",
+    "cannotDeletePastOrCurrent": "Cannot delete plan for past or current date",
+    "cannotEditPastOrCurrent": "Cannot edit plan for past or current date",
+    "selectProjectRequired": "Please select a project",
+    "createFailed": "Failed to create plan",
+    "updateFailed": "Failed to update plan",
+    "deleteFailed": "Failed to delete plan"
   },
   "analytics": {
     "title": "Analytics",
