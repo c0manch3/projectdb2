@@ -1,0 +1,122 @@
+### Page state
+- Page URL: http://localhost:5173/workload
+- Page Title: ProjectDB
+- Page Snapshot:
+```yaml
+- generic [ref=e5]:
+  - link "Skip to main content":
+    - /url: "#main-content"
+  - generic [ref=e7]:
+    - heading "ProjectDB" [level=1] [ref=e9]
+    - navigation [ref=e10]:
+      - link "Проекты" [ref=e11] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e12]
+        - text: Проекты
+      - link "Сотрудники" [ref=e14] [cursor=pointer]:
+        - /url: /employees
+        - img [ref=e15]
+        - text: Сотрудники
+      - link "Компании" [ref=e17] [cursor=pointer]:
+        - /url: /companies
+        - img [ref=e18]
+        - text: Компании
+      - link "Нагрузка" [ref=e20] [cursor=pointer]:
+        - /url: /workload
+        - img [ref=e21]
+        - text: Нагрузка
+      - link "Аналитика" [ref=e23] [cursor=pointer]:
+        - /url: /analytics
+        - img [ref=e24]
+        - text: Аналитика
+    - generic [ref=e26]:
+      - link "MU Manager User Manager" [ref=e27] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e29]: MU
+        - generic [ref=e30]:
+          - paragraph [ref=e31]: Manager User
+          - paragraph [ref=e32]: Manager
+      - button "Выход" [ref=e33] [cursor=pointer]:
+        - img [ref=e34]
+        - text: Выход
+  - generic [ref=e36]:
+    - banner [ref=e37]:
+      - generic [ref=e38]:
+        - generic [ref=e40]:
+          - searchbox "Поиск..." [ref=e41]
+          - img [ref=e42]
+        - button "Уведомления" [ref=e45] [cursor=pointer]:
+          - img [ref=e46]
+    - main [ref=e48]:
+      - generic [ref=e264]:
+        - generic [ref=e265]:
+          - heading "Нагрузка" [level=1] [ref=e266]
+          - button "Экспорт" [ref=e267] [cursor=pointer]:
+            - img [ref=e268]
+            - text: Экспорт
+        - generic [ref=e270]:
+          - button "Планируемая" [ref=e271] [cursor=pointer]
+          - button "Мои часы" [ref=e272] [cursor=pointer]
+        - generic [ref=e274]:
+          - generic [ref=e275]:
+            - generic [ref=e276]: Проект
+            - combobox "Выберите проект" [ref=e277]:
+              - option "Все проекты" [selected]
+              - option "TEST_REGRESSION_133_SYNC_TAB"
+              - option "Test Project Alpha"
+              - option "EDITED_NAME_001"
+          - generic [ref=e278]:
+            - generic [ref=e279]: Сотрудник
+            - combobox "Выберите сотрудника" [ref=e280]:
+              - option "Все сотрудники" [selected]
+              - option "Employee User"
+              - option "Manager User"
+              - option "Хачатур Ерицян"
+              - option "Наталья Пекарская"
+              - option "Илья Пекарский"
+              - option "Севина Мамедзаде"
+              - option "Ирина Пантелеева"
+              - option "Артем Палилов"
+              - option "Равиль Рафиков"
+              - option "Арина Бударина"
+              - option "Илья Григораш"
+              - option "Александра Гаевская"
+              - option "Илья Сидоров"
+              - option "Юлия Дмитриева"
+              - option "Резеда Ошкина"
+              - option "Альбина Власова"
+              - option "Яна Ракова"
+              - option "Дмитрий Рыбаков"
+              - option "Анастасия Гребенщикова"
+              - option "Адель Нафикова"
+              - option "Андрей Дябкин"
+              - option "Екатерина Шурова"
+              - option "Игорь Чижов"
+        - generic [ref=e281]:
+          - generic [ref=e282]:
+            - generic [ref=e283]:
+              - button "workload.previousDay" [ref=e478] [cursor=pointer]:
+                - img [ref=e285]
+              - button "Сегодня" [ref=e287] [cursor=pointer]
+              - button "Эта неделя" [ref=e288] [cursor=pointer]
+            - generic [ref=e289]:
+              - button "День" [ref=e290] [cursor=pointer]
+              - button "Неделя" [ref=e291] [cursor=pointer]
+              - button "Месяц" [ref=e292] [cursor=pointer]
+            - heading "четверг, 15 января 2026 г." [level=2] [ref=e479]
+            - button "workload.nextDay" [ref=e480] [cursor=pointer]:
+              - img [ref=e295]
+          - generic [ref=e481]: workload.swipeToNavigateDays
+          - generic [ref=e483]:
+            - generic [ref=e484]:
+              - generic [ref=e485]: "15"
+              - button "Добавить нагрузку" [ref=e486] [cursor=pointer]: + Добавить план
+            - generic [ref=e487]:
+              - generic [ref=e518]:
+                - generic [ref=e519]: Employee User
+                - generic [ref=e520]: Test Project Alpha
+              - generic [ref=e488]:
+                - generic [ref=e489]: Ирина Пантелеева
+                - generic [ref=e490]: Test Project Alpha
+            - button "workload.viewAllEmployeesAssigned" [ref=e491] [cursor=pointer]
+```

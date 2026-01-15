@@ -85,6 +85,19 @@ export default function WorkloadPage() {
   const isManager = user?.role === 'Admin' || user?.role === 'Manager';
   const isEmployee = user?.role === 'Employee';
   const isOnlyManager = user?.role === 'Manager'; // Only Manager, not Admin
+
+  // Feature #325: Helper function to check if current user can modify a workload plan
+  // Admin can modify any plan
+  // Manager can only modify plans they created
+  // Other roles cannot modify plans
+  // Feature #326: Added null/undefined check for plan.manager to prevent crash
+  const canModifyPlan = (plan: WorkloadPlanEntry): boolean => {
+    if (!user) return false;
+    if (user.role === 'Admin') return true;
+    if (user.role === 'Manager') return plan.manager?.id === user.id;
+    return false;
+  };
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [managedProjects, setManagedProjects] = useState<Project[]>([]); // Projects where current user is manager
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -973,13 +986,15 @@ export default function WorkloadPage() {
                       <div className="text-gray-500 text-center py-8">{t('workload.noWorkload')}</div>
                     ) : (
                       <div className="space-y-3">
-                        {dayPlans.map((plan) => (
+                        {dayPlans.map((plan) => {
+                          const canModify = canModifyPlan(plan);
+                          return (
                           <div
                             key={plan.id}
-                            className={`bg-primary-100 text-primary-800 p-4 rounded-lg group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={isManager && !isAllEmployeesMode ? t('common.clickToEdit') : undefined}
+                            className={`bg-primary-100 text-primary-800 p-4 rounded-lg group relative ${canModify && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={canModify && !isAllEmployeesMode ? t('common.clickToEdit') : undefined}
                             onClick={() => {
-                              if (isManager && !isAllEmployeesMode) {
+                              if (canModify && !isAllEmployeesMode) {
                                 handleOpenEditModal(plan, dateKey);
                               } else if (isAllEmployeesMode && dayPlans.length > 0) {
                                 handleOpenDateEmployeesModal(dateKey);
@@ -988,7 +1003,7 @@ export default function WorkloadPage() {
                           >
                             <div className="font-medium text-lg">{plan.user.firstName} {plan.user.lastName}</div>
                             <div className="text-primary-600">{plan.project.name}</div>
-                            {isManager && !isAllEmployeesMode && dayIsFuture && (
+                            {canModify && !isAllEmployeesMode && dayIsFuture && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1003,7 +1018,8 @@ export default function WorkloadPage() {
                               </button>
                             )}
                           </div>
-                        ))}
+                        );
+                        })}
                       </div>
                     )}
                     {isAllEmployeesMode && dayPlans.length > 0 && (
@@ -1089,14 +1105,16 @@ export default function WorkloadPage() {
                           }
                         }}
                       >
-                        {dayPlans.map((plan) => (
+                        {dayPlans.map((plan) => {
+                          const canModify = canModifyPlan(plan);
+                          return (
                           <div
                             key={plan.id}
-                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode ? ` (${t('common.clickToEdit')})` : ''}`}
+                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${canModify && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${canModify && !isAllEmployeesMode ? ` (${t('common.clickToEdit')})` : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (isManager && !isAllEmployeesMode) {
+                              if (canModify && !isAllEmployeesMode) {
                                 handleOpenEditModal(plan, dateKey);
                               } else if (isAllEmployeesMode && dayPlans.length > 0) {
                                 handleOpenDateEmployeesModal(dateKey);
@@ -1106,7 +1124,7 @@ export default function WorkloadPage() {
                             <span className="font-medium">{plan.user.firstName}</span>
                             <span className="text-primary-600"> - {plan.project.name}</span>
                           </div>
-                        ))}
+                        );})}
                       </div>
                     </div>
                   );
@@ -1233,14 +1251,16 @@ export default function WorkloadPage() {
                         ) : (
                           <>
                             {/* Show plan entries */}
-                            {dayPlans.map((plan) => (
+                            {dayPlans.map((plan) => {
+                              const canModify = canModifyPlan(plan);
+                              return (
                           <div
                             key={plan.id}
-                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager && !isAllEmployeesMode && !isSingleEmployeeMode && !isSingleEmployeeAllProjectsMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode && !isSingleEmployeeMode && !isSingleEmployeeAllProjectsMode ? ` (${t('common.clickToEdit')})` : ''}`}
+                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${canModify && !isAllEmployeesMode && !isSingleEmployeeMode && !isSingleEmployeeAllProjectsMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${canModify && !isAllEmployeesMode && !isSingleEmployeeMode && !isSingleEmployeeAllProjectsMode ? ` (${t('common.clickToEdit')})` : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (isManager && !isAllEmployeesMode && !isSingleEmployeeMode && !isSingleEmployeeAllProjectsMode) {
+                              if (canModify && !isAllEmployeesMode && !isSingleEmployeeMode && !isSingleEmployeeAllProjectsMode) {
                                 handleOpenEditModal(plan, dateKey);
                               } else if (isAllEmployeesMode && dayPlans.length > 0) {
                                 handleOpenDateEmployeesModal(dateKey);
@@ -1251,7 +1271,7 @@ export default function WorkloadPage() {
                           >
                             <span className="font-medium">{plan.user.firstName}</span>
                             <span className="text-primary-600"> - {plan.project.name}</span>
-                            {isManager && !isAllEmployeesMode && !isSingleEmployeeMode && !isSingleEmployeeAllProjectsMode && dayIsFuture && (
+                            {canModify && !isAllEmployeesMode && !isSingleEmployeeMode && !isSingleEmployeeAllProjectsMode && dayIsFuture && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1266,7 +1286,7 @@ export default function WorkloadPage() {
                               </button>
                             )}
                           </div>
-                        ))}
+                        );})}
                             {/* In single employee mode or single employee all projects mode, show actual report summary for past/today dates */}
                             {(isSingleEmployeeMode || isSingleEmployeeAllProjectsMode) && dayIsPastOrToday && dayActual && (
                               <div
@@ -1934,7 +1954,7 @@ export default function WorkloadPage() {
                   <div className="space-y-3">
                     {isActualData ? (
                       // Display actual workload reports
-                      data.map((actualEntry: WorkloadActualEntryWithUser) => {
+                      (data as WorkloadActualEntryWithUser[]).map((actualEntry) => {
                         // Get the plan for this user on this date if it exists
                         const planForUser = calendarData[dateEmployeesModalDate]?.find(
                           p => p.user.id === actualEntry.user.id
@@ -1997,7 +2017,9 @@ export default function WorkloadPage() {
                       })
                     ) : (
                       // Display workload plans
-                      data.map((plan: WorkloadPlanEntry) => (
+                      (data as WorkloadPlanEntry[]).map((plan) => {
+                        const canModify = canModifyPlan(plan);
+                        return (
                         <div
                           key={plan.id}
                           className="bg-primary-50 border border-primary-200 rounded-lg p-4"
@@ -2011,7 +2033,7 @@ export default function WorkloadPage() {
                                 {plan.project.name}
                               </div>
                             </div>
-                            {isManager && isFutureDateString(dateEmployeesModalDate) && (
+                            {canModify && isFutureDateString(dateEmployeesModalDate) && (
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => {
@@ -2041,7 +2063,8 @@ export default function WorkloadPage() {
                             )}
                           </div>
                         </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 );

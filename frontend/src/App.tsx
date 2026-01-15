@@ -13,6 +13,7 @@ import CompaniesPage from './pages/CompaniesPage';
 import WorkloadPage from './pages/WorkloadPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
+import ChatLogsPage from './pages/ChatLogsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Protected route wrapper - just checks authentication
