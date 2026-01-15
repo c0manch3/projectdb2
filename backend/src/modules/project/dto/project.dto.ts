@@ -19,7 +19,8 @@ export class CreateProjectDto {
   type?: ProjectType;
 
   @Matches(UUID_REGEX, { message: 'customerId must be a valid UUID format' })
-  customerId: string;
+  @IsOptional()
+  customerId?: string;
 
   @Matches(UUID_REGEX, { message: 'managerId must be a valid UUID format' })
   managerId: string;

@@ -466,9 +466,7 @@ export default function ProjectsPage() {
     } else if (newProject.name.trim().length > 200) {
       errors.name = 'Project name must be less than 200 characters';
     }
-    if (!newProject.customerId) {
-      errors.customerId = 'Please select a customer';
-    }
+    // Feature #329: customerId is now optional - removed validation
     if (!newProject.managerId) {
       errors.managerId = 'Please select a manager';
     }
@@ -504,7 +502,8 @@ export default function ProjectsPage() {
         name: newProject.name,
         contractDate: newProject.contractDate,
         expirationDate: newProject.expirationDate,
-        customerId: newProject.customerId,
+        // Feature #329: customerId is now optional
+        ...(newProject.customerId && { customerId: newProject.customerId }),
         managerId: newProject.managerId,
         type: newProject.type,
         ...(newProject.type === 'additional' && newProject.mainProjectId && { mainProjectId: newProject.mainProjectId }),
@@ -869,7 +868,7 @@ export default function ProjectsPage() {
                 {formErrors.name && <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.customer')} *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('projects.customer')}</label>
                 <select
                   value={newProject.customerId}
                   onChange={(e) => handleNewProjectChange('customerId', e.target.value)}
