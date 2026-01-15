@@ -265,6 +265,10 @@ export class WorkloadPlanService {
         project: {
           select: { id: true, name: true },
         },
+        // Feature #325: Include manager data to support canModifyPlan check on frontend
+        manager: {
+          select: { id: true, firstName: true, lastName: true },
+        },
       },
       orderBy: [{ date: 'asc' }, { user: { lastName: 'asc' } }],
     });
@@ -285,6 +289,8 @@ export class WorkloadPlanService {
         id: plan.id,
         user: plan.user,
         project: plan.project,
+        // Feature #325: Include manager for canModifyPlan check on frontend
+        manager: plan.manager,
       });
     });
 

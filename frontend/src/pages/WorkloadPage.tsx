@@ -660,30 +660,61 @@ export default function WorkloadPage() {
   };
 
   // Get employees with work assigned for a specific date
-  // In "All Employees" mode (no employee selected), return ACTUAL reports instead of plans
-  // In "Single Employee" mode (both project and employee selected), return ACTUAL report for that employee
-  // In "Single Employee All Projects" mode (employee selected, no project), return ACTUAL report for that employee
+  // Logic:
+  // - For FUTURE dates: always show PLANS
+  // - For PAST/CURRENT dates: show ACTUAL reports if available, otherwise fallback to PLANS
+  // Modes:
+  // - "All Employees" mode (no employee selected): show all employees' data
+  // - "Single Employee" mode (both project and employee selected): show selected employee's data
+  // - "Single Employee All Projects" mode (employee selected, no project): show selected employee's data
   const getEmployeesForDate = (dateKey: string) => {
     const isAllEmployeesMode = !selectedEmployee;
     const isSingleEmployeeMode = selectedEmployee && selectedProject;
     const isSingleEmployeeAllProjectsMode = selectedEmployee && !selectedProject;
+    const isFutureDate = !isPastDateString(dateKey);
 
     if (isAllEmployeesMode && isManager) {
-      // Return actual workload data for all employees
+      // For future dates - show plans only
+      if (isFutureDate) {
+        const plans = calendarData[dateKey] || [];
+        if (selectedProject) {
+          return plans.filter(plan => plan.project.id === selectedProject);
+        }
+        return plans;
+      }
+
+      // For past/current dates - show actual reports if available, otherwise fallback to plans
       const actualReports = allEmployeesActualData[dateKey] || [];
 
       // If a specific project is selected, filter reports for that project
       if (selectedProject) {
-        return actualReports.filter(report =>
+        const filteredActuals = actualReports.filter(report =>
           report.distributions?.some(dist => dist.projectId === selectedProject)
         );
+        // If no actual reports, fallback to plans
+        if (filteredActuals.length === 0) {
+          const plans = calendarData[dateKey] || [];
+          return plans.filter(plan => plan.project.id === selectedProject);
+        }
+        return filteredActuals;
+      }
+
+      // If no actual reports at all, fallback to plans
+      if (actualReports.length === 0) {
+        return calendarData[dateKey] || [];
       }
 
       return actualReports;
     }
 
     if ((isSingleEmployeeMode || isSingleEmployeeAllProjectsMode) && isManager) {
-      // Return actual workload data for the selected employee
+      // For future dates - show plans only
+      if (isFutureDate) {
+        const plans = calendarData[dateKey] || [];
+        return plans.filter(plan => plan.user.id === selectedEmployee);
+      }
+
+      // For past/current dates - show actual reports if available, otherwise fallback to plans
       const dayActual = actualCalendarData[dateKey];
       if (dayActual) {
         // Convert to WorkloadActualEntryWithUser format for modal display
@@ -697,7 +728,10 @@ export default function WorkloadPage() {
           } : { id: '', firstName: '', lastName: '' }
         }];
       }
-      return [];
+
+      // Fallback to plans if no actual data
+      const plans = calendarData[dateKey] || [];
+      return plans.filter(plan => plan.user.id === selectedEmployee);
     }
 
     // Otherwise, return plan data
