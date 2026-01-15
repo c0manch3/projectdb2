@@ -377,7 +377,8 @@ export default function WorkloadPage() {
     }
     setSelectedDate(date);
     setNewPlanEmployee('');
-    setNewPlanProject('');
+    // If a specific project is selected in the filter, pre-select it in the modal
+    setNewPlanProject(selectedProject || '');
     setShowAddModal(true);
   };
 
@@ -624,7 +625,16 @@ export default function WorkloadPage() {
 
     if (isAllEmployeesMode && isManager) {
       // Return actual workload data for all employees
-      return allEmployeesActualData[dateKey] || [];
+      const actualReports = allEmployeesActualData[dateKey] || [];
+
+      // If a specific project is selected, filter reports for that project
+      if (selectedProject) {
+        return actualReports.filter(report =>
+          report.distributions?.some(dist => dist.projectId === selectedProject)
+        );
+      }
+
+      return actualReports;
     }
 
     // Otherwise, return plan data
@@ -632,9 +642,21 @@ export default function WorkloadPage() {
   };
 
   // Get count of employees who submitted actual reports for a specific date
+  // If a specific project is selected, only count reports for that project
   const getActualReportsCountForDate = (dateKey: string) => {
     const actualReports = allEmployeesActualData[dateKey] || [];
-    return actualReports.length;
+
+    // If no project is selected, return all reports
+    if (!selectedProject) {
+      return actualReports.length;
+    }
+
+    // Filter reports that have distributions for the selected project
+    const reportsForProject = actualReports.filter(report =>
+      report.distributions?.some(dist => dist.projectId === selectedProject)
+    );
+
+    return reportsForProject.length;
   };
 
   // Get employees who are busy on a specific date (have work assigned)
@@ -1503,28 +1525,45 @@ export default function WorkloadPage() {
                   </p>
                 )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('workload.project')} *
-                </label>
-                <select
-                  value={newPlanProject}
-                  onChange={(e) => setNewPlanProject(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">{t('workload.selectProject')}</option>
-                  {managedProjects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-                {managedProjects.length === 0 && (
-                  <p className="text-sm text-amber-600 mt-1">
-                    {t('workload.noManagedProjects')}
-                  </p>
-                )}
-              </div>
+              {/* Only show project selection if no project is pre-selected from filter */}
+              {!selectedProject && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('workload.project')} *
+                  </label>
+                  <select
+                    value={newPlanProject}
+                    onChange={(e) => setNewPlanProject(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="">{t('workload.selectProject')}</option>
+                    {managedProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                  {managedProjects.length === 0 && (
+                    <p className="text-sm text-amber-600 mt-1">
+                      {t('workload.noManagedProjects')}
+                    </p>
+                  )}
+                </div>
+              )}
+              {/* Show selected project name when project is pre-selected from filter */}
+              {selectedProject && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('workload.project')}
+                  </label>
+                  <input
+                    type="text"
+                    value={managedProjects.find(p => p.id === selectedProject)?.name || ''}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                  />
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button
