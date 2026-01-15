@@ -79,6 +79,14 @@ export default function ProjectsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const canEdit = user?.role === 'Admin' || user?.role === 'Manager';
   const isAdmin = user?.role === 'Admin';
+
+  // Feature #327: Check if user can edit a specific project
+  // Admins can edit any project, Managers can only edit their own projects
+  const canEditProject = (project: Project): boolean => {
+    if (user?.role === 'Admin') return true;
+    if (user?.role === 'Manager') return project.managerId === user.id;
+    return false;
+  };
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -663,12 +671,14 @@ export default function ProjectsPage() {
                     </td>
                     {canEdit && (
                       <td className="px-4 py-4 whitespace-nowrap space-x-3">
-                        <button
-                          onClick={(e) => handleEdit(e, project)}
-                          className="text-primary-600 hover:text-primary-800 text-sm font-medium"
-                        >
-                          {t('common.edit')}
-                        </button>
+                        {canEditProject(project) && (
+                          <button
+                            onClick={(e) => handleEdit(e, project)}
+                            className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                          >
+                            {t('common.edit')}
+                          </button>
+                        )}
                         {isAdmin && (
                           <button
                             onClick={(e) => handleDelete(e, project)}
