@@ -80,13 +80,14 @@ export class WorkloadPlanController {
       projectId?: string;
       date?: Date;
     },
+    @CurrentUser('sub') managerId: string,
   ) {
-    return this.workloadPlanService.update(id, dto);
+    return this.workloadPlanService.update(id, dto, managerId);
   }
 
   @Delete(':id')
   @UseGuards(ManagerGuard)
-  async delete(@Param('id') id: string) {
-    return this.workloadPlanService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser('sub') managerId: string) {
+    return this.workloadPlanService.delete(id, managerId);
   }
 }

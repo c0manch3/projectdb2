@@ -45,6 +45,7 @@ interface WorkloadPlanEntry {
   id: string;
   user: { id: string; firstName: string; lastName: string };
   project: { id: string; name: string };
+  manager: { id: string; firstName: string; lastName: string };
 }
 
 interface WorkloadActualEntry {
@@ -378,7 +379,7 @@ export default function WorkloadPage() {
   }, [currentWeekStart]);
 
   const handleOpenAddModal = (date: string) => {
-    // Workload plan can only be added for future dates (not today, not past)
+    // Workload plan can only be added for current and future dates (not past)
     if (!isFutureDateString(date)) {
       toast.error(t('workload.futureDatesOnly'));
       return;
@@ -413,12 +414,19 @@ export default function WorkloadPage() {
     }
   };
 
-  const handleDeleteWorkloadPlan = async (planId: string, dateKey: string) => {
-    // Workload plan can only be deleted for future dates
+  const handleDeleteWorkloadPlan = async (planId: string, dateKey: string, plan?: WorkloadPlanEntry) => {
+    // Workload plan can only be deleted for current and future dates (not past)
     if (!isFutureDateString(dateKey)) {
-      toast.error(t('workload.cannotDeletePastOrCurrent'));
+      toast.error(t('workload.cannotDeletePast'));
       return;
     }
+
+    // Only the manager who created the plan (or Admin) can delete it
+    if (plan && user?.role === 'Manager' && plan.manager.id !== user.id) {
+      toast.error(t('workload.onlyManagerCanDelete'));
+      return;
+    }
+
     try {
       await api.delete(`/workload-plan/${planId}`);
       toast.success(t('workload.workloadDeleted'));
@@ -429,11 +437,18 @@ export default function WorkloadPage() {
   };
 
   const handleOpenEditModal = (plan: WorkloadPlanEntry, dateKey: string) => {
-    // Workload plan can only be edited for future dates
+    // Workload plan can only be edited for current and future dates (not past)
     if (!isFutureDateString(dateKey)) {
-      toast.error(t('workload.cannotEditPastOrCurrent'));
+      toast.error(t('workload.cannotEditPast'));
       return;
     }
+
+    // Only the manager who created the plan (or Admin) can edit it
+    if (user?.role === 'Manager' && plan.manager.id !== user.id) {
+      toast.error(t('workload.onlyManagerCanEdit'));
+      return;
+    }
+
     setEditingPlan(plan);
     setEditingPlanDate(dateKey);
     setEditPlanProject(plan.project.id);
@@ -462,13 +477,13 @@ export default function WorkloadPage() {
     }
   };
 
-  // Check if date is in the future (after today)
+  // Check if date is today or in the future (not past)
   const isFutureDate = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const compareDate = new Date(date);
     compareDate.setHours(0, 0, 0, 0);
-    return compareDate > today;
+    return compareDate >= today; // Changed from > to >= to include today
   };
 
   // Check if date string is in the future
@@ -968,7 +983,7 @@ export default function WorkloadPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDeleteWorkloadPlan(plan.id, dateKey);
+                                  handleDeleteWorkloadPlan(plan.id, dateKey, plan);
                                 }}
                                 className="absolute right-2 top-2 text-red-600 hover:text-red-800 p-2"
                                 aria-label={t('common.delete')}
@@ -1226,7 +1241,7 @@ export default function WorkloadPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDeleteWorkloadPlan(plan.id, dateKey);
+                                  handleDeleteWorkloadPlan(plan.id, dateKey, plan);
                                 }}
                                 className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:block text-red-600 hover:text-red-800"
                                 aria-label={t('common.delete')}
@@ -1998,7 +2013,7 @@ export default function WorkloadPage() {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    handleDeleteWorkloadPlan(plan.id, dateEmployeesModalDate);
+                                    handleDeleteWorkloadPlan(plan.id, dateEmployeesModalDate, plan);
                                     setShowDateEmployeesModal(false);
                                   }}
                                   className="text-red-600 hover:text-red-800 p-2"

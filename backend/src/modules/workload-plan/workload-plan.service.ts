@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -68,6 +68,16 @@ export class WorkloadPlanService {
     managerId: string;
     date: Date;
   }) {
+    // Validate that date is not in the past (can be today or future)
+    const planDate = new Date(data.date);
+    planDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (planDate < today) {
+      throw new BadRequestException('Cannot create workload plan for past dates');
+    }
+
     // Check if plan already exists for this user on this date
     const existing = await this.prisma.workloadPlan.findUnique({
       where: {
@@ -109,17 +119,54 @@ export class WorkloadPlanService {
       projectId?: string;
       date?: Date;
     },
+    managerId?: string,
   ) {
     const plan = await this.prisma.workloadPlan.findUnique({
       where: { id },
+      include: {
+        manager: {
+          select: { id: true, role: true },
+        },
+      },
     });
 
     if (!plan) {
       throw new NotFoundException('Workload plan not found');
     }
 
-    // If date is being changed, check for conflicts
+    // Validate that the original plan date is not in the past (can be today or future)
+    const originalDate = new Date(plan.date);
+    originalDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (originalDate < today) {
+      throw new BadRequestException('Cannot update workload plan for past dates');
+    }
+
+    // Check authorization: only the manager who created the plan (or Admin) can update it
+    if (managerId && plan.managerId !== managerId) {
+      // Need to fetch the current user's role to check if they are Admin
+      const currentUser = await this.prisma.user.findUnique({
+        where: { id: managerId },
+        select: { role: true },
+      });
+
+      if (!currentUser || currentUser.role !== 'Admin') {
+        throw new ForbiddenException('Only the manager who created this plan can update it');
+      }
+    }
+
+    // If date is being changed, validate new date is not in the past
     if (data.date) {
+      const newDate = new Date(data.date);
+      newDate.setHours(0, 0, 0, 0);
+
+      if (newDate < today) {
+        throw new BadRequestException('Cannot change workload plan to a past date');
+      }
+
+      // Check for conflicts with the new date
       const existing = await this.prisma.workloadPlan.findFirst({
         where: {
           userId: plan.userId,
@@ -153,13 +200,41 @@ export class WorkloadPlanService {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: string, managerId?: string) {
     const plan = await this.prisma.workloadPlan.findUnique({
       where: { id },
+      include: {
+        manager: {
+          select: { id: true, role: true },
+        },
+      },
     });
 
     if (!plan) {
       throw new NotFoundException('Workload plan not found');
+    }
+
+    // Validate that the plan date is not in the past (can be today or future)
+    const planDate = new Date(plan.date);
+    planDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (planDate < today) {
+      throw new BadRequestException('Cannot delete workload plan for past dates');
+    }
+
+    // Check authorization: only the manager who created the plan (or Admin) can delete it
+    if (managerId && plan.managerId !== managerId) {
+      // Need to fetch the current user's role to check if they are Admin
+      const currentUser = await this.prisma.user.findUnique({
+        where: { id: managerId },
+        select: { role: true },
+      });
+
+      if (!currentUser || currentUser.role !== 'Admin') {
+        throw new ForbiddenException('Only the manager who created this plan can delete it');
+      }
     }
 
     await this.prisma.workloadPlan.delete({
