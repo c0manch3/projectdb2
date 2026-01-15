@@ -294,6 +294,7 @@
     "projectDistribution": "Project Distribution",
     "totalHoursWorked": "Total Hours Worked",
     "noAdditionalDetails": "No additional details",
+    "actualHours": "Actual Hours",
     "futureDatesOnly": "Planning is only available for future dates",
     "allEmployeesAssigned": "All employees are already assigned for this date",
     "noManagedProjects": "You have no projects that you manage",

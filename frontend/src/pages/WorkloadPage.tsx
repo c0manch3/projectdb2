@@ -219,7 +219,15 @@ export default function WorkloadPage() {
         endDate: endDate.toISOString(),
       });
 
-      const response = await api.get(`/workload-actual/my?${params}`);
+      // If a specific employee is selected and user is a manager, fetch that employee's actual data
+      // Otherwise, fetch current user's actual data
+      let endpoint = '/workload-actual/my';
+      if (selectedEmployee && isManager) {
+        endpoint = '/workload-actual';
+        params.append('userId', selectedEmployee);
+      }
+
+      const response = await api.get(`${endpoint}?${params}`);
       // Convert array to date-keyed object
       const calendarObj: ActualCalendarData = {};
       response.data.forEach((entry: WorkloadActualEntry) => {
@@ -620,8 +628,10 @@ export default function WorkloadPage() {
 
   // Get employees with work assigned for a specific date
   // In "All Employees" mode (no employee selected), return ACTUAL reports instead of plans
+  // In "Single Employee" mode (both project and employee selected), return ACTUAL report for that employee
   const getEmployeesForDate = (dateKey: string) => {
     const isAllEmployeesMode = !selectedEmployee;
+    const isSingleEmployeeMode = selectedEmployee && selectedProject;
 
     if (isAllEmployeesMode && isManager) {
       // Return actual workload data for all employees
@@ -635,6 +645,24 @@ export default function WorkloadPage() {
       }
 
       return actualReports;
+    }
+
+    if (isSingleEmployeeMode && isManager) {
+      // Return actual workload data for the selected employee
+      const dayActual = actualCalendarData[dateKey];
+      if (dayActual) {
+        // Convert to WorkloadActualEntryWithUser format for modal display
+        const selectedEmp = employees.find(e => e.id === selectedEmployee);
+        return [{
+          ...dayActual,
+          user: selectedEmp ? {
+            id: selectedEmp.id,
+            firstName: selectedEmp.firstName,
+            lastName: selectedEmp.lastName
+          } : { id: '', firstName: '', lastName: '' }
+        }];
+      }
+      return [];
     }
 
     // Otherwise, return plan data
@@ -1075,10 +1103,12 @@ export default function WorkloadPage() {
                 {calendarDays.map((day, index) => {
                   const dateKey = formatDateKey(day.date);
                   const dayPlans = calendarData[dateKey] || [];
+                  const dayActual = actualCalendarData[dateKey];
                   const dayIsToday = isToday(day.date);
                   const dayIsFuture = isFutureDate(day.date);
                   const dayIsPastOrToday = !dayIsFuture;
                   const isAllEmployeesMode = !selectedEmployee;
+                  const isSingleEmployeeMode = selectedEmployee && selectedProject; // Both project and employee selected
 
                   // In "All Employees" mode, get actual reports count for past/today dates
                   const actualReportsCount = isAllEmployeesMode ? getActualReportsCountForDate(dateKey) : 0;
@@ -1092,11 +1122,14 @@ export default function WorkloadPage() {
                       className={`min-h-24 p-2 border rounded-lg ${
                         day.isCurrentMonth ? (hasWorkloadData ? 'bg-green-50' : 'bg-white') : 'bg-gray-50'
                       } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
-                        isAllEmployeesMode && (dayPlans.length > 0 || actualReportsCount > 0) && day.isCurrentMonth ? 'cursor-pointer hover:bg-gray-50' : ''
+                        (isAllEmployeesMode || isSingleEmployeeMode) && (dayPlans.length > 0 || actualReportsCount > 0 || dayActual) && day.isCurrentMonth ? 'cursor-pointer hover:bg-gray-50' : ''
                       }`}
                       onClick={(e) => {
-                        // Only open modal if clicking on the cell itself (not on + button or plan items) and in All Employees mode
+                        // Open modal if clicking on the cell in All Employees mode or Single Employee mode (with actual data)
                         if (isAllEmployeesMode && (dayPlans.length > 0 || actualReportsCount > 0) && day.isCurrentMonth && e.target === e.currentTarget) {
+                          handleOpenDateEmployeesModal(dateKey);
+                        } else if (isSingleEmployeeMode && dayActual && day.isCurrentMonth && e.target === e.currentTarget) {
+                          // Open modal to show actual report details for single employee
                           handleOpenDateEmployeesModal(dateKey);
                         }
                       }}
@@ -1108,15 +1141,32 @@ export default function WorkloadPage() {
                           } ${dayIsToday ? 'text-primary-600' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Clicking on date number also opens modal in All Employees mode
+                            // Clicking on date number also opens modal in All Employees mode or Single Employee mode
                             if (isAllEmployeesMode && (dayPlans.length > 0 || actualReportsCount > 0) && day.isCurrentMonth) {
+                              handleOpenDateEmployeesModal(dateKey);
+                            } else if (isSingleEmployeeMode && dayActual && day.isCurrentMonth) {
                               handleOpenDateEmployeesModal(dateKey);
                             }
                           }}
                         >
                           {day.date.getDate()}
                         </span>
-                        {isOnlyManager && day.isCurrentMonth && dayIsFuture && (
+                        {isOnlyManager && day.isCurrentMonth && dayIsFuture && !isSingleEmployeeMode && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAddModal(dateKey);
+                            }}
+                            className="text-primary-600 hover:text-primary-800 p-1"
+                            aria-label={t('workload.addWorkloadFor', { date: dateKey })}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                        )}
+                        {/* In single employee mode, show + button only if employee is NOT busy on that date */}
+                        {isOnlyManager && day.isCurrentMonth && dayIsFuture && isSingleEmployeeMode && dayPlans.length === 0 && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1135,8 +1185,10 @@ export default function WorkloadPage() {
                         className="space-y-1"
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Clicking on content area also opens modal in All Employees mode
+                          // Clicking on content area also opens modal in All Employees mode or Single Employee mode
                           if (isAllEmployeesMode && (dayPlans.length > 0 || actualReportsCount > 0) && day.isCurrentMonth) {
+                            handleOpenDateEmployeesModal(dateKey);
+                          } else if (isSingleEmployeeMode && dayActual && day.isCurrentMonth) {
                             handleOpenDateEmployeesModal(dateKey);
                           }
                         }}
@@ -1151,23 +1203,26 @@ export default function WorkloadPage() {
                           </div>
                         ) : (
                           <>
+                            {/* Show plan entries */}
                             {dayPlans.map((plan) => (
                           <div
                             key={plan.id}
-                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager && !isAllEmployeesMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
-                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode ? ` (${t('common.clickToEdit')})` : ''}`}
+                            className={`text-xs bg-primary-100 text-primary-800 p-1 rounded truncate group relative ${isManager && !isAllEmployeesMode && !isSingleEmployeeMode ? 'cursor-pointer hover:bg-primary-200' : ''}`}
+                            title={`${plan.user.firstName} ${plan.user.lastName} - ${plan.project.name}${isManager && !isAllEmployeesMode && !isSingleEmployeeMode ? ` (${t('common.clickToEdit')})` : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (isManager && !isAllEmployeesMode) {
+                              if (isManager && !isAllEmployeesMode && !isSingleEmployeeMode) {
                                 handleOpenEditModal(plan, dateKey);
                               } else if (isAllEmployeesMode && dayPlans.length > 0) {
+                                handleOpenDateEmployeesModal(dateKey);
+                              } else if (isSingleEmployeeMode && dayActual) {
                                 handleOpenDateEmployeesModal(dateKey);
                               }
                             }}
                           >
                             <span className="font-medium">{plan.user.firstName}</span>
                             <span className="text-primary-600"> - {plan.project.name}</span>
-                            {isManager && !isAllEmployeesMode && dayIsFuture && (
+                            {isManager && !isAllEmployeesMode && !isSingleEmployeeMode && dayIsFuture && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1183,6 +1238,23 @@ export default function WorkloadPage() {
                             )}
                           </div>
                         ))}
+                            {/* In single employee mode, show actual report summary for past/today dates */}
+                            {isSingleEmployeeMode && dayIsPastOrToday && dayActual && (
+                              <div
+                                className="text-xs bg-green-100 text-green-800 p-1 rounded cursor-pointer hover:bg-green-200"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenDateEmployeesModal(dateKey);
+                                }}
+                              >
+                                <div className="font-medium">{t('workload.actualHours')}: {dayActual.hoursWorked}h</div>
+                                {dayActual.distributions && dayActual.distributions.length > 0 && (
+                                  <div className="text-xs opacity-75">
+                                    {dayActual.distributions.map(d => d.project.name).join(', ')}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </>
                         )}
                       </div>

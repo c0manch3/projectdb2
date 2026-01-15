@@ -322,6 +322,7 @@
     "projectDistribution": "Распределение по проектам",
     "totalHoursWorked": "Всего отработано часов",
     "noAdditionalDetails": "Дополнительные детали отсутствуют",
+    "actualHours": "Фактические часы",
     "futureDatesOnly": "Планирование доступно только для будущих дат",
     "allEmployeesAssigned": "Все сотрудники уже назначены на эту дату",
     "noManagedProjects": "У вас нет проектов, которыми вы управляете",
