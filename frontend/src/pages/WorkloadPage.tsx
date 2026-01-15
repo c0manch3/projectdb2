@@ -139,6 +139,9 @@ export default function WorkloadPage() {
   const [actualNotes, setActualNotes] = useState<string>('');
   const [actualDistributions, setActualDistributions] = useState<{ projectId: string; hours: string; description: string }[]>([]);
 
+  // Filter projects based on user role: Managers see only their managed projects, Admins see all
+  const projectsForDropdown = isOnlyManager ? managedProjects : projects;
+
   useEffect(() => {
     fetchProjects();
     fetchEmployees();
@@ -742,7 +745,7 @@ export default function WorkloadPage() {
               aria-label={t('workload.selectProject')}
             >
               <option value="">{t('workload.allProjects')}</option>
-              {projects.map((project) => (
+              {projectsForDropdown.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
                 </option>
@@ -1590,7 +1593,7 @@ export default function WorkloadPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">{t('workload.selectProject')}</option>
-                  {projects.map((project) => (
+                  {projectsForDropdown.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
                     </option>
@@ -1707,7 +1710,7 @@ export default function WorkloadPage() {
                           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         >
                           <option value="">{t('workload.selectProject')}</option>
-                          {projects.map((project) => (
+                          {projectsForDropdown.map((project) => (
                             <option key={project.id} value={project.id}>
                               {project.name}
                             </option>
