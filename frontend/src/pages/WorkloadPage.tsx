@@ -167,6 +167,8 @@ export default function WorkloadPage() {
       fetchActualCalendarData(); // Also fetch actual data to show green backgrounds
       fetchAllEmployeesActualData(); // Fetch all employees' actual data for "All Employees" mode
     } else {
+      // Feature #335: Also fetch plan data in "My Hours" tab to show planned workload for current/future dates
+      fetchCalendarData();
       fetchActualCalendarData();
     }
   }, [currentMonth, selectedProject, selectedEmployee, activeTab]);
@@ -1459,6 +1461,7 @@ export default function WorkloadPage() {
               {(() => {
                 const dateKey = formatDateKey(currentDay);
                 const dayActual = actualCalendarData[dateKey];
+                const dayPlans = calendarData[dateKey] || []; // Feature #335: Get planned workload
                 const dayIsToday = isToday(currentDay);
                 const dayIsFuture = isFutureDate(currentDay);
 
@@ -1478,10 +1481,11 @@ export default function WorkloadPage() {
                           + {t('workload.logHours')}
                         </button>
                       )}
-                      {dayIsFuture && !dayActual && (
+                      {dayIsFuture && !dayActual && dayPlans.length === 0 && (
                         <span className="text-sm text-gray-400">{t('workload.futureDate')}</span>
                       )}
                     </div>
+                    {/* Feature #335: Display actual workload if exists */}
                     {dayActual ? (
                       <div
                         className="bg-green-100 text-green-800 p-4 rounded-lg cursor-pointer hover:bg-green-200 transition-colors"
@@ -1502,9 +1506,31 @@ export default function WorkloadPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="text-gray-500 text-center py-8">
-                        {dayIsFuture ? t('workload.cannotLogFutureHours') : t('workload.noHoursLogged')}
-                      </div>
+                      <>
+                        {/* Feature #335: Display planned workload for current and future dates (when no actual data) */}
+                        {dayPlans.length > 0 ? (
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium text-gray-700 mb-2">{t('workload.plannedWorkload')}:</div>
+                            {dayPlans.map((plan) => (
+                              <div
+                                key={plan.id}
+                                className="bg-blue-100 text-blue-800 p-3 rounded-lg cursor-pointer hover:bg-blue-200 transition-colors"
+                                onClick={() => handleOpenDateEmployeesModal(dateKey)}
+                                title={t('common.clickToViewDetails')}
+                              >
+                                <div className="font-medium">{plan.project.name}</div>
+                                <div className="text-sm text-blue-600 mt-1">
+                                  {plan.manager.firstName} {plan.manager.lastName}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-gray-500 text-center py-8">
+                            {dayIsFuture ? t('workload.cannotLogFutureHours') : t('workload.noHoursLogged')}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 );
@@ -1526,22 +1552,49 @@ export default function WorkloadPage() {
                 {weekDays.map((day, index) => {
                   const dateKey = formatDateKey(day);
                   const dayActual = actualCalendarData[dateKey];
+                  const dayPlans = calendarData[dateKey] || []; // Feature #335: Get planned workload
                   const dayIsToday = isToday(day);
                   const dayIsFuture = isFutureDate(day);
 
                   return (
                     <div
                       key={index}
-                      className={`min-h-32 p-2 border rounded-lg bg-white ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
+                      className={`min-h-32 p-2 border rounded-lg bg-white ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
+                        dayActual || dayPlans.length > 0 ? 'cursor-pointer hover:bg-gray-50' : ''
+                      }`}
+                      onClick={(e) => {
+                        // Feature #335: Open modal when clicking on cell with data
+                        if ((dayActual || dayPlans.length > 0) && e.target === e.currentTarget) {
+                          if (dayActual) {
+                            handleViewActualEntry(dayActual);
+                          } else if (dayPlans.length > 0) {
+                            handleOpenDateEmployeesModal(dateKey);
+                          }
+                        }
+                      }}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`text-sm font-medium ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}>
+                        <span
+                          className={`text-sm font-medium ${dayIsToday ? 'text-primary-600' : 'text-gray-900'}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Feature #335: Clicking on date number also opens modal
+                            if (dayActual) {
+                              handleViewActualEntry(dayActual);
+                            } else if (dayPlans.length > 0) {
+                              handleOpenDateEmployeesModal(dateKey);
+                            }
+                          }}
+                        >
                           {day.getDate()}
                         </span>
                         {/* Only show Add button if no existing entry and not future date */}
                         {!dayActual && !dayIsFuture && (
                           <button
-                            onClick={() => handleOpenAddActualModal(dateKey)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAddActualModal(dateKey);
+                            }}
                             className="text-primary-600 hover:text-primary-800 p-1"
                             aria-label={t('workload.addHoursFor', { date: dateKey })}
                           >
@@ -1551,13 +1604,36 @@ export default function WorkloadPage() {
                           </button>
                         )}
                       </div>
+                      {/* Feature #335: Display actual workload if exists (past dates) */}
                       {dayActual && (
                         <div
                           className="text-xs bg-green-100 text-green-800 p-1 rounded cursor-pointer hover:bg-green-200 transition-colors"
-                          onClick={() => handleViewActualEntry(dayActual)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewActualEntry(dayActual);
+                          }}
                           title={t('common.clickToViewDetails')}
                         >
                           <div className="font-medium">{dayActual.hoursWorked}{t('workload.hours')}</div>
+                        </div>
+                      )}
+                      {/* Feature #335: Display planned workload for current and future dates (when no actual data) */}
+                      {!dayActual && dayPlans.length > 0 && (
+                        <div className="space-y-1">
+                          {dayPlans.map((plan) => (
+                            <div
+                              key={plan.id}
+                              className="text-xs bg-blue-100 text-blue-800 p-1 rounded cursor-pointer hover:bg-blue-200 transition-colors truncate"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDateEmployeesModal(dateKey);
+                              }}
+                              title={`${t('workload.planned')}: ${plan.project.name} - ${t('common.clickToViewDetails')}`}
+                            >
+                              <span className="font-medium text-[10px]">{t('workload.planned')}</span>
+                              <span className="text-blue-600 text-[10px]"> - {plan.project.name}</span>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -1581,28 +1657,56 @@ export default function WorkloadPage() {
                 {calendarDays.map((day, index) => {
                   const dateKey = formatDateKey(day.date);
                   const dayActual = actualCalendarData[dateKey];
+                  const dayPlans = calendarData[dateKey] || []; // Feature #335: Get planned workload
                   const dayIsToday = isToday(day.date);
                   const dayIsFuture = isFutureDate(day.date);
+                  const dayIsPastOrToday = !dayIsFuture;
 
                   return (
                     <div
                       key={index}
                       className={`min-h-24 p-2 border rounded-lg ${
                         day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
-                      } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'}`}
+                      } ${dayIsToday ? 'border-primary-500 border-2' : 'border-gray-200'} ${
+                        day.isCurrentMonth && (dayActual || dayPlans.length > 0) ? 'cursor-pointer hover:bg-gray-50' : ''
+                      }`}
+                      onClick={(e) => {
+                        // Feature #335: Open modal when clicking on cell with data
+                        if (day.isCurrentMonth && (dayActual || dayPlans.length > 0) && e.target === e.currentTarget) {
+                          if (dayActual) {
+                            handleViewActualEntry(dayActual);
+                          } else if (dayPlans.length > 0) {
+                            handleOpenDateEmployeesModal(dateKey);
+                          }
+                        }
+                      }}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span
                           className={`text-sm font-medium ${
                             day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
                           } ${dayIsToday ? 'text-primary-600' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Feature #335: Clicking on date number also opens modal
+                            if (day.isCurrentMonth && (dayActual || dayPlans.length > 0)) {
+                              if (dayActual) {
+                                handleViewActualEntry(dayActual);
+                              } else if (dayPlans.length > 0) {
+                                handleOpenDateEmployeesModal(dateKey);
+                              }
+                            }
+                          }}
                         >
                           {day.date.getDate()}
                         </span>
                         {/* Only show Add button for current month, no existing entry, and not future date */}
                         {day.isCurrentMonth && !dayActual && !dayIsFuture && (
                           <button
-                            onClick={() => handleOpenAddActualModal(dateKey)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAddActualModal(dateKey);
+                            }}
                             className="text-primary-600 hover:text-primary-800 p-1"
                             aria-label={t('workload.addHoursFor', { date: dateKey })}
                           >
@@ -1612,10 +1716,14 @@ export default function WorkloadPage() {
                           </button>
                         )}
                       </div>
+                      {/* Feature #335: Display actual workload if exists (past dates) */}
                       {dayActual && (
                         <div
                           className="text-xs bg-green-100 text-green-800 p-1 rounded cursor-pointer hover:bg-green-200 transition-colors"
-                          onClick={() => handleViewActualEntry(dayActual)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewActualEntry(dayActual);
+                          }}
                           title={t('common.clickToViewDetails')}
                         >
                           <div className="font-medium">{dayActual.hoursWorked}{t('workload.hoursWorked')}</div>
@@ -1628,6 +1736,25 @@ export default function WorkloadPage() {
                               ))}
                             </div>
                           )}
+                        </div>
+                      )}
+                      {/* Feature #335: Display planned workload for current and future dates (when no actual data) */}
+                      {!dayActual && dayPlans.length > 0 && (
+                        <div className="space-y-1">
+                          {dayPlans.map((plan) => (
+                            <div
+                              key={plan.id}
+                              className="text-xs bg-blue-100 text-blue-800 p-1 rounded cursor-pointer hover:bg-blue-200 transition-colors truncate"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDateEmployeesModal(dateKey);
+                              }}
+                              title={`${t('workload.planned')}: ${plan.project.name} - ${t('common.clickToViewDetails')}`}
+                            >
+                              <span className="font-medium">{t('workload.planned')}</span>
+                              <span className="text-blue-600"> - {plan.project.name}</span>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
