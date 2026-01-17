@@ -64,10 +64,16 @@ jobs:
           VITE_WS_URL=wss://lencondb.ru
           EOF"
 
+      - name: Stop existing containers
+        run: |
+          ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "cd ${{ env.APP_DIR }} && \
+            docker compose down --remove-orphans 2>/dev/null || true && \
+            docker stop projectdb-backend projectdb-frontend 2>/dev/null || true && \
+            docker rm -f projectdb-backend projectdb-frontend 2>/dev/null || true"
+
       - name: Build and deploy with Docker Compose
         run: |
           ssh ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "cd ${{ env.APP_DIR }} && \
-            docker compose down --remove-orphans || true && \
             docker compose build --no-cache && \
             docker compose up -d && \
             docker compose ps"
