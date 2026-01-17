@@ -214,7 +214,13 @@ export default function WorkloadPage() {
       });
 
       if (selectedProject) params.append('projectId', selectedProject);
-      if (selectedEmployee) params.append('userId', selectedEmployee);
+
+      // Feature #334: Employee users should only see their own workload plans
+      if (isEmployee && user) {
+        params.append('userId', user.id);
+      } else if (selectedEmployee) {
+        params.append('userId', selectedEmployee);
+      }
 
       const response = await api.get(`/workload-plan/calendar?${params}`);
       setCalendarData(response.data);
@@ -872,6 +878,8 @@ export default function WorkloadPage() {
             </select>
           </div>
 
+          {/* Feature #334: Hide employee filter for Employee role - they can only see their own data */}
+          {!isEmployee && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t('workload.employee')}
@@ -890,6 +898,7 @@ export default function WorkloadPage() {
               ))}
             </select>
           </div>
+          )}
         </div>
       </div>
       )}
